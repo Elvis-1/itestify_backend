@@ -1,52 +1,88 @@
 # views.py
-import random
-from django.core.mail import send_mail
-from django.contrib.auth.models import User
+from django.shortcuts import render
+from django.utils import timezone
+from django.http import JsonResponse
+from django.core.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import OTP
-from .serializers import OTPRequestSerializer, OTPVerifySerializer
+from django.core.mail import send_mail
+import uuid
+import time
 
-class RequestOTPView(APIView):
-    def post(self, request):
-        serializer = OTPRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
+from .models import CustomUser, Tokens
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
 
-        otp_code = str(random.randint(100000, 999999))
-        OTP.objects.create(user=user, otp_code=otp_code)
+class SignupView(APIView):
+    """
+    View for user signup. Accepts email and sends a verification code.
+    - Check if the email is already registered
+    - Generate a verification code and it expires in 1 hour
+    - Send the verification code to the user's email
+    
+    """
+    def post(self, request, *args, **kwargs):
+        email = request.data.get("email")
+
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if CustomUser.objects.filter(email=email).exists():
+            return Response({"error": "Email is already in use"}, status=status.HTTP_400_BAD_REQUEST)
+
+        
+        token = str(uuid.uuid4())
+        exp_date = time.time() + 3600
+
+        Tokens.objects.create(
+            email=email,
+            action="signup",
+            token=token,
+            exp_date=exp_date
+        )
 
         send_mail(
-            'Your OTP Code',
-            f'Your OTP code is {otp_code}. It is valid for 10 minutes.',
-            'your-email@gmail.com',
-            [email],
+            subject="Your Signup Verification Code",
+            message=f"Your verification code is: {token}",
+            from_email="no-reply@example.com",
+            recipient_list=[email],
             fail_silently=False,
         )
-        return Response({"message": "OTP sent to your email."}, status=status.HTTP_200_OK)
 
-class VerifyOTPView(APIView):
-    def post(self, request):
-        serializer = OTPVerifySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data['email']
-        otp = serializer.validated_data['otp']
+        return Response({"message": "Verification email sent. Please check your inbox."}, status=status.HTTP_200_OK)
+
+
+class VerifyTokenView(APIView):
+    """
+    View for verifying the token sent to the user's email.
+    - Check if the token is valid
+    - Check if the token has expired
+    - Mark the token as used and confirm the user's signup
+    - Create the user account
+    """
+    def post(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        token = request.data.get("token")
+
+        if not email or not token:
+            return Response({"error": "Email and token are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = User.objects.get(email=email)
-            otp_obj = OTP.objects.filter(user=user, otp_code=otp).first()
+            token_obj = Tokens.objects.get(email=email, token=token, action="signup")
+        except Tokens.DoesNotExist:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
 
-            if otp_obj and otp_obj.is_valid():
-                otp_obj.delete()  # Invalidate the OTP after successful verification
-                return Response({"message": "OTP verified. Login successful."}, status=status.HTTP_200_OK)
-            else:
-                return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+        if token_obj.exp_date < time.time():
+            return Response({"error": "Token has expired"}, status=status.HTTP_400_BAD_REQUEST)
 
-        except User.DoesNotExist:
-            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        token_obj.used = True
+        token_obj.confirmed = True
+        token_obj.date_used = timezone.now()
+        token_obj.save()
+
+        user = CustomUser.objects.create_user(email=email, password=None)
+        user.verified = True
+        user.is_active = True
+        user.save()
+
+        return Response({"message": "Signup verified. Account created successfully."}, status=status.HTTP_201_CREATED)
