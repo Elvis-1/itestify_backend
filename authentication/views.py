@@ -1,7 +1,8 @@
 # views.py
 from django.shortcuts import render
 from django.utils import timezone
-from django.http import JsonResponse
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from django.core.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -21,6 +22,20 @@ class SignupView(APIView):
     - Send the verification code to the user's email
     
     """
+    @swagger_auto_schema(
+    operation_description="Send a verification code to the user's email for signup.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=["email"],
+        properties={
+            "email": openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="User's email address"),
+        },
+    ),
+    responses={
+        200: "Verification email sent.",
+        400: "Invalid email or other error.",
+    },
+    )
     def post(self, request, *args, **kwargs):
         email = request.data.get("email")
 
@@ -60,6 +75,7 @@ class VerifyTokenView(APIView):
     - Mark the token as used and confirm the user's signup
     - Create the user account
     """
+   
     def post(self, request, *args, **kwargs):
         email = request.data.get("email")
         token = request.data.get("token")
