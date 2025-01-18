@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'admin_accounts',
+    'testimonies',
     'rest_framework',  # Required for DRF
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
