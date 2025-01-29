@@ -22,8 +22,6 @@ venv/
 # VSCode
 .vscode/
 
-# Migrations
-migrations/
 
 # Static and media
 staticfiles/
