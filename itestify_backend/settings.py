@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
 
 
 load_dotenv() 
@@ -31,7 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 # Application definition
