@@ -35,7 +35,7 @@ class Testimony(TouchDatesMixim):
         abstract = True
 
     def __str__(self):
-        return f"Testimony by: {self.uploaded_by.username}"
+        return f"Testimony by: {self.uploaded_by.full_name}"
 
     
 class TextTestimony(Testimony):
@@ -80,7 +80,7 @@ class SocialInteraction(TouchDatesMixim):
         unique_together = ('content_type', 'object_id', 'user')
 
     def __str__(self):
-        return f"{self.__class__.__name__} by {self.user.username}"
+        return f"{self.__class__.__name__} by {self.user.full_name}"
 
 
 class Comment(SocialInteraction):

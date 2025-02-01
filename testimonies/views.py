@@ -5,8 +5,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
-from .models import TextTestimony
-from .serializers import TextTestimonySerializer
+
+from support import http
+from support.helpers import StandardResultsSetPagination
+from .models import TextTestimony, VideoTestimony
+from .serializers import ReturnTextTestimonySerializer, ReturnVideoTestimonySerializer, TextTestimonySerializer
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies with filtering and search."""
@@ -84,5 +87,34 @@ class TestimonySettingsView(APIView):
 class TestimonyViewSet(viewsets.ViewSet):
     
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
     
-    pass
+    def list(self, request):
+        """Get all testimonies"""
+        
+        # Get type parameter
+        test_type = request.query_params.get("type", "").lower()
+        
+        
+         # Define a mapping for testimony types
+        testimony_map = {
+            "text": (TextTestimony.objects.all(), ReturnTextTestimonySerializer),
+            "video": (VideoTestimony.objects.all(), ReturnVideoTestimonySerializer),
+        }
+        
+        if test_type not in testimony_map:
+            return http.failed_response(
+                message="Invalid or missing testimony type. Valid types are 'text' or 'video'.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        # Get the queryset and serializer dynamically
+        queryset, serializer_class = testimony_map[test_type]
+        
+        paginator = self.pagination_class()
+        paginated_queryset = paginator.paginate_queryset(queryset, request)
+        serializer = serializer_class(paginated_queryset, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
+        
+        
