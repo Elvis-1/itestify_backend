@@ -1,13 +1,11 @@
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import status, permissions
 from rest_framework.decorators import action
-from rest_framework_simplejwt.tokens import RefreshToken
-from user.models import User
-from django.contrib.auth import authenticate, login
-
-from user.serializers import LoginCodeEntrySerialiazer, SetPasswordSerializer, ReturnUserSerializer
+from user.models import EntryCode, User
+from django.contrib.auth import login
+from .utils import Util
+from .serializers import LoginCodeEntrySerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer
 
 # Create your views here.
 
@@ -61,7 +59,38 @@ class LoginViewSet(viewsets.ViewSet):
 
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    
+    @action(detail=False, methods=["post"])
+    def resend_entry_code(self, request):
         
+        serializer = ResendEntryCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data['email']
+        
+        # check if email exist in the datsbase
+        try:
+            user = EntryCode.objects.get(user__email=email)
+        except User.DoesNotExist:
+            return Response({'success': False, "message": "User email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+        # Generate a new entry code and update the user's entry code record
+        user.code = Util.generate_entry_code()
+        user.is_used = False
+        user.save()
+        
+        # Prepare email data and send the email
+        email_data = {
+            'to_email': email,
+            'email_subject': "Request For a New Entry Code",
+            'email_body': f"Your new entry code: {user.code}"
+        }
+        Util.send_email(email_data)
+        
+        return Response({'success': True, "message": f"A new entry code has been sent to your email {email}"}, status=status.HTTP_200_OK)
+    
 
 class DashboardViewSet(viewsets.ViewSet):
     
@@ -85,4 +114,9 @@ class DashboardViewSet(viewsets.ViewSet):
     
         return Response({"success": True, "message": "Passwords change Successfully"}, status=status.HTTP_200_OK)
 
+
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        pass
         

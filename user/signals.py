@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils.crypto import get_random_string
+from .utils import Util 
 from .models import User, EntryCode
 
 
@@ -9,7 +9,7 @@ def create_entry_code(sender, instance, created, **kwargs):
     if created:
         while True:
             # Generate a unique 6-digit code
-            code = get_random_string(length=6, allowed_chars='0123456789')
+            code = Util.generate_entry_code()
             if not EntryCode.objects.filter(code=code).exists():
                 break
 

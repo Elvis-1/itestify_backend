@@ -1,4 +1,7 @@
 from rest_framework.views import APIView
+from rest_framework import viewsets
+from rest_framework import status, permissions
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
@@ -75,3 +78,11 @@ class TestimonySettingsView(APIView):
     def post(self, request):
         # Update settings logic here
         return Response({"message": "Settings updated successfully"})
+    
+
+
+class TestimonyViewSet(viewsets.ViewSet):
+    
+    permission_classes = [permissions.IsAuthenticated]
+    
+    pass

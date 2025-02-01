@@ -31,3 +31,9 @@ class SetPasswordSerializer(serializers.Serializer):
 
     password = serializers.CharField(max_length=255, write_only=True)
     confirm_password = serializers.CharField(max_length=255, write_only=True)
+    
+    
+class ResendEntryCodeSerializer(serializers.Serializer):
+    """resend entry code for user"""
+
+    email = serializers.EmailField()
