@@ -9,7 +9,7 @@ from rest_framework import status
 from support import http
 from support.helpers import StandardResultsSetPagination
 from .models import TextTestimony, VideoTestimony
-from .serializers import ReturnTextTestimonySerializer, ReturnVideoTestimonySerializer, TextTestimonySerializer
+from .serializers import ReturnTextTestimonySerializer, ReturnVideoTestimonySerializer, TextTestimonySerializer, VideoTestimonySerializer
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies with filtering and search."""
@@ -116,5 +116,30 @@ class TestimonyViewSet(viewsets.ViewSet):
         serializer = serializer_class(paginated_queryset, many=True)
         
         return paginator.get_paginated_response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def create_text(self, request):
+        
+        serializer = TextTestimonySerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        testimony = serializer.save()
+        
+        return_serializer = ReturnTextTestimonySerializer(testimony)
+        return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['post'])
+    def create_video(self, request):
+        
+        serializer = VideoTestimonySerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        testimony = serializer.save()
+        
+        return_serializer = ReturnVideoTestimonySerializer(testimony)
+        return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
+    
+    def retrieve(self, request):
+        pass
+        
+        
         
         
