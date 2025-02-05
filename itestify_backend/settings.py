@@ -248,6 +248,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 
 
+
 # Email
 EMAIL_BACKEND = os.getenv("MAIL_DRIVER", default=None)
 EMAIL_HOST = os.getenv("MAIL_HOST", default=None)
