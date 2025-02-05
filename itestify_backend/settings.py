@@ -94,7 +94,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = os.getenv("DEPLOY")
 
-if DEPLOY:
+if not DEPLOY:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
