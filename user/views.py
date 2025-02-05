@@ -72,7 +72,7 @@ class LoginViewSet(viewsets.ViewSet):
         # check if email exist in the datsbase
         try:
             user = EntryCode.objects.get(user__email=email)
-        except User.DoesNotExist:
+        except EntryCode.DoesNotExist:
             return Response({'success': False, "message": "User email does not exist."}, status=status.HTTP_404_NOT_FOUND)
         
         

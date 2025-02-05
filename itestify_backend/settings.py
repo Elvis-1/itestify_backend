@@ -84,6 +84,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'itestify_backend.wsgi.application'
+ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 
 # Database
@@ -126,6 +127,16 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+
+LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 DATE_INPUT_FORMATS = ["%d-%m-%Y"]
