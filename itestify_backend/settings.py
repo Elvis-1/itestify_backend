@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from dotenv import load_dotenv
 import os
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
@@ -90,13 +91,21 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DEPLOY = os.getenv("DEPLOY")
 
+if DEPLOY:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            "postgresql://itestify_backend_user:wS56Z2Q23kynPIUs0JYWs0g5NjuXiwji@dpg-cuhmeodumphs73fmi6qg-a.oregon-postgres.render.com/itestify_backend"
+        )
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
