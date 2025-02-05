@@ -18,7 +18,7 @@ class ReturnUserSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "email",
-            "username",
+            "full_name",
             "role",
             "last_login",
             "created_at",

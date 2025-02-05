@@ -9,27 +9,24 @@ from itestify_backend.mixims import TouchDatesMixim
 
 class UserManager(BaseUserManager):
 
-    def create_user(self, username, email, password=None):
-
-        if username is None:
-            raise TypeError('User should have a username')
+    def create_user(self, email, password=None):
 
         if email is None:
             raise TypeError('User should have an Email')
 
-        user = self.model(username=username, email=self.normalize_email(email))
+        user = self.model(email=self.normalize_email(email))
         user.set_password(password)
         user.save()
 
         return user
 
 
-    def create_superuser(self, username, email, password=None):
+    def create_superuser(self, email, password=None):
 
         if password is None:
             raise TypeError('Password should not be none')
 
-        user = self.create_user(username, email, password)
+        user = self.create_user(email, password)
         user.role = User.Roles.SUPER_ADMIN
         user.is_superuser = True
         user.is_staff = True
@@ -46,13 +43,12 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         VIWER = "viewer", "viewer"
         
     email = models.EmailField(max_length=255, unique=True)
-    username = models.CharField(max_length=255, unique=True)
+    full_name = models.CharField(max_length=255, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.VIWER)
     is_staff = models.BooleanField(default=False)
     
     
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
 
     objects = UserManager()
     
@@ -70,7 +66,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
 class EntryCode(TouchDatesMixim):
     user =  models.ForeignKey(User, on_delete=models.CASCADE, related_name='entry_code')
-    code = models.CharField(max_length=6, unique=True)
+    code = models.CharField(max_length=4, unique=True)
     is_used = models.BooleanField(default=False)
     
     def __str__(self):

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from dotenv import load_dotenv
 import os
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
@@ -84,18 +85,27 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'itestify_backend.wsgi.application'
+ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DEPLOY = os.getenv("DEPLOY")
 
+if DEPLOY:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            "postgresql://itestify_backend_user:wS56Z2Q23kynPIUs0JYWs0g5NjuXiwji@dpg-cuhmeodumphs73fmi6qg-a.oregon-postgres.render.com/itestify_backend"
+        )
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -126,6 +136,16 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
+
+
+LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
+
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
 DATE_INPUT_FORMATS = ["%d-%m-%Y"]
