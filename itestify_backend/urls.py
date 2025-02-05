@@ -18,10 +18,23 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+
+
+def home(request):
+    return JsonResponse(
+        {
+            "message": "Welcome to the Itestify API",
+            "data": {
+                "version": "1.0.0",
+                "docs": "https://documenter.getpostman.com/view/25513956/2sAYX6pMfe",
+            },
+        }
+    )
 
 urlpatterns = [
     path('admin/', admin.site.urls),  # Django admin
-    path('api/', include('admin_accounts.urls')),
+    path("", home),  # Home page
     path('', include('testimonies.urls')),
     path('', include('user.urls')),
 ]
