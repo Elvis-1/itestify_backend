@@ -3,7 +3,6 @@ from rest_framework import viewsets
 from rest_framework import status, permissions
 from rest_framework.decorators import action
 from user.models import EntryCode, User
-from django.contrib.auth import login
 from .utils import Util
 from .serializers import LoginCodeEntrySerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer
 
@@ -26,39 +25,39 @@ class LoginViewSet(viewsets.ViewSet):
 
         try:
             user = User.objects.get(email=email)
-            entry_code_obj = user.entry_code.all().first()
-            token = user.tokens()
-
-            if entry_code_obj.code == entry_code and not entry_code_obj.is_used:
-                login(request, user)
-                entry_code_obj.is_used = True
-                entry_code_obj.save()
-                
-                serializer = ReturnUserSerializer(user, many=False)
-
-                response = Response(
-                        {
-                            'user': serializer.data, 
-                            "token": token["access"],
-                            "refresh": token["refresh"],
-                        }
-                    )
-                
-                response.set_cookie(
-                    key="refresh",
-                    value=token["refresh"],
-                    httponly=True,  # Set HttpOnly flag
-                )
-                response.set_cookie(
-                    key="access", value=token["access"], httponly=True  # Set HttpOnly flag
-                )
-                
-                return response
-            else:
-                return Response({'error': 'Invalid entry code'}, status=status.HTTP_400_BAD_REQUEST)
-
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+        entry_code_obj = user.entry_code.all().first()
+        token = user.tokens()
+
+        if entry_code_obj.code == entry_code and not entry_code_obj.is_used:
+            entry_code_obj.is_used = True
+            entry_code_obj.save()
+            
+            serializer = ReturnUserSerializer(user, many=False)
+
+            response = Response(
+                    {
+                        'user': serializer.data, 
+                        "token": token["access"],
+                        "refresh": token["refresh"]
+                    }
+                )
+            
+            response.set_cookie(
+                key="refresh",
+                value=token["refresh"],
+                httponly=True,  # Set HttpOnly flag
+            )
+            response.set_cookie(
+                key="access", value=token["access"], httponly=True  # Set HttpOnly flag
+            )
+            
+            return response
+        
+        return Response({'error': 'Invalid entry code'}, status=status.HTTP_400_BAD_REQUEST)
     
     
     @action(detail=False, methods=["post"])
