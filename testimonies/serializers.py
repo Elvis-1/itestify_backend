@@ -26,7 +26,7 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
 class VideoTestimonySerializer(serializers.ModelSerializer):
     class Meta:
         model = VideoTestimony
-        fields = ["title", "category", "source", "upload_status", "video_file", "thumbnail"]
+        fields = ["title", "category", "source", "upload_status", "scheduled_datetime", "video_file", "thumbnail"]
         
     def create(self, validated_data):
         # Add the currently authenticated user to the validated data

@@ -46,6 +46,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     full_name = models.CharField(max_length=255, null=True, blank=True)
     role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.VIWER)
     is_staff = models.BooleanField(default=False)
+    created_password = models.BooleanField(default=False)
     
     
     USERNAME_FIELD = 'email'

@@ -63,6 +63,16 @@ class VideoTestimony(Testimony):
     video_file = models.FileField(upload_to='videos/', help_text="Upload video file")
     thumbnail = models.ImageField(upload_to='thumbnails/', blank=True, null=True, help_text="Upload thumbnail image or leave blank for auto-generated")
     auto_generate_thumbnail = models.BooleanField(default=True, help_text="Auto-generate thumbnail if no upload")
+    scheduled_datetime = models.DateTimeField(
+        blank=True, null=True, 
+        help_text="Datetime for scheduling the upload (used only for 'Schedule for Later' status)"
+    )
+
+    def save(self, *args, **kwargs):
+        # Ensure scheduled_datetime is required when upload_status is 'schedule_for_later'
+        if self.upload_status == self.UPLOAD_STATUS.SCHEDULE_LATER and not self.scheduled_datetime:
+            raise ValueError("scheduled_datetime is required when upload_status is 'schedule_for_later'.")
+        super().save(*args, **kwargs)
     
     
     

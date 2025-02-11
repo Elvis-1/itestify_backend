@@ -205,8 +205,8 @@ class TestimonyViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['post'])
     def create_video(self, request):
-        
         serializer = VideoTestimonySerializer(data=request.data, context={'request': request})
+        print('============', request.data.get('scheduled_datetime'))
         serializer.is_valid(raise_exception=True)
         testimony = serializer.save()
         

@@ -4,7 +4,7 @@ from rest_framework import status, permissions
 from rest_framework.decorators import action
 from user.models import EntryCode, User
 from .utils import Util
-from .serializers import LoginCodeEntrySerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer
+from .serializers import LoginCodeEntrySerialiazer, LoginPasswordSerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer
 
 # Create your views here.
 
@@ -61,6 +61,54 @@ class LoginViewSet(viewsets.ViewSet):
     
     
     @action(detail=False, methods=["post"])
+    def password(self, request):
+        # serializer_class = LoginPasswordSerialiazer
+        serializer = LoginPasswordSerialiazer(data=request.data)
+        if not serializer.is_valid(raise_exception=True):
+            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+        
+        try:
+            # Retrieve user by email
+            user = User.objects.get(email=email)
+            token = user.tokens()
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+        # Check if the password is correct
+        if user.check_password(password):
+            serializer = ReturnUserSerializer(user, many=False)
+
+            response = Response(
+                    {
+                        'user': serializer.data, 
+                        "token": token["access"],
+                        "refresh": token["refresh"]
+                    }
+                )
+            
+            response.set_cookie(
+                key="refresh",
+                value=token["refresh"],
+                httponly=True,  # Set HttpOnly flag
+            )
+            response.set_cookie(
+                key="access",
+                value=token["access"],
+                httponly=True,  # Set HttpOnly flag
+            )
+            
+            return response
+            
+        else:
+            return Response(
+                {'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+    
+    @action(detail=False, methods=["post"])
     def resend_entry_code(self, request):
         
         serializer = ResendEntryCodeSerializer(data=request.data)
@@ -108,6 +156,7 @@ class DashboardViewSet(viewsets.ViewSet):
             return Response({"success": False, "message": "Passwords does not match"}, status=status.HTTP_400_BAD_REQUEST)
         
         user = request.user
+        user.created_password = True
         user.set_password(password)
         user.save()
     

@@ -10,6 +10,11 @@ class LoginCodeEntrySerialiazer(serializers.Serializer):
     entry_code = serializers.CharField(max_length=6)
     
 
+class LoginPasswordSerialiazer(serializers.Serializer):
+        
+    email = serializers.EmailField()
+    password = serializers.CharField(max_length=225)
+
 
 class ReturnUserSerializer(serializers.ModelSerializer):
     
@@ -20,6 +25,7 @@ class ReturnUserSerializer(serializers.ModelSerializer):
             "email",
             "full_name",
             "role",
+            "created_password",
             "last_login",
             "created_at",
             "updated_at",
