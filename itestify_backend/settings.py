@@ -260,7 +260,7 @@ EMAIL_USE_TLS = os.getenv("MAIL_ENCRYPTION")
 
 
 # celery settings
-CELERY_BROKER_URL = "redis://localhost:6379/1"
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 # CELERY_BEAT_SCHEDULE = {
 #     "upload_schedule_vidoes" : {
 #         "task": "testimonies.tasks.upload_schedule_vidoes",
