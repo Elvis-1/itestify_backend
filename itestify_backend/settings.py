@@ -16,6 +16,7 @@ import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
+from celery.schedules import crontab
 
 
 load_dotenv() 
@@ -93,7 +94,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DEPLOY = os.getenv("DEPLOY")
-
+DEPLOY = False
 if not DEPLOY:
     DATABASES = {
         'default': {
@@ -256,3 +257,15 @@ EMAIL_PORT = os.getenv("MAIL_PORT", default=None)
 EMAIL_HOST_USER = os.getenv("MAIL_USERNAME", default=None)
 EMAIL_HOST_PASSWORD = os.getenv("MAIL_PASSWORD", default=None)
 EMAIL_USE_TLS = os.getenv("MAIL_ENCRYPTION")
+
+
+# celery settings
+CELERY_BROKER_URL = "redis://localhost:6379/1"
+# CELERY_BEAT_SCHEDULE = {
+#     "upload_schedule_vidoes" : {
+#         "task": "testimonies.tasks.upload_schedule_vidoes",
+#         # "schedule": crontab(minute="*/5"), #5min
+#         # "schedule": 5, #5 sec
+#         # "args": [""]
+#     }
+# }
