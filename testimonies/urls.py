@@ -1,11 +1,12 @@
 from django.urls import include, path
-from .views import TextTestimonyApprovalView, TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet
+from .views import InspirationalPicturesViewSet, TextTestimonyApprovalView, TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet
 from rest_framework.routers import DefaultRouter
 
 
 router = DefaultRouter()
 router.register(r'testimonies/texts', TextTestimonyViewSet, basename="text-testimonies")
 router.register(r'testimonies/videos', VideoTestimonyViewSet, basename="video-testimonies")
+router.register(r'inspirational', InspirationalPicturesViewSet, basename="inspirational")
 
 urlpatterns = [
     path('', include(router.urls)),
