@@ -84,10 +84,19 @@ class TestimonySettingsView(APIView):
     
 
 
-class TestimonyViewSet(viewsets.ViewSet):
+class VideoTestimonyViewSet(viewsets.ViewSet):
     
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
+    
+    @action(detail=False, methods=['post'])
+    def create_video(self, request):
+        serializer = VideoTestimonySerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        testimony = serializer.save()
+        
+        return_serializer = ReturnVideoTestimonySerializer(testimony)
+        return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
     
     def list(self, request):
         """Get all testimonies"""
@@ -95,104 +104,108 @@ class TestimonyViewSet(viewsets.ViewSet):
         # Get type parameter
         test_type = request.query_params.get("type", "").lower()
         
+        # get all videos
+        testimony_qs = VideoTestimony.objects.all()
         
-         # Define a mapping for testimony types
-        testimony_map = {
-            "text": (TextTestimony.objects.all(), ReturnTextTestimonySerializer),
-            "video": (VideoTestimony.objects.all(), ReturnVideoTestimonySerializer),
-        }
-        
-        if test_type not in testimony_map:
-            return http.failed_response(
-                message="Invalid or missing testimony type. Valid types are 'text' or 'video'.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-            )
-        
-        # Get the queryset and serializer dynamically
-        queryset, serializer_class = testimony_map[test_type]
+        if test_type:
+            testimony_qs = testimony_qs.filter(upload_status=test_type)
         
         paginator = self.pagination_class()
-        paginated_queryset = paginator.paginate_queryset(queryset, request)
-        serializer = serializer_class(paginated_queryset, many=True)
+        paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
+        serializer = ReturnVideoTestimonySerializer(paginated_queryset, many=True)
+        
+        return paginator.get_paginated_response(serializer.data)
+    
+    def retrieve(self, request, pk=None):
+        """Retrieve a specific video testimony by ID"""
+        try:
+            # try fetching it from VideoTestimony
+            testimony = VideoTestimony.objects.get(id=pk)
+        except VideoTestimony.DoesNotExist:
+            # If neither is found, return a 404 response
+            return http.failed_response(
+                message="Testimony not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        
+        # Serialize the testimony and return the response
+        serializer = ReturnVideoTestimonySerializer(testimony)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def update(self, request, pk=None):
+        """Update a specific video testimony by ID"""
+        try:
+            # try fetching it from VideoTestimony
+            testimony = VideoTestimony.objects.get(id=pk)
+        except VideoTestimony.DoesNotExist:
+            # If neither is found, return a 404 response
+            return http.failed_response(
+                message="Testimony not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+            
+        # Use the appropriate serializer to validate and update the data
+        serializer = VideoTestimonySerializer(testimony, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return_serializer = ReturnVideoTestimonySerializer(serializer.instance)
+            return http.success_response(data=return_serializer.data, status_code=status.HTTP_200_OK)
+
+        # Return validation errors if the data is invalid
+        return http.failed_response(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, pk=None):
+        """Delete a specific video testimony by ID"""
+        try:
+            testimony = VideoTestimony.objects.get(id=pk)
+        except VideoTestimony.DoesNotExist:
+            # If neither is found, return a 404 response
+            return http.failed_response(
+                message="Video Testimony not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+        
+        # Delete the found testimony
+        testimony.delete()
+        return http.success_response(message="Testimony deleted successfully.", status_code=status.HTTP_204_NO_CONTENT,
+        )
+        
+
+class TextTestimonyViewSet(viewsets.ViewSet):
+    
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    
+    def list(self, request):
+        """Get all Text testimonies"""
+        
+        # get all texts
+        testimony_qs = TextTestimony.objects.all()
+        
+        paginator = self.pagination_class()
+        paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
+        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
         
         return paginator.get_paginated_response(serializer.data)
     
     
     def retrieve(self, request, pk=None):
-        """Retrieve a specific testimony by ID"""
+        """Retrieve a specific text testimony by ID"""
         try:
-            # Try to fetch the testimony from TextTestimony first
+            # try fetching it from TextTestimony
             testimony = TextTestimony.objects.get(id=pk)
-            serializer_class = ReturnTextTestimonySerializer
         except TextTestimony.DoesNotExist:
-            try:
-                # If not found, try fetching it from VideoTestimony
-                testimony = VideoTestimony.objects.get(id=pk)
-                serializer_class = ReturnVideoTestimonySerializer
-            except VideoTestimony.DoesNotExist:
-                # If neither is found, return a 404 response
-                return http.failed_response(
-                    message="Testimony not found.",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
+            # If neither is found, return a 404 response
+            return http.failed_response(
+                message="Testimony not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
         
         # Serialize the testimony and return the response
-        serializer = serializer_class(testimony)
+        serializer = ReturnTextTestimonySerializer(testimony)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    
-    def update(self, request, pk=None):
-        """Update a specific testimony by ID"""
-        try:
-            # Try to fetch the testimony from TextTestimony first
-            testimony = TextTestimony.objects.get(id=pk)
-            serializer_class = ReturnTextTestimonySerializer
-        except TextTestimony.DoesNotExist:
-            try:
-                # If not found, try fetching it from VideoTestimony
-                testimony = VideoTestimony.objects.get(id=pk)
-                serializer_class = ReturnVideoTestimonySerializer
-            except VideoTestimony.DoesNotExist:
-                # If neither is found, return a 404 response
-                return http.failed_response(
-                    message="Testimony not found.",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
 
-        # Use the appropriate serializer to validate and update the data
-        serializer = serializer_class(testimony, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        # Return validation errors if the data is invalid
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-    
-    def destroy(self, request, pk=None):
-        """Delete a specific testimony by ID"""
-        try:
-            # Try to fetch and delete from TextTestimony
-            testimony = TextTestimony.objects.get(id=pk)
-        except TextTestimony.DoesNotExist:
-            try:
-                # If not found, fetch and delete from VideoTestimony
-                testimony = VideoTestimony.objects.get(id=pk)
-            except VideoTestimony.DoesNotExist:
-                # If neither is found, return a 404 response
-                return http.failed_response(
-                    message="Testimony not found.",
-                    status_code=status.HTTP_404_NOT_FOUND,
-                )
-        
-        # Delete the found testimony
-        testimony.delete()
-        return Response(
-            {"message": "Testimony deleted successfully."},
-            status=status.HTTP_204_NO_CONTENT,
-        )
-
-        
     @action(detail=False, methods=['post'])
     def create_text(self, request):
         
@@ -203,14 +216,44 @@ class TestimonyViewSet(viewsets.ViewSet):
         return_serializer = ReturnTextTestimonySerializer(testimony)
         return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
     
-    @action(detail=False, methods=['post'])
-    def create_video(self, request):
-        serializer = VideoTestimonySerializer(data=request.data, context={'request': request})
-        serializer.is_valid(raise_exception=True)
-        testimony = serializer.save()
+
+    def update(self, request, pk=None):
+        """Update a specific text testimony by ID"""
+        try:
+            testimony = TextTestimony.objects.get(id=pk)
+        except TextTestimony.DoesNotExist:
+            return http.failed_response(
+                message="Testimony not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+            
+        # Use the appropriate serializer to validate and update the data
+        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
+            return http.success_response(data=return_serializer.data, status_code=status.HTTP_200_OK)
+
+        # Return validation errors if the data is invalid
+        return http.failed_response(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+    
+
+    def destroy(self, request, pk=None):
+        """Delete a specific text testimony by ID"""
+        try:
+            testimony = TextTestimony.objects.get(id=pk)
+        except TextTestimony.DoesNotExist:
+            # If neither is found, return a 404 response
+            return http.failed_response(
+                message="text Testimony not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
         
-        return_serializer = ReturnVideoTestimonySerializer(testimony)
-        return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
+        # Delete the found testimony
+        testimony.delete()
+        return http.success_response(message="Testimony deleted successfully.", status_code=status.HTTP_204_NO_CONTENT,
+        )
+       
     
         
         

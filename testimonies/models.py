@@ -55,7 +55,7 @@ class VideoTestimony(Testimony):
     class UPLOAD_STATUS(models.TextChoices):
         UPLOAD_NOW = "upload_now", "upload_now"
         SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
-        DRAFT = "draft", "drafts"
+        DRAFT = "drafts", "drafts"
         
     
     source = models.CharField(max_length=255, help_text="Video source")
@@ -67,12 +67,6 @@ class VideoTestimony(Testimony):
         blank=True, null=True, 
         help_text="Datetime for scheduling the upload (used only for 'Schedule for Later' status)"
     )
-
-    def save(self, *args, **kwargs):
-        # Ensure scheduled_datetime is required when upload_status is 'schedule_for_later'
-        if self.upload_status == self.UPLOAD_STATUS.SCHEDULE_LATER and not self.scheduled_datetime:
-            raise ValueError("scheduled_datetime is required when upload_status is 'schedule_for_later'.")
-        super().save(*args, **kwargs)
     
     
     

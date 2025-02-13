@@ -94,7 +94,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DEPLOY = os.getenv("DEPLOY")
-
+DEPLOY = False
 if not DEPLOY:
     DATABASES = {
         'default': {
