@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
+    "donations",
     # "rest_framework.authtoken",
     # 'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
 ]
@@ -105,7 +106,7 @@ if not DEPLOY:
 else:
     DATABASES = {
         "default": dj_database_url.parse(
-            "postgresql://itestify_backend_user:wS56Z2Q23kynPIUs0JYWs0g5NjuXiwji@dpg-cuhmeodumphs73fmi6qg-a.oregon-postgres.render.com/itestify_backend"
+            "postgresql://itestify_database_user:yPZljgGZnHRvfcDvVdwQLu6sBVopITJn@dpg-cv3bap23esus73df4g70-a.oregon-postgres.render.com/itestify_database"
         )
     }
 
