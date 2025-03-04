@@ -37,6 +37,7 @@ urlpatterns = [
     path("", home),  # Home page
     path('', include('testimonies.urls')),
     path('', include('user.urls')),
+    path('', include('donations.urls')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

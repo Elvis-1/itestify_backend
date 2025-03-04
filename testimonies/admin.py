@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import TextTestimony, VideoTestimony, Comment, Like, Share
+from .models import InspirationalPictures, TextTestimony, VideoTestimony, Comment, Like, Share
 
 @admin.register(TextTestimony)
 class TextTestimonyAdmin(admin.ModelAdmin):
@@ -20,4 +20,8 @@ class LikeAdmin(admin.ModelAdmin):
 
 @admin.register(Share)
 class ShareAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(InspirationalPictures)
+class InspirationalPicturesAdmin(admin.ModelAdmin):
     pass

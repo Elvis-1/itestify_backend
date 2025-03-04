@@ -48,16 +48,17 @@ class TextTestimony(Testimony):
     content = models.TextField()
     status = models.CharField(max_length=20, choices=STATUS.choices, default=STATUS.PENDING)
     
-    
-    
+
+
+
+class UPLOAD_STATUS(models.TextChoices):
+    UPLOAD_NOW = "upload_now", "upload_now"
+    SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
+    DRAFT = "drafts", "drafts"
+
+
 class VideoTestimony(Testimony):
-    
-    class UPLOAD_STATUS(models.TextChoices):
-        UPLOAD_NOW = "upload_now", "upload_now"
-        SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
-        DRAFT = "draft", "drafts"
         
-    
     source = models.CharField(max_length=255, help_text="Video source")
     upload_status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices)
     video_file = models.FileField(upload_to='videos/', help_text="Upload video file")
@@ -67,12 +68,6 @@ class VideoTestimony(Testimony):
         blank=True, null=True, 
         help_text="Datetime for scheduling the upload (used only for 'Schedule for Later' status)"
     )
-
-    def save(self, *args, **kwargs):
-        # Ensure scheduled_datetime is required when upload_status is 'schedule_for_later'
-        if self.upload_status == self.UPLOAD_STATUS.SCHEDULE_LATER and not self.scheduled_datetime:
-            raise ValueError("scheduled_datetime is required when upload_status is 'schedule_for_later'.")
-        super().save(*args, **kwargs)
     
     
     
@@ -103,3 +98,22 @@ class Like(SocialInteraction):
 
 class Share(SocialInteraction):
     pass
+
+
+class InspirationalPictures(TouchDatesMixim):
+    thumbnail = models.ImageField(upload_to="inspirational_picture/")
+    status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices)
+    shares = GenericRelation("Share")
+    downloads_count = models.PositiveIntegerField(default=0)
+    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    scheduled_datetime = models.DateTimeField(
+        blank=True, null=True, 
+        help_text="Datetime for scheduling the upload (used only for 'Schedule for Later' status)"
+    )
+    
+    class Meta:
+        verbose_name = "Inspirational Picture"
+        verbose_name_plural = "Inspirational Pictures"
+    
+    def __str__(self):
+        return f"Inspirational Picture uploaded by {self.uploaded_by}"
