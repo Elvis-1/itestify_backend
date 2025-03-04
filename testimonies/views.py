@@ -84,7 +84,6 @@ class TestimonySettingsView(APIView):
         return Response({"message": "Settings updated successfully"})
     
 
-
 class VideoTestimonyViewSet(viewsets.ViewSet):
     
     permission_classes = [permissions.IsAuthenticated]
@@ -303,7 +302,6 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         )
        
     
-   
 class InspirationalPicturesViewSet(viewsets.ViewSet):
     
     permission_classes = [permissions.IsAuthenticated]
