@@ -4,12 +4,11 @@ from user.models import User
 
 # Create your models here.
 
+class DONATION_TYPE(models.TextChoices):
+        BANK_TRANSFER = 'bank_transfer', 'Bank Transfer'
+        CARD_PAYMENT = 'card_payment', 'Card Payment'
+
 class DonationSetting(TouchDatesMixim):
-    
-    DONATION_TYPE = (
-        ("bank_transfer", "bank transfer"),
-        ("card_payment", "card payment"),
-    )
     
     notify_admin = models.BooleanField(default=True, help_text="Enable to notify the admin after a user submits a donation for verification")
     notify_user = models.BooleanField(default=True, help_text="Send a notification to users when a donation cannot be verified")
@@ -48,16 +47,15 @@ class USDDonation(TouchDatesMixim):
 
 class TransactionHistory(TouchDatesMixim):
     
-    STATUS_CHOICES = (
-        ("pending", "Pending"),
-        ("verified", "Verified"),
-        ("failed", "Failed"),
-    )
-    
-    CURRENCY_TYPE = (
-        ("ng", "ng"),
-        ("usd", "usd"),
-    )
+
+    class STATUS_CHOICES(models.TextChoices):
+        PENDING = "pending", "Pending"
+        VERIFIED = "verified", "Verified"
+        FAILED = "failed", "Failed"
+
+    class CURRENCY_TYPE(models.TextChoices):
+        NG = "ng", "NG"
+        USD = "usd", "USD"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, help_text="User who initiated the transaction")
     reference = models.CharField(max_length=100, unique=True, help_text="Unique transaction reference")
