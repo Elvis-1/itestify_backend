@@ -40,13 +40,14 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     class Roles(models.TextChoices):
         SUPER_ADMIN = "super_admin", "super_admin"
         ADMIN = "admin", "admin"
-        VIWER = "viewer", "viewer"
+        VIEWER = "viewer", "viewer"
         
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.VIWER)
+    role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.VIEWER)
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
+    last_login = models.DateTimeField(null=True, blank=True)
     
     
     USERNAME_FIELD = 'email'
@@ -72,3 +73,16 @@ class EntryCode(TouchDatesMixim):
     
     def __str__(self):
         return f"{self.user.email} - code: {self.code}"
+    
+
+class Otp(TouchDatesMixim):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    code = models.IntegerField()
+
+    def check_expiration(self):
+        now = timezone.now()
+        diff = now - self.updated_at
+
+        if diff.total_seconds() > settings.EMAIL_OTP_EXPIRE_SECONDS:
+            return True
+        return False 
