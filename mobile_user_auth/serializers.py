@@ -6,8 +6,7 @@ from django.utils.translation import gettext_lazy as _
 class ReturnUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = [ "id", "email", "full_name", "last_login", "created_at"]
-
+        fields = [ "id", "email", "full_name", "last_login", "role", "created_at"]
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -51,7 +50,6 @@ class RefreshTokenSerializer(serializers.Serializer):
 
 
         
-
 
 
 

@@ -2,8 +2,8 @@ from rest_framework.generics import GenericAPIView
 from .serializers import RegistrationSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer
 from rest_framework import status
 from user.models import User, Otp
-from ..common.responses import CustomResponse
-from ..common.error import ErrorCode
+from common.responses import CustomResponse
+from common.error import ErrorCode
 from .emails import Util
 from datetime import datetime
 
@@ -43,7 +43,9 @@ class RegistrationAPIView(GenericAPIView):
         # Create user
         data.pop('password2', None)
         user = User.objects.create_user(**data)
-        token = user.token()
+        user.role = "viewer"
+        user.save()
+        token = user.tokens()
         
         response =  CustomResponse.success(
             message="Account created successfully",
@@ -94,7 +96,7 @@ class LoginAPIView(GenericAPIView):
                 status_code=401
             )
             
-        token = user.token()
+        token = user.tokens()
         
         user.last_login = datetime.now()
         user.save()
@@ -103,6 +105,7 @@ class LoginAPIView(GenericAPIView):
             "id": user.id,
             "email": user.email,
             "full_name": user.full_name,
+            "role": user.role,
             "last_login": user.last_login,
             "created_at": user.created_at,
             "token": {

@@ -1,7 +1,6 @@
 from django.apps import AppConfig
 
 
-class UserConfig(AppConfig):
+class MobileUserAuthConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'mobile_user'
-    label = "mobile_user"
+    name = 'mobile_user_auth'

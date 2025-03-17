@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "donations",
-    "mobile_backend.mobile_user.apps.UserConfig",
+    "common",
+    "mobile_user_auth"
     # "rest_framework.authtoken",
     # 'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
 ]
@@ -161,7 +162,6 @@ REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",

@@ -1,20 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from rest_framework_simplejwt.tokens import RefreshToken
+from common.managers import GetOrNoneQuerySet
 
 from itestify_backend.mixims import TouchDatesMixim
 
-# Create your models here.
-
-
 class UserManager(BaseUserManager):
 
-    def create_user(self, email, password=None):
+    def create_user(self, email, password=None, **extra_fields):
 
         if email is None:
             raise TypeError('User should have an Email')
 
-        user = self.model(email=self.normalize_email(email))
+        user = self.model(email=self.normalize_email(email), **extra_fields)
         user.set_password(password)
         user.save()
 
@@ -33,6 +31,14 @@ class UserManager(BaseUserManager):
         user.save()
 
         return user
+    
+    
+    def get_queryset(self):
+        return GetOrNoneQuerySet(self.model, using=self._db)
+    
+    
+    def get_or_none(self, **kwargs):
+        return self.get_queryset().get_or_none(**kwargs)
 
 
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
