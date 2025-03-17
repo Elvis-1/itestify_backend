@@ -34,8 +34,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
-CORS_ALLOWED_ORIGINS = ['*']
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -54,6 +53,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "donations",
+    "common",
+    "mobile_user_auth"
     # "rest_framework.authtoken",
     # 'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
 ]
@@ -161,7 +162,6 @@ REST_FRAMEWORK = {
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -252,13 +252,23 @@ CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 
 
 
+# # Email
+# EMAIL_BACKEND = os.getenv("MAIL_DRIVER", default=None)
+# EMAIL_HOST = os.getenv("MAIL_HOST", default=None)
+# EMAIL_PORT = os.getenv("MAIL_PORT", default=None)
+# EMAIL_HOST_USER = os.getenv("MAIL_USERNAME", default=None)
+# EMAIL_HOST_PASSWORD = os.getenv("MAIL_PASSWORD", default=None)
+# EMAIL_USE_TLS = os.getenv("MAIL_ENCRYPTION")
+
 # Email
-EMAIL_BACKEND = os.getenv("MAIL_DRIVER", default=None)
-EMAIL_HOST = os.getenv("MAIL_HOST", default=None)
-EMAIL_PORT = os.getenv("MAIL_PORT", default=None)
-EMAIL_HOST_USER = os.getenv("MAIL_USERNAME", default=None)
-EMAIL_HOST_PASSWORD = os.getenv("MAIL_PASSWORD", default=None)
-EMAIL_USE_TLS = os.getenv("MAIL_ENCRYPTION")
+EMAIL_OTP_EXPIRE_SECONDS= 300
+
+# Email Configuration
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'ifnotgodtech@gmail.com'
+EMAIL_HOST_PASSWORD = 'lismugxbibddrwex'
 
 
 # celery settings

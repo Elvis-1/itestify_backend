@@ -61,7 +61,7 @@ class TransactionHistory(TouchDatesMixim):
     reference = models.CharField(max_length=100, unique=True, help_text="Unique transaction reference")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=10, choices=CURRENCY_TYPE.choices)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES.choices, default="pending")
     description = models.TextField(blank=True, null=True)
     
     class Meta:
