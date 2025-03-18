@@ -264,9 +264,9 @@ CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 EMAIL_OTP_EXPIRE_SECONDS= 300
 
 # Email Configuration
-EMAIL_USE_TLS = True
+EMAIL_USE_SSL = True
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
+EMAIL_PORT = 467
 EMAIL_HOST_USER = 'ifnotgodtech@gmail.com'
 EMAIL_HOST_PASSWORD = 'lismugxbibddrwex'
 
