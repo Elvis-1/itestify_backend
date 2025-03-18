@@ -12,6 +12,9 @@ from support.helpers import StandardResultsSetPagination
 from .models import InspirationalPictures, TextTestimony, VideoTestimony
 from .serializers import InspirationalPicturesSerializer, ReturnInspirationalPicturesSerializer, ReturnTextTestimonySerializer, ReturnVideoTestimonySerializer, TextTestimonySerializer, VideoTestimonySerializer
 
+from .permissions import IsAuthenticated
+from common.exceptions import handle_custom_exceptions
+
 class TextTestimonyListView(APIView):
     """Fetch all testimonies with filtering and search."""
 
@@ -86,7 +89,7 @@ class TestimonySettingsView(APIView):
 
 class VideoTestimonyViewSet(viewsets.ViewSet):
     
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     
     @action(detail=False, methods=['post'])

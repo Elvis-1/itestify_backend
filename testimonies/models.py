@@ -49,16 +49,15 @@ class TextTestimony(Testimony):
     status = models.CharField(max_length=20, choices=STATUS.choices, default=STATUS.PENDING)
     
 
-
-
 class UPLOAD_STATUS(models.TextChoices):
-    UPLOAD_NOW = "upload_now", "upload_now"
-    SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
-    DRAFT = "drafts", "drafts"
+        UPLOAD_NOW = "upload_now", "upload_now"
+        SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
+        DRAFT = "drafts", "drafts"
+
 
 
 class VideoTestimony(Testimony):
-        
+      
     source = models.CharField(max_length=255, help_text="Video source")
     upload_status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices)
     video_file = models.FileField(upload_to='videos/', help_text="Upload video file")
