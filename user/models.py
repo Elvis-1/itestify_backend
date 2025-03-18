@@ -31,12 +31,12 @@ class UserManager(BaseUserManager):
         user.save()
 
         return user
-    
-    
+
+
     def get_queryset(self):
         return GetOrNoneQuerySet(self.model, using=self._db)
-    
-    
+
+
     def get_or_none(self, **kwargs):
         return self.get_queryset().get_or_none(**kwargs)
 

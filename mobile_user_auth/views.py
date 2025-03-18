@@ -6,12 +6,15 @@ from common.responses import CustomResponse
 from common.error import ErrorCode
 from .emails import Util
 from datetime import datetime
+from common.exceptions import handle_custom_exceptions
 
 
 class GetRegisteredUsers(GenericAPIView):
     serializer_class = ReturnUserSerializer
+    
+    @handle_custom_exceptions
     def get(self, request):
-        users = User.objects.filter(is_superuser=False)
+        users = User.objects.filter(role="viewer")
         serializer = self.serializer_class(users, many=True)
         return CustomResponse.success(
             message="Users retrieved successfully",
@@ -24,9 +27,10 @@ class GetRegisteredUsers(GenericAPIView):
 class RegistrationAPIView(GenericAPIView):
     serializer_class = RegistrationSerializer
     
+    @handle_custom_exceptions
     def post(self, request):
-        data = request.data
-        
+        data = request.data 
+    
         serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
         
@@ -75,6 +79,8 @@ class RegistrationAPIView(GenericAPIView):
         
 class LoginAPIView(GenericAPIView):
     serializer_class = LoginSerializer
+    
+    @handle_custom_exceptions
     def post(self, request):
         data = request.data
         serializer = LoginSerializer(data=data)
@@ -84,9 +90,9 @@ class LoginAPIView(GenericAPIView):
         
         if not user:
             return CustomResponse.error(
-                message="User with this email does not exist.",
-                err_code=ErrorCode.INVALID_CREDENTIALS,
-                status_code=401
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
             )
             
         if not user.check_password(serializer.data["password"]):
@@ -135,6 +141,7 @@ class LoginAPIView(GenericAPIView):
 class SendPasswordResetOtpView(GenericAPIView):
     serializer_class = ResendOtpSerializer
     
+    @handle_custom_exceptions
     def post(self, request):
         data = request.data
         serializer = self.serializer_class(data=data)
@@ -162,6 +169,7 @@ class SendPasswordResetOtpView(GenericAPIView):
 class SetNewPasswordView(GenericAPIView):
     serializer_class = SetNewPasswordSerializer
 
+    @handle_custom_exceptions
     def post(self, request):
         data = request.data
         serializer = self.serializer_class(data=data)

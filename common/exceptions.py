@@ -8,6 +8,7 @@ from rest_framework.exceptions import (
 
 from .responses import CustomResponse
 from .error import ErrorCode
+from functools import wraps
 
 
 class RequestError(APIException):
@@ -22,6 +23,7 @@ class RequestError(APIException):
         self.data = data
 
         super().__init__()
+
 
 
 def custom_exception_handler(exc, context):
@@ -69,3 +71,16 @@ def custom_exception_handler(exc, context):
         return CustomResponse.error(
             message="Server Error", status_code=500, err_code=ErrorCode.SERVER_ERROR
         )
+        
+
+def handle_custom_exceptions(view_func):
+    """
+    Decorator to apply the custom exception handler to a specific method.
+    """
+    @wraps(view_func)
+    def wrapper(self, request, *args, **kwargs):
+        try:
+            return view_func(self, request, *args, **kwargs)
+        except Exception as exc:
+            return custom_exception_handler(exc, {'view': self})
+    return wrapper

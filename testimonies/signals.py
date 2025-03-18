@@ -1,13 +1,13 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from datetime import datetime, timezone
-from .models import VideoTestimony
+from .models import VideoTestimony, UPLOAD_STATUS
 from .tasks import upload_video
 
 
 @receiver(post_save, sender=VideoTestimony)
 def schedule_video_upload(sender, instance, **kwargs):
-    if instance.upload_status == VideoTestimony.UPLOAD_STATUS.SCHEDULE_LATER:
+    if instance.upload_status == UPLOAD_STATUS.SCHEDULE_LATER:
         # Get the scheduled time
         upload_time = instance.scheduled_datetime
         
