@@ -14,7 +14,7 @@ class GetRegisteredUsers(GenericAPIView):
     
     @handle_custom_exceptions
     def get(self, request):
-        users = User.objects.filter(role="viewer")
+        users = User.objects.all()
         serializer = self.serializer_class(users, many=True)
         return CustomResponse.success(
             message="Users retrieved successfully",
