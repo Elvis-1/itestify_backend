@@ -43,3 +43,16 @@ class ResendEntryCodeSerializer(serializers.Serializer):
     """resend entry code for user"""
 
     email = serializers.EmailField()
+    
+    
+class ResendOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    
+    
+class VerifyOtpSerializer(ResendOtpSerializer):
+    otp = serializers.IntegerField()
+    
+    
+class SetNewPasswordSerializer(VerifyOtpSerializer):
+    password = serializers.CharField()
+    password2 = serializers.CharField()
