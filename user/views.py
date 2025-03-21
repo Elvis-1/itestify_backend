@@ -4,9 +4,10 @@ from rest_framework import status, permissions
 from rest_framework.decorators import action
 from user.models import EntryCode, User
 from .utils import Util
-from .serializers import LoginCodeEntrySerialiazer, LoginPasswordSerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer
+from .serializers import LoginCodeEntrySerialiazer, LoginPasswordSerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
+from rest_framework.generics import GenericAPIView
 
 
 # Create your views here.
