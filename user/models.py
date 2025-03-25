@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from rest_framework_simplejwt.tokens import RefreshToken
 from common.managers import GetOrNoneQuerySet
+from django.conf import settings
+from datetime import datetime
+from django.utils import timezone
 
 from itestify_backend.mixims import TouchDatesMixim
 
@@ -91,4 +94,4 @@ class Otp(TouchDatesMixim):
 
         if diff.total_seconds() > settings.EMAIL_OTP_EXPIRE_SECONDS:
             return True
-        return False 
+        return False

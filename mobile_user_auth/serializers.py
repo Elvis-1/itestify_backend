@@ -29,16 +29,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 class ResendOtpSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    
 
 class VerifyOtpSerializer(ResendOtpSerializer):
     otp = serializers.IntegerField()
 
-
-class VerifyOtpSerializer(ResendOtpSerializer):
-    otp = serializers.IntegerField()
-
-class SetNewPasswordSerializer(VerifyOtpSerializer):
+class SetNewPasswordSerializer(ResendOtpSerializer):
     password = serializers.CharField()
     password2 = serializers.CharField()
 

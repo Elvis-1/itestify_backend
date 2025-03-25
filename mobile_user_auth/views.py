@@ -1,5 +1,5 @@
 from rest_framework.generics import GenericAPIView
-from .serializers import RegistrationSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer
+from .serializers import RegistrationSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer, VerifyOtpSerializer
 from rest_framework import status
 from user.models import User, Otp
 from common.responses import CustomResponse
@@ -21,7 +21,6 @@ class GetRegisteredUsers(GenericAPIView):
             data=serializer.data,
             status_code=200
         )
-
 
 
 class RegistrationAPIView(GenericAPIView):
@@ -164,6 +163,39 @@ class SendPasswordResetOtpView(GenericAPIView):
             message="Password reset otp has been sent",
             status_code=200
         )
+    
+
+class VerifyOtpView(GenericAPIView):
+    serializer_class = VerifyOtpSerializer
+
+    @handle_custom_exceptions
+    def post(self, request):
+        data = request.data
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        otp = serializer.validated_data["otp"]
+
+        user = User.objects.get_or_none(email=email)
+        otp_obj = Otp.objects.get_or_none(user=user, code=int(otp))
+
+        if otp_obj is None or otp_obj.code != otp:
+            return CustomResponse.error(
+                message="Otp is not correct",
+                err_code=ErrorCode.INCORRECT_OTP,
+                status_code=400
+            )
+
+        if otp_obj.check_expiration():
+             return CustomResponse.error(
+                message="Otp has expired",
+                err_code=ErrorCode.EXPIRED_OTP,
+                status_code=400
+            )
+            
+        return CustomResponse.success(message="Otp successfully verified", status_code=200)
+
         
         
 class SetNewPasswordView(GenericAPIView):
@@ -176,7 +208,6 @@ class SetNewPasswordView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         
         email = serializer.validated_data["email"]
-        otp_code = serializer.validated_data["otp"]
         password = serializer.validated_data["password"]
         password2 = serializer.validated_data["password2"]
 
@@ -188,22 +219,13 @@ class SetNewPasswordView(GenericAPIView):
                 err_code=ErrorCode.INVALID_ENTRY,
                 status_code=400
             )
-        
-        otp = Otp.objects.get_or_none(user=user)
-
-        if otp is None or otp.code != otp_code:
-            return CustomResponse.error(
-                message="Otp has expired",
-                err_code=ErrorCode.EXPIRED_OTP,
-                status_code=400
-            )
+           
         
         if password != password2:
             return CustomResponse.error(message='Passwords do not match', err_code=ErrorCode.INVALID_ENTRY, status_code=400)
         
         user.set_password(password)
         user.save()
-        otp.delete()
 
         return CustomResponse.success(
             message="Password changed successfully",
