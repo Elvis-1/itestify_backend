@@ -62,6 +62,8 @@ class TextTestimonyApprovalView(APIView):
             testimony.status = 'Approved'
             testimony.rejection_reason = ''
         elif action == 'reject':
+            if rejection_reason == "":
+                return Response({"error": "Please provide a rejection reason"}, status=status.HTTP_400_BAD_REQUEST)
             testimony.status = 'Rejected'
             testimony.rejection_reason = rejection_reason
         else:

@@ -2,7 +2,7 @@ from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import status, permissions
 from rest_framework.decorators import action
-from user.models import EntryCode, User
+from .models import EntryCode, User
 from .utils import Util
 from .serializers import LoginCodeEntrySerialiazer, LoginPasswordSerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer
 from common.exceptions import handle_custom_exceptions
@@ -44,7 +44,7 @@ class LoginViewSet(viewsets.ViewSet):
 
             response = Response(
                     {
-                        'user': serializer.data, 
+                        'user': serializer.data,
                         "token": token["access"],
                         "refresh": token["refresh"]
                     }
@@ -120,10 +120,10 @@ class LoginViewSet(viewsets.ViewSet):
         
         email = serializer.validated_data['email']
         
-        # check if email exist in the datsbase
+        # check if email exist in the database
         try:
-            user = EntryCode.objects.get(user__email=email)
-        except EntryCode.DoesNotExist:
+            user = User.objects.get_or_none(email=email)
+        except User.DoesNotExist:
             return Response({'success': False, "message": "User email does not exist."}, status=status.HTTP_404_NOT_FOUND)
         
         

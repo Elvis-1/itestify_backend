@@ -4,7 +4,7 @@ from .models import VideoTestimony
 
 
 @shared_task
-def upload_schedule_vidoes():
+def upload_schedule_videos():
     # Fetch videos scheduled for later
     scheduled_videos = VideoTestimony.objects.filter(
         upload_status="schedule_for_later",

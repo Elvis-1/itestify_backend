@@ -172,7 +172,25 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         # Delete the found testimony
         testimony.delete()
         return CustomResponse.success(message="Testimony deleted successfully", status_code=204)
+
+    @handle_custom_exceptions
+    @action(detail=False, methods=["get"])
+    def get_user_testimonies(self, request):
+        user = request.user
+        try:
+            testimonies = TextTestimony.objects.filter(uploaded_by=user)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(message="No testimonies found for this user", err_code=ErrorCode.NOT_FOUND, status_code=404)
+
+        serializer = ReturnTextTestimonySerializer(testimonies, many=True)
         
+        return CustomResponse.success(
+            message="Testimonies retrieved successfully",
+            data=serializer.data,
+            status_code=200
+        )
+    
+
 
     @handle_custom_exceptions  
     @action(detail=False, methods=['post'])

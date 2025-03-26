@@ -85,7 +85,7 @@ class LoginAPIView(GenericAPIView):
         serializer = LoginSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         
-        user = User.objects.get_or_none(email=serializer.data["email"])   
+        user = User.objects.filter(email=serializer.data["email"]).first()
         
         if not user:
             return CustomResponse.error(
