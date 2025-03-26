@@ -11,6 +11,5 @@ router.register(r"testimonies/videos", VideoTestimonyViewSet, basename="video-te
 
 
 urlpatterns = [
-    # path("texts/create_text", AddTextTestimonyAPIView.as_view, name="add-text-testimony"),
     path("text_testimonies/", TextTestimonyListView.as_view(), name="text-testimonies"),
 ] + router.urls

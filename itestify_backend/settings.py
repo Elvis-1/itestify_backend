@@ -96,7 +96,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DEPLOY = config("DEPLOY", cast=bool)
+DEPLOY = True
 
 if not DEPLOY:
     DATABASES = {
@@ -275,7 +275,7 @@ EMAIL_HOST_PASSWORD = 'lismugxbibddrwex'
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 # CELERY_BEAT_SCHEDULE = {
 #     "upload_schedule_vidoes" : {
-#         "task": "testimonies.tasks.upload_schedule_vidoes",
+#         "task": "testimonies.tasks.upload_schedule_videos",
 #         # "schedule": crontab(minute="*/5"), #5min
 #         # "schedule": 5, #5 sec
 #         # "args": [""]
