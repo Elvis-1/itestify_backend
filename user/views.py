@@ -9,8 +9,16 @@ from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from rest_framework.generics import GenericAPIView
 
-
 # Create your views here.
+
+
+class GetUsersAPIView(GenericAPIView):
+    serializer_class = ReturnUserSerializer
+    def get(self, request):
+        user_obj = User.objects.all()
+        serializer = self.serializer_class(user_obj, many=True)
+        return Response({"message": "User retrieved successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
 
 class LoginViewSet(viewsets.ViewSet):
     

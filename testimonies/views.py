@@ -194,6 +194,12 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             )
         
         # Delete the found testimony
+        if testimony.status == "pending":
+            return http.failed_response(
+                message="You must approve or reject testimony before you delete",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
         testimony.delete()
         return http.success_response(message="Testimony deleted successfully.", status_code=status.HTTP_204_NO_CONTENT,
         )
