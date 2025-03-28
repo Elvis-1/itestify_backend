@@ -6,12 +6,12 @@ from .models import User, EntryCode
 
 @receiver(post_save, sender=User)
 def create_entry_code(sender, instance, created, **kwargs):
-    if created:
+    if created and instance.role == "admin":
         while True:
             # Generate a unique 6-digit code
             code = Util.generate_entry_code()
             if not EntryCode.objects.filter(code=code).exists():
                 break
 
-        # Create the EntryCode object
+            # Create the EntryCode object
         EntryCode.objects.create(user=instance, code=code)

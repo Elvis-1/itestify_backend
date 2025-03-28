@@ -50,15 +50,13 @@ def custom_exception_handler(exc, context):
                 errors[key] = err_val
                 if isinstance(err_val, list):
                     errors[key] = err_val
-
+                    
             return CustomResponse.error(
-                message="Invalid Entry",
-                data=errors,
+                message=err_val.capitalize(),
                 status_code=422,
                 err_code=ErrorCode.INVALID_ENTRY,
             )
         else:
-            print(exc)
             return CustomResponse.error(
                 message="Something went wrong!",
                 status_code=(

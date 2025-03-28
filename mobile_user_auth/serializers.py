@@ -9,24 +9,13 @@ class ReturnUserSerializer(serializers.ModelSerializer):
         fields = [ "id", "email", "full_name", "last_login", "role", "created_at"]
 
 
-class RegistrationSerializer(serializers.ModelSerializer):
-    password2 = serializers.CharField(write_only=True)
+class UserRegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    full_name = serializers.CharField()
+    password = serializers.CharField()
+    password2 = serializers.CharField()
 
-    class Meta:
-        model = User
-        fields = ["email", "password", "full_name", "password2"]
-
-    def validate(self, data):
-        password = data['password']
-        password2 = data['password2']
-
-        if password != password2:
-            raise serializers.ValidationError({'passwords':'Passwords do not match'})
     
-        return data
-    
-    
-
 class ResendOtpSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
