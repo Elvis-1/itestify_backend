@@ -1,5 +1,5 @@
 from rest_framework.generics import GenericAPIView
-from .serializers import RegistrationSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer, VerifyOtpSerializer
+from .serializers import UserRegisterSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer, VerifyOtpSerializer
 from rest_framework import status
 from user.models import User, Otp
 from common.responses import CustomResponse
@@ -23,33 +23,40 @@ class GetRegisteredUsers(GenericAPIView):
         )
 
 
-class RegistrationAPIView(GenericAPIView):
-    serializer_class = RegistrationSerializer
-    
-    @handle_custom_exceptions
+class UserRegisterAPIView(GenericAPIView):
+    serializer_class = UserRegisterSerializer
+
+    # @handle_custom_exceptions
     def post(self, request):
-        data = request.data 
-    
+        data = request.data
         serializer = self.serializer_class(data=data)
         serializer.is_valid(raise_exception=True)
-        
-        # check for existing user
-        user = User.objects.get_or_none(email=data['email'])
-        
-        if user:
+
+        password = data["password"]
+        password2 = data["password2"]
+
+        if password != password2:
             return CustomResponse.error(
-                message='User with this email already exists.',
-                err_code=ErrorCode.INVALID_ENTRY,
+                message="Passwords do not match",
+                err_code=ErrorCode.BAD_REQUEST,
                 status_code=400
             )
-        
-        # Create user
-        data.pop('password2', None)
-        user = User.objects.create_user(**data)
+
+        user = User.objects.get_or_none(email=serializer.validated_data["email"])
+
+        if user:
+            return CustomResponse.error(
+                message="User with this email already exists",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+
+        serializer.validated_data.pop("password2", None)
+        user = User.objects.create_user(**serializer.validated_data)
         user.role = "viewer"
-        user.save()
         token = user.tokens()
-        
+        user.save()
+
         response =  CustomResponse.success(
             message="Account created successfully",
             data={"user": 

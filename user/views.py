@@ -120,7 +120,7 @@ class LoginViewSet(viewsets.ViewSet):
         
         email = serializer.validated_data['email']
         
-        # check if email exist in the database
+        # check if email and code exist in the database
         try:
             user = User.objects.get_or_none(email=email)
         except User.DoesNotExist:
