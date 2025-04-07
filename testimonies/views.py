@@ -14,6 +14,7 @@ from .serializers import InspirationalPicturesSerializer, ReturnInspirationalPic
 
 from .permissions import IsAuthenticated
 from common.exceptions import handle_custom_exceptions
+from .tasks import upload_video
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies with filtering and search."""

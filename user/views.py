@@ -122,12 +122,14 @@ class LoginViewSet(viewsets.ViewSet):
         
         # check if email and code exist in the database
         try:
-            user = User.objects.get_or_none(email=email)
-        except User.DoesNotExist:
+            user = EntryCode.objects.get_or_none(user__email=email)
+        except EntryCode.DoesNotExist:
             return Response({'success': False, "message": "User email does not exist."}, status=status.HTTP_404_NOT_FOUND)
         
         
         # Generate a new entry code and update the user's entry code record
+        if not user.code:
+            return Response({"success": False, "message": "User is not an admin"}, status=status.HTTP_400_BAD_REQUEST)
         user.code = Util.generate_entry_code()
         user.is_used = False
         user.save()
