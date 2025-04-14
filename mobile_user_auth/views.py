@@ -100,6 +100,13 @@ class LoginAPIView(GenericAPIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404
             )
+
+        if user.status and user.status == "deleted":
+            return CustomResponse.error(
+                message="This account has been deleted.",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
             
         if not user.check_password(serializer.data["password"]):
             return CustomResponse.error(
@@ -129,7 +136,7 @@ class LoginAPIView(GenericAPIView):
         response = CustomResponse.success(
             message="Login successful",
             data=data,
-            status_code=201
+            status_code=200
         )
         
         response.set_cookie(
@@ -239,6 +246,21 @@ class SetNewPasswordView(GenericAPIView):
             status_code=200
         )
         
+class DeleteUserAccount(GenericAPIView):
+    def delete(self, request):
+        current_user = request.user
+        try:
+            user = User.objects.get_or_none(email=current_user.email)
+            user.status = "deleted"
+            user.save()
+            return CustomResponse.success(
+                message="Account deleted successfully.",
+                status_code=200
+            )
+        except User.DoesNotExist:
+            return CustomResponse.error(message="User with this account does not exist.", err_code=ErrorCode.NOT_FOUND, status_code=404)
+
+
         
 
 
