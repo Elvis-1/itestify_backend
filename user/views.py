@@ -246,4 +246,46 @@ class SetNewPasswordView(GenericAPIView):
             message="Password changed successfully",
             status_code=200
         )
+
+
+class UsersViewSet(viewsets.ViewSet):
+    serializer_class = ReturnUserSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    # gets the list of registered users
+    @action(detail=False, methods=["get,"])
+    def registered(self, request):
+        try:
+            registered_users = User.objects.filter(status="")
+            serializer = self.serializer_class(registered_users, many=True)
+            return CustomResponse.success(
+                message="Registered users retrieved successfully",
+                data=serializer.data,
+                status_code=200
+            )
+        except User.DoesNotExist or registered_users == []:
+            return CustomResponse.error(
+                message="No deleted users",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+
+
+    # gets the list of deleted users
+    @action(detail=False, methods=["get,"])
+    def deleted(self, request):
+        try:
+            deleted_users = User.objects.filter(status="deleted")
+            serializer = self.serializer_class(deleted_users, many=True)
+            return CustomResponse.success(
+                message="Registered users retrieved successfully",
+                data=serializer.data,
+                status_code=200
+            )
+        except User.DoesNotExist or deleted_users == []:
+            return CustomResponse.error(
+                message="No registered users",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
         

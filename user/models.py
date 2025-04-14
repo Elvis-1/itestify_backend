@@ -50,6 +50,9 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         SUPER_ADMIN = "super_admin", "super_admin"
         ADMIN = "admin", "admin"
         VIEWER = "viewer", "viewer"
+
+    class STATUS(models.TextChoices):
+        DELETED = "deleted", "deleted"
         
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
@@ -57,6 +60,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=255, null=True, blank=True, choices=STATUS.choices)
     
     
     USERNAME_FIELD = 'email'
