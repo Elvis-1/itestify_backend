@@ -1,7 +1,13 @@
 from rest_framework import serializers
 
 from user.serializers import ReturnUserSerializer
-from .models import UPLOAD_STATUS, InspirationalPictures, TextTestimony, VideoTestimony
+from .models import UPLOAD_STATUS, InspirationalPictures, TextTestimony, VideoTestimony, TestimonySettings
+
+
+class TestimonySettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TestimonySettings
+        fields = ["notify_admin",]
 
 class TextTestimonySerializer(serializers.ModelSerializer):
     class Meta:
