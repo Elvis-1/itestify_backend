@@ -53,6 +53,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     class STATUS(models.TextChoices):
         DELETED = "deleted", "deleted"
+        REGISTERED = "registered", "registered"
         
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
@@ -60,7 +61,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=255, null=True, blank=True, choices=STATUS.choices)
+    status = models.CharField(max_length=255, null=True, blank=True, choices=STATUS.choices, default=STATUS.REGISTERED)
     
     
     USERNAME_FIELD = 'email'

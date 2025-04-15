@@ -27,6 +27,7 @@ class ReturnUserSerializer(serializers.ModelSerializer):
             "role",
             "created_password",
             "last_login",
+            "status",
             "created_at",
             "updated_at",
         ]

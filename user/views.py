@@ -253,10 +253,10 @@ class UsersViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     # gets the list of registered users
-    @action(detail=False, methods=["get,"])
+    @action(detail=False, methods=["get"])
     def registered(self, request):
         try:
-            registered_users = User.objects.filter(status="")
+            registered_users = User.objects.filter(status="registered")
             serializer = self.serializer_class(registered_users, many=True)
             return CustomResponse.success(
                 message="Registered users retrieved successfully",
@@ -272,20 +272,41 @@ class UsersViewSet(viewsets.ViewSet):
 
 
     # gets the list of deleted users
-    @action(detail=False, methods=["get,"])
+    @action(detail=False, methods=["get"])
     def deleted(self, request):
         try:
             deleted_users = User.objects.filter(status="deleted")
             serializer = self.serializer_class(deleted_users, many=True)
             return CustomResponse.success(
-                message="Registered users retrieved successfully",
+                message="Deleted users retrieved successfully",
                 data=serializer.data,
                 status_code=200
             )
         except User.DoesNotExist or deleted_users == []:
             return CustomResponse.error(
-                message="No registered users",
+                message="No deleted users",
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404
             )
         
+        
+    def destroy(self, request, pk=None):
+        try: 
+            user = User.objects.get_or_none(id=pk)
+
+            if user.status == "registered":
+                return CustomResponse.error(
+                    message="Cannot delete a registered user."
+                )
+
+            user.delete()
+            return CustomResponse.success(
+                message="User deleted successfully",
+                status_code=200
+            )
+        except User.DoesNotExists or user is None:
+            return CustomResponse.error(
+                message="User not found.",
+                err_code=ErrCode.NOT_FOUND,
+                status_code=404
+            )
