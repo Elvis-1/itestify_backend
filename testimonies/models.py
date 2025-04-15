@@ -37,6 +37,13 @@ class Testimony(TouchDatesMixim):
     def __str__(self):
         return f"Testimony by: {self.uploaded_by.full_name}"
 
+
+class TestimonySettings(models.Model):
+    notify_admin = models.BooleanField(default=True)
+
+    def __str__(self):
+        return "testimony_settings"
+
     
 class TextTestimony(Testimony):
     

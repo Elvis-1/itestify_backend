@@ -9,12 +9,14 @@ from django.utils.dateparse import parse_date
 
 from support import http
 from support.helpers import StandardResultsSetPagination
-from .models import InspirationalPictures, TextTestimony, VideoTestimony
-from .serializers import InspirationalPicturesSerializer, ReturnInspirationalPicturesSerializer, ReturnTextTestimonySerializer, ReturnVideoTestimonySerializer, TextTestimonySerializer, VideoTestimonySerializer
+from .models import InspirationalPictures, TextTestimony, VideoTestimony, TestimonySettings
+from .serializers import InspirationalPicturesSerializer, ReturnInspirationalPicturesSerializer, ReturnTextTestimonySerializer, ReturnVideoTestimonySerializer, TextTestimonySerializer, VideoTestimonySerializer, TestimonySettingsSerializer
 
 from .permissions import IsAuthenticated
 from common.exceptions import handle_custom_exceptions
 from .tasks import upload_video
+
+from common.responses import CustomResponse
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies with filtering and search."""
@@ -76,18 +78,44 @@ class TextTestimonyApprovalView(APIView):
 
 class TestimonySettingsView(APIView):
     """Manage global settings."""
+    serializer_class = TestimonySettingsSerializer
+    permission_classes = [IsAuthenticated]
 
+    @handle_custom_exceptions
     def get(self, request):
-        settings = {
-            "likes_enabled": True,
-            "comments_enabled": True,
-            "shares_enabled": True
-        }
-        return Response(settings)
+        settings = TestimonySettings.objects.all()
+        serializer = self.serializer_class(settings, many=True)
+        return Response({
+            "message": "Global settings.", 
+            "data": serializer.data
+        })
+
+
+    def put(self, request):
+        data = request.data
+        settings = TestimonySettings.objects.all().first()
+        settings.notify_admin = data["notify_admin"]
+        settings.save()
+        return Response({"message":"Settings updated successfully"})
 
     def post(self, request):
-        # Update settings logic here
-        return Response({"message": "Settings updated successfully"})
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        settings = TestimonySettings.objects.all()
+
+        if settings:
+            return Response({"error": "Testimony already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        TestimonySettings.objects.create(**serializer.validated_data)
+
+        return Response({"message":"Successful."})
+
+        
+
+        
+
+        
     
 
 class VideoTestimonyViewSet(viewsets.ViewSet):

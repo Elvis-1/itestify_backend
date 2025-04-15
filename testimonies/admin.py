@@ -1,8 +1,13 @@
 from django.contrib import admin
-from .models import InspirationalPictures, TextTestimony, VideoTestimony, Comment, Like, Share
+from .models import InspirationalPictures, TextTestimony, VideoTestimony, Comment, Like, Share, TestimonySettings
 
 @admin.register(TextTestimony)
 class TextTestimonyAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(TestimonySettings)
+class TestimonySettingsAdmin(admin.ModelAdmin):
     pass
 
 
