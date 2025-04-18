@@ -242,7 +242,7 @@ class SetNewPasswordView(GenericAPIView):
         user.save()
 
         return CustomResponse.success(
-            message="Password changed successfully",
+            message="Password changed successfully", 
             status_code=200
         )
         
