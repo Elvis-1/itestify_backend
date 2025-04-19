@@ -58,7 +58,7 @@ class UserRegisterAPIView(GenericAPIView):
         user.save()
 
         response =  CustomResponse.success(
-            message="Account created successfully",
+            message="OTP has been sent, please verify your email",
             data={"user": 
                 {
                     "id": user.id, 
@@ -79,6 +79,8 @@ class UserRegisterAPIView(GenericAPIView):
         response.set_cookie(
             key="access", value=token["access"], httponly=True  # Set HttpOnly flag
         )
+
+        Util.send_verification_email(user)
             
         return response
         
@@ -207,6 +209,9 @@ class VerifyOtpView(GenericAPIView):
                 err_code=ErrorCode.EXPIRED_OTP,
                 status_code=400
             )
+        
+        user.is_email_verified = True
+        user.save()
             
         return CustomResponse.success(message="Otp successfully verified", status_code=200)
 
@@ -261,7 +266,21 @@ class DeleteUserAccount(GenericAPIView):
             return CustomResponse.error(message="User with this account does not exist.", err_code=ErrorCode.NOT_FOUND, status_code=404)
 
 
+class ResendEmailVerificationOtpView(GenericAPIView):
+    serializer_class = ResendOtpSerializer
+    
+    @handle_custom_exceptions
+    def post(self, request):
+        data = request.data
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
         
+        email = serializer.validated_data["email"]
+        user = User.objects.get_or_none(email=email)
 
+        Util.send_verification_email(user)
 
-        
+        return CustomResponse.success(
+            message="A new OTP has been sent to your email. Please check your inbox or spam folder.",
+            status_code=200
+        )

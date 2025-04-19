@@ -42,10 +42,28 @@ class Util:
 
         EmailThread(email_message).start()
 
+    def send_verification_email(user):
+        from_email = "If not God Tech <{}>".format(settings.EMAIL_HOST_USER)
+        subject = 'Email Verification'
+        code = random.randint(1000, 9999)
+        message = f'Your email verification OTP is: <strong>{code}</strong>'
+        
+        otp = account_model.Otp.objects.get_or_none(user=user)
 
+        if not otp:
+            account_model.Otp.objects.create(user=user, code=code)    
+        else:
+            otp.code = code
+            otp.save()
+        
+        email_message = EmailMessage(
+        subject=subject,
+        body=message,
+        to=[user.email],
+        from_email=from_email
+    )
+        email_message.content_subtype = 'html'
 
-
-            
-            
+        EmailThread(email_message).start()
             
             
