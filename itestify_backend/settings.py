@@ -42,9 +42,9 @@ INSTALLED_APPS = [
     "corsheaders",
     "donations",
     "common",
-    "mobile_user_auth"
+    "mobile_user_auth",
     # "rest_framework.authtoken",
-    # 'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
+    'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
 ]
 
 MIDDLEWARE = [
@@ -151,10 +151,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
+        # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
 }
 
@@ -169,7 +169,8 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=365),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "USE_BLACKLIST": True,
     "UPDATE_LAST_LOGIN": False,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,

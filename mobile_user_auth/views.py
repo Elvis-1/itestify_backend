@@ -1,6 +1,10 @@
 from rest_framework.generics import GenericAPIView
 from .serializers import UserRegisterSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer, VerifyOtpSerializer
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from user.models import User, Otp
 from common.responses import CustomResponse
 from common.error import ErrorCode
@@ -284,3 +288,43 @@ class ResendEmailVerificationOtpView(GenericAPIView):
             message="A new OTP has been sent to your email. Please check your inbox or spam folder.",
             status_code=200
         )
+
+class LogOutApiView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    @handle_custom_exceptions
+    def post(self, request: Request) -> Response:
+        refresh_token = request.COOKIES.get('refresh')
+
+        if not refresh_token:
+            return CustomResponse.error(
+                message="Refresh token not found",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            return CustomResponse.error(
+                message="Invalid or expired refresh token",
+                err_code=ErrorCode.UNAUTHORIZED,
+                status_code=401
+            )
+        except Exception as e:
+            # Optional: log exception
+            return CustomResponse.error(
+                message="Logout failed",
+                err_code=ErrorCode.INTERNAL_SERVER_ERROR,
+                status_code=500
+            )
+
+        response = CustomResponse.success(
+            message="Logout successful",
+            status_code=200
+        )
+        response.delete_cookie('refresh')
+        response.delete_cookie('access')
+
+        return response
