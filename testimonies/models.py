@@ -64,7 +64,7 @@ class UPLOAD_STATUS(models.TextChoices):
 
 
 class VideoTestimony(Testimony):
-      
+    
     source = models.CharField(max_length=255, help_text="Video source")
     upload_status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices)
     video_file = models.FileField(upload_to='videos/', help_text="Upload video file")
