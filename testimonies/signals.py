@@ -9,13 +9,13 @@ from .tasks import upload_video
 def schedule_video_upload(sender, instance, **kwargs):
     if instance.upload_status == UPLOAD_STATUS.SCHEDULE_LATER:
         # Get the scheduled time
-        upload_time = instance.scheduled_datetime
+        upload_time = instance.scheduled_datetime      
         
         # Ensure the time is in the future
         if upload_time > datetime.now(timezone.utc):
             # Schedule the task
             upload_video.apply_async((instance.id,), eta=upload_time)
             print(f"Scheduled upload for video {instance.id} at {upload_time}")
-        else:
+        else:   
             print(f"Cannot schedule video {instance.id} for a past time.")
 

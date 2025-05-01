@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     "corsheaders",
     "donations",
     "common",
-    "mobile_user_auth"
+    "mobile_user_auth",
+    "django_celery_beat",
     # "rest_framework.authtoken",
     # 'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
 ]
@@ -96,7 +97,7 @@ if not DEPLOY:
 else:
     DATABASES = {
         "default": dj_database_url.parse(
-            "postgresql://itestifydb_user:sgXTavtaqWWTByPQNmjKsN7bTsRyHHUs@dpg-cvio1jeuk2gs73artlqg-a.ohio-postgres.render.com/itestifydb"
+            os.getenv("POSTGRESDB")
         )
     }
 
@@ -255,17 +256,21 @@ EMAIL_OTP_EXPIRE_SECONDS= 300
 EMAIL_USE_SSL = True
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 465
-EMAIL_HOST_USER = 'ifnotgodtech@gmail.com'
-EMAIL_HOST_PASSWORD = 'oesxhhnwautdigni'
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
 # celery settings
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-# CELERY_BEAT_SCHEDULE = {
-#     "upload_schedule_vidoes" : {
-#         "task": "testimonies.tasks.upload_schedule_videos",
-#         # "schedule": crontab(minute="*/5"), #5min
-#         # "schedule": 5, #5 sec
-#         # "args": [""]
-#     }
-# }
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_BEAT_SCHEDULE = {
+    "upload_schedule_videos" : {
+        "task": "testimonies.tasks.display_name",
+        "schedule": crontab(minute="*/5"), #5min
+        # "schedule": 5, #5 sec
+        "args": [""]
+    }
+}
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
