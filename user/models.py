@@ -62,6 +62,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=255, null=True, blank=True, choices=STATUS.choices, default=STATUS.REGISTERED)
+    is_email_verified = models.BooleanField(default=False)
     
     
     USERNAME_FIELD = 'email'
