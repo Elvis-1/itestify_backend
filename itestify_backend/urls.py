@@ -38,6 +38,7 @@ urlpatterns = [
     path('', include('testimonies.urls')),
     path('', include('user.urls')),
     path('', include('donations.urls')),
+    path('reviews/', include('reviews.urls')),
     path("mobile/auth/", include("mobile_user_auth.urls")),
     path("mobile/", include("mobile_user_testimonies.urls"))
 ]

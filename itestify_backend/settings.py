@@ -17,7 +17,9 @@ AUTH_USER_MODEL = 'user.User'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY')
+
+# SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -43,9 +45,9 @@ INSTALLED_APPS = [
     "donations",
     "common",
     "mobile_user_auth",
-    "django_celery_beat",
     # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -157,6 +159,10 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    # 'DEFAULT_THROTTLE_RATES': {
+    #     'review_create': '3/day'  # Limit to 3 reviews per user per day
+    # }
 }
 
 
