@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "django_celery_beat",
     # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
+    'reviews',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -85,7 +87,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DEPLOY = True
+DEPLOY = False
 
 if not DEPLOY:
     DATABASES = {
@@ -157,6 +159,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 
