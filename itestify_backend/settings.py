@@ -97,7 +97,7 @@ if not DEPLOY:
 else:
     DATABASES = {
         "default": dj_database_url.parse(
-            os.getenv("POSTGRESDB")
+            os.getenv("POSTGRESDB").decode() if isinstance(os.getenv("POSTGRESDB"), bytes) else os.getenv("POSTGRESDB")
         )
     }
 

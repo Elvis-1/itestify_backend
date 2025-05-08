@@ -1,5 +1,5 @@
 from rest_framework.generics import GenericAPIView
-from .serializers import UserRegisterSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer, VerifyOtpSerializer
+from .serializers import UserRegisterSerializer, LoginSerializer, ResendOtpSerializer, SetNewPasswordSerializer, ReturnUserSerializer, VerifyOtpSerializer, ChangePasswordSerializer, PasswordResetRequestSerializer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -218,42 +218,6 @@ class VerifyOtpView(GenericAPIView):
         user.save()
             
         return CustomResponse.success(message="Otp successfully verified", status_code=200)
-
-        
-        
-class SetNewPasswordView(GenericAPIView):
-    serializer_class = SetNewPasswordSerializer
-
-    @handle_custom_exceptions
-    def post(self, request):
-        data = request.data
-        serializer = self.serializer_class(data=data)
-        serializer.is_valid(raise_exception=True)
-        
-        email = serializer.validated_data["email"]
-        password = serializer.validated_data["password"]
-        password2 = serializer.validated_data["password2"]
-
-        user = User.objects.get_or_none(email=email)
-
-        if not user:
-            return CustomResponse.error(
-                message="User does not exist!",
-                err_code=ErrorCode.INVALID_ENTRY,
-                status_code=400
-            )
-           
-        
-        if password != password2:
-            return CustomResponse.error(message='Passwords do not match', err_code=ErrorCode.INVALID_ENTRY, status_code=400)
-        
-        user.set_password(password)
-        user.save()
-
-        return CustomResponse.success(
-            message="Password changed successfully", 
-            status_code=200
-        )
         
 class DeleteUserAccount(GenericAPIView):
     def delete(self, request):
@@ -328,3 +292,75 @@ class LogOutApiView(GenericAPIView):
         response.delete_cookie('access')
 
         return response
+    
+class ChangePasswordView(GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return CustomResponse.success(
+            message="Password changed successfully",
+            status_code=200
+        )
+
+class PasswordResetRequestView(GenericAPIView):
+    """ Request password reset OTP"""
+
+    serializer_class = PasswordResetRequestSerializer
+
+    @handle_custom_exceptions
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        user = User.objects.filter(email=email).first()
+
+        if user: # Don't reveal if user exists
+            Util.send_password_reset_email(user)
+
+        return CustomResponse.success(
+            message="Password reset OTP has been sent to your email",
+            status_code=200
+        )
+
+class SetNewPasswordView(GenericAPIView):
+    serializer_class = SetNewPasswordSerializer
+
+    @handle_custom_exceptions
+    def post(self, request):
+        data = request.data
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+        password2 = serializer.validated_data["password2"]
+
+        user = User.objects.get_or_none(email=email)
+
+        if not user:
+            return CustomResponse.error(
+                message="User does not exist!",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+           
+        
+        if password != password2:
+            return CustomResponse.error(message='Passwords do not match', err_code=ErrorCode.INVALID_ENTRY, status_code=400)
+        
+        user.set_password(password)
+        user.save()
+
+        return CustomResponse.success(
+            message="Password changed successfully", 
+            status_code=200
+        )
