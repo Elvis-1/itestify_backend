@@ -41,8 +41,10 @@ urlpatterns = [
     path('', include('donations.urls')),
     path('', include("scriptures.urls")),
     path("mobile/auth/", include("mobile_user_auth.urls")),
-    path("mobile/", include("mobile_user_testimonies.urls"))
+    path("mobile/", include("mobile_user_testimonies.urls")),
+    path('review/', include('reviews.urls')),
+
 ]
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+   

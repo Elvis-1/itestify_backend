@@ -50,6 +50,8 @@ INSTALLED_APPS = [
     "django_celery_results",
     # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
+    'reviews',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -174,6 +176,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 
