@@ -1,7 +1,8 @@
 from celery import shared_task
 from django.utils.timezone import now
-from .models import VideoTestimony
+from .models import VideoTestimony, UPLOAD_STATUS
 from datetime import timedelta
+
 
 
 @shared_task
@@ -12,12 +13,13 @@ def upload_schedule_videos():
         upload_status="schedule_for_later",
         scheduled_datetime__lte=now() + timedelta(hours=1)   # Due for upload
     )
-    
+
     for video in scheduled_videos:
         video.upload_status = "upload_now"
         video.save()
 
     return f"{scheduled_videos.count()} video(s) processed for upload."
+
 
 @shared_task
 def display_name():
@@ -30,8 +32,8 @@ def display_name():
 def upload_video(video_id):
     try:
         video = VideoTestimony.objects.get(id=video_id)
-        # Perform the upload using cloudinary logic here
-        video.upload_status = VideoTestimony.UPLOAD_STATUS.UPLOAD_NOW
+
+        video.upload_status = UPLOAD_STATUS.UPLOAD_NOW.value
         video.save()
         print(f"Video with ID {video_id} uploaded successfully!")
     except VideoTestimony.DoesNotExist:
