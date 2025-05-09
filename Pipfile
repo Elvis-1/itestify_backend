@@ -36,6 +36,11 @@ vine = "==5.1.0"
 wcwidth = "==0.2.13"
 whitenoise = "==6.8.2"
 redis = "*"
+django-celery-beat = "*"
+django-celery-results = "*"
+channels = "*"
+daphne = "*"
+channels-redis = "*"
 
 [dev-packages]
 
