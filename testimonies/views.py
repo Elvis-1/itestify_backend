@@ -1,3 +1,4 @@
+
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
@@ -6,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from django.utils.dateparse import parse_date
-
+from common.responses import CustomResponse
 from support import http
 from support.helpers import StandardResultsSetPagination
 from .models import InspirationalPictures, TextTestimony, VideoTestimony, TestimonySettings
@@ -16,7 +17,6 @@ from .permissions import IsAuthenticated
 from common.exceptions import handle_custom_exceptions
 from .tasks import upload_video
 
-from common.responses import CustomResponse
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies with filtering and search."""
@@ -37,12 +37,14 @@ class TextTestimonyListView(APIView):
         if search:
             testimonies = testimonies.filter(name__icontains=search)
         if start_date and end_date:
-            testimonies = testimonies.filter(date_submitted__range=[start_date, end_date])
+            testimonies = testimonies.filter(
+                date_submitted__range=[start_date, end_date])
 
         # Pagination
         paginator = PageNumberPagination()
         paginator.page_size = 10
-        paginated_testimonies = paginator.paginate_queryset(testimonies, request)
+        paginated_testimonies = paginator.paginate_queryset(
+            testimonies, request)
 
         # Serialize and return
         serializer = TextTestimonySerializer(paginated_testimonies, many=True)
@@ -86,17 +88,16 @@ class TestimonySettingsView(APIView):
         settings = TestimonySettings.objects.all()
         serializer = self.serializer_class(settings, many=True)
         return Response({
-            "message": "Global settings.", 
+            "message": "Global settings.",
             "data": serializer.data
         })
-
 
     def put(self, request):
         data = request.data
         settings = TestimonySettings.objects.all().first()
         settings.notify_admin = data["notify_admin"]
         settings.save()
-        return Response({"message":"Settings updated successfully"})
+        return Response({"message": "Settings updated successfully"})
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -109,54 +110,51 @@ class TestimonySettingsView(APIView):
 
         TestimonySettings.objects.create(**serializer.validated_data)
 
-        return Response({"message":"Successful."})
+        return Response({"message": "Successful."})
 
-        
-
-        
-
-        
-    
 
 class VideoTestimonyViewSet(viewsets.ViewSet):
-    
+
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
-    
+
     @action(detail=False, methods=['post'])
     def create_video(self, request):
-        serializer = VideoTestimonySerializer(data=request.data, context={'request': request})
+        serializer = VideoTestimonySerializer(
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         testimony = serializer.save()
-        
-        return_serializer = ReturnVideoTestimonySerializer(testimony, context={'request': request})
+
+        return_serializer = ReturnVideoTestimonySerializer(
+            testimony, context={'request': request})
         return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
-    
+
     def list(self, request):
         """Get all testimonies"""
-        
+
         # Get filter parameter
         status = request.query_params.get("type", "").lower()
         category = request.query_params.get('category', "").lower()
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
-        
-        # get all videos and 
+
+        # get all videos and
         testimony_qs = VideoTestimony.objects.all()
-        
+
         if status:
             testimony_qs = testimony_qs.filter(upload_status=status)
-            
+
         if category:
             testimony_qs = testimony_qs.filter(category=category)
-            
+
         # Apply date filtering
         if from_date:
             day, month, year = from_date.split('/')
             formatted_from_date = f"{year}-{month}-{day}"
             parsed_from_date = parse_date(formatted_from_date)
             if parsed_from_date:
-                testimony_qs = testimony_qs.filter(created_at__date__gte=parsed_from_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__gte=parsed_from_date)
 
         if to_date:
             day, month, year = from_date.split('/')
@@ -164,15 +162,16 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(formatted_to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
-            
-        
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
+
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnVideoTestimonySerializer(paginated_queryset, many=True, context={'request': request})
-        
+        serializer = ReturnVideoTestimonySerializer(
+            paginated_queryset, many=True, context={'request': request})
+
         return paginator.get_paginated_response(serializer.data)
-    
+
     def retrieve(self, request, pk=None):
         """Retrieve a specific video testimony by ID"""
         try:
@@ -184,11 +183,12 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
                 message="Testimony not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # Serialize the testimony and return the response
-        serializer = ReturnVideoTestimonySerializer(testimony, context={'request': request})
+        serializer = ReturnVideoTestimonySerializer(
+            testimony, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def update(self, request, pk=None):
         """Update a specific video testimony by ID"""
         try:
@@ -200,12 +200,14 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
                 message="Testimony not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-            
+
         # Use the appropriate serializer to validate and update the data
-        serializer = VideoTestimonySerializer(testimony, data=request.data, partial=True)
+        serializer = VideoTestimonySerializer(
+            testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnVideoTestimonySerializer(serializer.instance, context={'request': request})
+            return_serializer = ReturnVideoTestimonySerializer(
+                serializer.instance, context={'request': request})
             return http.success_response(data=return_serializer.data, status_code=status.HTTP_200_OK)
 
         # Return validation errors if the data is invalid
@@ -221,43 +223,44 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
                 message="Video Testimony not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # Delete the found testimony
         testimony.delete()
         return http.success_response(message="Testimony deleted successfully.", status_code=status.HTTP_204_NO_CONTENT,
-        )
-        
+                                     )
+
 
 class TextTestimonyViewSet(viewsets.ViewSet):
-    
+
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
-    
+
     def list(self, request):
         """Get all Text testimonies"""
-        
+
         # Get filter parameter
         status = request.query_params.get("type", "").lower()
         category = request.query_params.get('category', "").lower()
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
-        
+
         # get all texts
         testimony_qs = TextTestimony.objects.all()
-        
+
         if status:
             testimony_qs = testimony_qs.filter(status=status)
-            
+
         if category:
             testimony_qs = testimony_qs.filter(category=category)
-            
+
         # Apply date filtering
         if from_date:
             day, month, year = from_date.split('/')
             formatted_from_date = f"{year}-{month}-{day}"
             parsed_from_date = parse_date(formatted_from_date)
             if parsed_from_date:
-                testimony_qs = testimony_qs.filter(created_at__date__gte=parsed_from_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__gte=parsed_from_date)
 
         if to_date:
             day, month, year = from_date.split('/')
@@ -265,14 +268,16 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(formatted_to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
-        
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
+
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
-        
+        serializer = ReturnTextTestimonySerializer(
+            paginated_queryset, many=True)
+
         return paginator.get_paginated_response(serializer.data)
-    
+
     def retrieve(self, request, pk=None):
         """Retrieve a specific text testimony by ID"""
         try:
@@ -284,21 +289,22 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 message="Testimony not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # Serialize the testimony and return the response
         serializer = ReturnTextTestimonySerializer(testimony)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     @action(detail=False, methods=['post'])
     def create_text(self, request):
-        
-        serializer = TextTestimonySerializer(data=request.data, context={'request': request})
+
+        serializer = TextTestimonySerializer(
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         testimony = serializer.save()
-        
+
         return_serializer = ReturnTextTestimonySerializer(testimony)
         return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
-    
+
     def update(self, request, pk=None):
         """Update a specific text testimony by ID"""
         try:
@@ -308,17 +314,19 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 message="Testimony not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-            
+
         # Use the appropriate serializer to validate and update the data
-        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
+        serializer = TextTestimonySerializer(
+            testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
+            return_serializer = ReturnTextTestimonySerializer(
+                serializer.instance)
             return http.success_response(data=return_serializer.data, status_code=status.HTTP_200_OK)
 
         # Return validation errors if the data is invalid
         return http.failed_response(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
-    
+
     def destroy(self, request, pk=None):
         """Delete a specific text testimony by ID"""
         try:
@@ -329,49 +337,51 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 message="text Testimony not found.",
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-        
+
         # Delete the found testimony
         testimony.delete()
         return http.success_response(message="Testimony deleted successfully.", status_code=status.HTTP_204_NO_CONTENT,
-        )
-       
-    
+                                     )
+
+
 class InspirationalPicturesViewSet(viewsets.ViewSet):
-    
+
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
-    
+
     @action(detail=False, methods=['post'])
     def create_pic(self, request):
-        
-        serializer = InspirationalPicturesSerializer(data=request.data, context={'request': request})
+
+        serializer = InspirationalPicturesSerializer(
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         testimony = serializer.save()
-        
-        return_serializer = ReturnInspirationalPicturesSerializer(testimony, context={'request': request})
+
+        return_serializer = ReturnInspirationalPicturesSerializer(
+            testimony, context={'request': request})
         return http.success_response(data=return_serializer.data, status_code=status.HTTP_201_CREATED)
-    
-    def list(self, request):   
+
+    def list(self, request):
         # Get filter parameter
         status = request.query_params.get("type", "").lower()
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
-        
-                
-        # get all inspiration pics 
+
+        # get all inspiration pics
         testimony_qs = InspirationalPictures.objects.all()
-        
+
         if status:
             testimony_qs = testimony_qs.filter(upload_status=status)
-    
+
         # Apply date filtering
         if from_date:
             day, month, year = from_date.split('/')
             formatted_from_date = f"{year}-{month}-{day}"
             parsed_from_date = parse_date(formatted_from_date)
-            
+
             if parsed_from_date:
-                testimony_qs = testimony_qs.filter(created_at__date__gte=parsed_from_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__gte=parsed_from_date)
 
         if to_date:
             day, month, year = from_date.split('/')
@@ -379,50 +389,54 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(formatted_from_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
-            
-        
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
+
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnInspirationalPicturesSerializer(paginated_queryset, many=True, context={'request': request})
-        
+        serializer = ReturnInspirationalPicturesSerializer(
+            paginated_queryset, many=True, context={'request': request})
+
         return paginator.get_paginated_response(serializer.data)
-    
+
     def retrieve(self, request, pk=None):
-        
+
         # get inspirational pic
         try:
             inspirational_pic = InspirationalPictures.objects.get(id=pk)
         except InspirationalPictures.DoesNotExist:
             return http.failed_response(message="Inspirational Picture with this ID Does not Exist", status_code=status.HTTP_404_NOT_FOUND)
-        
-        serializer = ReturnInspirationalPicturesSerializer(inspirational_pic, context={"request": request})
-        
+
+        serializer = ReturnInspirationalPicturesSerializer(
+            inspirational_pic, context={"request": request})
+
         return http.success_response(data=serializer.data, status_code=status.HTTP_200_OK)
-    
+
     def update(self, request, pk=None):
         # get inspirational pic
         try:
             inspirational_pic = InspirationalPictures.objects.get(id=pk)
         except InspirationalPictures.DoesNotExist:
             return http.failed_response(message="Inspirational Picture with this ID Does not Exist", status_code=status.HTTP_404_NOT_FOUND)
-        
-        serializer = InspirationalPicturesSerializer(inspirational_pic, data=request.data, partial=True)
+
+        serializer = InspirationalPicturesSerializer(
+            inspirational_pic, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnInspirationalPicturesSerializer(serializer.instance, context={"request": request})
+            return_serializer = ReturnInspirationalPicturesSerializer(
+                serializer.instance, context={"request": request})
             return http.success_response(data=return_serializer.data, status_code=status.HTTP_200_OK)
 
         # Return validation errors if the data is invalid
         return http.failed_response(message=serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
-    
+
     def destroy(self, request, pk=None):
         # get inspirational pic
         try:
             inspirational_pic = InspirationalPictures.objects.get(id=pk)
         except InspirationalPictures.DoesNotExist:
             return http.failed_response(message="Inspirational Picture with this ID Does not Exist", status_code=status.HTTP_404_NOT_FOUND)
-        
+
         # Delete the found inspitrational pic
         inspirational_pic.delete()
         return http.success_response(message="Inspirational Picture deleted successfully.", status_code=status.HTTP_204_NO_CONTENT)
