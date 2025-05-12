@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from support.helpers import StandardResultsSetPagination
 from .models import ScriptureComment, Scriptures
-from .serializers import ScriptureCommentSerializer, ScripturesSerializer
+from .serializers import IntervalScheduleSerializer, ScriptureCommentSerializer, ScripturesSerializer
 from user.models import User
 from rest_framework import status
 from django.db.models import Q
@@ -289,6 +289,184 @@ class FilterScripture(APIView):
             }
             return Response(payload, status=status.HTTP_404_NOT_FOUND)
 
+
+class GetOrCreateIntervalScheduleInstance(APIView):
+    permission_classes = (IsAuthenticated, )
+
+    def post(self, request):
+        payload = {}
+        user_id = request.user.id
+        try:
+            role = User.Roles.ADMIN.value
+            get_user = User.objects.get(id=user_id)
+            if get_user.role == role or get_user.is_superuser == True:
+                serializer = IntervalScheduleSerializer(
+                    data=request.data or None)
+                if serializer.is_valid():
+                    serializer.save()
+                    payload = {
+                        'msg': "Interval Schedule Created Successfully",
+                        'data': serializer.data
+                    }
+                    return Response(payload, status=status.HTTP_201_CREATED)
+                else:
+                    payload = {
+                        'msg': serializer.errors
+                    }
+                    return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                payload = {
+                    'msg': "User is not Authorised"
+                }
+                return Response(payload, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            payload = {
+                'msg': "User is not Authorised"
+            }
+            return Response(payload, status=status.HTTP_404_NOT_FOUND)
+
+    def get(self, request):
+        payload = {}
+        user_id = request.user.id
+        try:
+            role = User.Roles.ADMIN.value
+            get_user = User.objects.get(id=user_id)
+            if get_user.role == role or get_user.is_superuser == True:
+                schedule = IntervalSchedule.objects.all()
+                serializer = IntervalScheduleSerializer(
+                    schedule, many=True)
+                if serializer:
+                    payload = {
+                        'msg': serializer.data
+                    }
+                    return Response(payload, status=status.HTTP_200_OK)
+                else:
+                    payload = {"msg": "No Data Found"}
+                    return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                payload = {
+                    'msg': "User is not Authorised"
+                }
+                return Response(payload, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            payload = {
+                'msg': "User is not Authorised"
+            }
+            return Response(payload, status=status.HTTP_404_NOT_FOUND)
+
+    def put(self, request, id):
+        payload = {}
+        user_id = request.user.id
+        try:
+            role = User.Roles.ADMIN.value
+            get_user = User.objects.get(id=user_id)
+            if get_user.role == role or get_user.is_superuser == True:
+                schedule = IntervalSchedule.objects.get(id=id)
+                serializer = IntervalScheduleSerializer(
+                    data=request.data or None, instance=schedule)
+                if serializer.is_valid():
+                    serializer.save()
+                    payload = {
+                        'msg': "Interval Schedule Edited Successfully",
+                        'data': serializer.data
+                    }
+                    return Response(payload, status=status.HTTP_200_OK)
+                else:
+                    payload = {
+                        'msg': serializer.errors
+                    }
+                    return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                payload = {
+                    'msg': "User is not Authorised"
+                }
+                return Response(payload, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            payload = {
+                'msg': "User is not Authorised"
+            }
+            return Response(payload, status=status.HTTP_404_NOT_FOUND)
+
+    def delete(self, request, id):
+        payload = {}
+        user_id = request.user.id
+        try:
+            role = User.Roles.ADMIN.value
+            get_user = User.objects.get(id=user_id)
+            if get_user.role == role or get_user.is_superuser == True:
+                schedule = IntervalSchedule.objects.get(id=id)
+                if schedule:
+                    schedule.delete()
+                    payload = {
+                        'msg': "Interval Schedule Deleted Successfully"
+                    }
+                    return Response(payload, status=status.HTTP_200_OK)
+                else:
+                    payload = {
+                        'msg': "Error In Deleting"
+                    }
+                    return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                payload = {
+                    'msg': "User is not Authorised"
+                }
+                return Response(payload, status=status.HTTP_404_NOT_FOUND)
+        except User.DoesNotExist:
+            payload = {
+                'msg': "User is not Authorised"
+            }
+            return Response(payload, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetScheduleScripture(APIView):
+    permission_classes = (IsAuthenticated, )
+
+    def get(self, request, id):
+        user_id = request.user.id
+        role = User.Roles.ADMIN.value
+        get_user = User.objects.get(id=user_id, role=role)
+        if get_user.role == role or get_user.is_superuser == True:
+            data = []
+            payload = {}
+            testimonyList = Scriptures.objects.all()
+            serializer = ScripturesSerializer(testimonyList, many=True)
+            schedule_id = IntervalSchedule.objects.get(pk=id)
+            task = PeriodicTask.objects.filter(interval=schedule_id)
+            for i in task:
+                i.delete()
+            if len(task) > 0:
+                task = task.first()
+                args = json.loads(task.args)
+                args = args[0]
+
+                if len(serializer.data) > 0:
+                    for i in serializer.data:
+                        if i["pk"] not in args:
+                            args.append(i["pk"])
+                    task.args = json.dumps([args])
+                    task.save()
+                    payload = {
+                        'msg': 'Scriptures gotten'
+                    }
+                    return Response(payload, status=status.HTTP_200_OK)
+            else:
+                if len(serializer.data) > 0:
+                    for i in serializer.data:
+                        data.append(i["pk"])
+
+                task = PeriodicTask.objects.get_or_create(
+                    interval=schedule_id, name=f'every-{schedule_id.every}-{schedule_id.period}', task="scriptures.tasks.get_scripture_periodically", args=json.dumps([data]))
+                payload = {
+                    'msg': 'Scriptures gotten'
+                }
+                return Response(payload, status=status.HTTP_200_OK)
+        else:
+            payload = {
+                'msg': "User is not Authorised"
+            }
+            return Response(payload, status=status.HTTP_404_NOT_FOUND)
+
+
 # ---------------------------------END ADMIN---------------------------------------------
 
 
@@ -367,55 +545,6 @@ class UserLikeAndUnlikeScripture(APIView):
                 }
                 return Response(payload, status=status.HTTP_404_NOT_FOUND)
         except User.DoesNotExist:
-            payload = {
-                    'msg': "User is not Authorised"
-                }
-            return Response(payload, status=status.HTTP_404_NOT_FOUND)
-
-
-# GET SCHEDULE SCRIPTURE API FOR MOBILE
-class GetScheduleScripture(APIView):
-    # permission_classes = (IsAuthenticated, )
-
-    def get(self, request):
-        user_id = request.user.id
-        role = User.Roles.VIEWER.value
-        get_user = User.objects.get(id=user_id, role=role)
-        if get_user.role == role:
-            task = PeriodicTask.objects.filter(name="every-5-seconds")
-            data = []
-            payload = {}
-            testimonyList = Scriptures.objects.all()
-            serializer = ScripturesSerializer(testimonyList, many=True)
-            if len(task) > 0:
-                task = task.first()
-                args = json.loads(task.args)
-                args = args[0]
-
-                if len(serializer.data) > 0:
-                    for i in serializer.data:
-                        if i["pk"] not in args:
-                            args.append(i["pk"])
-                    task.args = json.dumps([args])
-                    task.save()
-                    payload = {
-                        'msg': 'Scriptures gotten'
-                    }
-                    return Response(payload, status=status.HTTP_200_OK)
-            else:
-                if len(serializer.data) > 0:
-                    for i in serializer.data:
-                        data.append(i["pk"])
-
-                schedule, created = IntervalSchedule.objects.get_or_create(
-                    every=20, period=IntervalSchedule.SECONDS)
-                task = PeriodicTask.objects.create(
-                    interval=schedule, name='every-20-seconds', task="scriptures.tasks.get_scripture_periodically", args=json.dumps([data]))
-                payload = {
-                    'msg': 'Scriptures gotten'
-                }
-                return Response(payload, status=status.HTTP_200_OK)
-        else:
             payload = {
                 'msg': "User is not Authorised"
             }
