@@ -7,7 +7,7 @@ from decouple import config
 from celery.schedules import crontab
 
 
-load_dotenv() 
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,14 +19,16 @@ AUTH_USER_MODEL = 'user.User'
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# SECURITY WARNING: don't run with debug turned on in production!
 
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -36,7 +38,8 @@ INSTALLED_APPS = [
     'user',
     'admin_accounts',
     'testimonies',
-    'rest_framework',  
+    'scriptures',
+    'rest_framework',
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
@@ -44,8 +47,11 @@ INSTALLED_APPS = [
     "common",
     "mobile_user_auth",
     "django_celery_beat",
+    "django_celery_results",
     # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
+    'reviews',
+    'django_filters'
 ]
 
 MIDDLEWARE = [
@@ -101,6 +107,17 @@ else:
         )
     }
 
+
+# REDIS SETTINGS
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+        },
+    },
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -125,7 +142,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Lagos'
+
+# TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
@@ -157,6 +176,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
 
 
@@ -218,13 +238,13 @@ CORS_ALLOW_HEADERS = [
 ]
 
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
 
-if not DEBUG:    # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+# Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+if not DEBUG:
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
     # and renames the files with unique names for each version to support long-term caching
@@ -241,7 +261,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 
 
-
 # # Email
 # EMAIL_BACKEND = os.getenv("MAIL_DRIVER", default=None)
 # EMAIL_HOST = os.getenv("MAIL_HOST", default=None)
@@ -251,7 +270,7 @@ CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 # EMAIL_USE_TLS = os.getenv("MAIL_ENCRYPTION")
 
 # Email
-EMAIL_OTP_EXPIRE_SECONDS= 300
+EMAIL_OTP_EXPIRE_SECONDS = 300
 
 # Email Configuration
 EMAIL_USE_SSL = True
@@ -266,12 +285,13 @@ CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
-    "upload_schedule_videos" : {
+    "upload_schedule_videos": {
         "task": "testimonies.tasks.display_name",
-        "schedule": crontab(minute="*/5"), #5min
+        "schedule": crontab(minute="*/2"),  # 5min
         # "schedule": 5, #5 sec
-        "args": [""]
+        # "args": [""]
     }
 }
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
