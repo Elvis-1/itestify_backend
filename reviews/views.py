@@ -39,3 +39,37 @@ class AdminReviewListAPIView(generics.ListAPIView):
             queryset = queryset.filter(created_at__lte=date_to)
             
         return queryset
+    
+
+class AdminReviewDeleteAPIView(generics.DestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAdminUser]
+    lookup_field = 'id'
+
+
+class UserReviewSearchAPIView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['message']
+    
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(user=self.request.user)
+            
+        return queryset
+    
+
+class AdminDeleteAllReviewsAPIView(generics.DestroyAPIView):
+    permission_classes = [permissions.IsAdminUser]
+    queryset = Review.objects.all()
+
+    def delete(self, request, *args, **kwargs):
+        deleted_count, _ = self.get_queryset().delete()
+        return Response(
+            {"message": f"Successfully deleted {deleted_count} reviews."},
+            status=status.HTTP_204_NO_CONTENT
+        )
