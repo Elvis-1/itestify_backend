@@ -432,8 +432,6 @@ class GetScheduleScripture(APIView):
             serializer = ScripturesSerializer(testimonyList, many=True)
             schedule_id = IntervalSchedule.objects.get(pk=id)
             task = PeriodicTask.objects.filter(interval=schedule_id)
-            for i in task:
-                i.delete()
             if len(task) > 0:
                 task = task.first()
                 args = json.loads(task.args)
