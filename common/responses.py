@@ -1,23 +1,22 @@
 from rest_framework.response import Response
 
+
 class CustomResponse:
-    def success(message, data=None, status_code=200):
-        response = {
+    def success(message="Success", data=None, status_code=200):
+        response_data = {
             'success': True,
             'message': message,
             'data': data
         }
 
-        response.pop('data', None) if data is None else ...
-        return Response(data=response, status=status_code)
+        response_data.pop('data', None) if data is None else ...
+        return Response(data=response_data, status=status_code)
     
-    def error(message, err_code, data=None, status_code=400):
-        response = {
+    def error(err_code, message="Failed", status_code=400):
+        response_data = {
             'success': False,
             'message': message,
-            'code': err_code,
-            'data': data
+            'code': err_code
         }
-        
-        response.pop("data", None) if data is None else ...
-        return Response(data=response, status=status_code)
+               
+        return Response(data=response_data, status=status_code)

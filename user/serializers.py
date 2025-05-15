@@ -3,14 +3,19 @@ from rest_framework import serializers
 from user.models import User
 
 
+class UserRegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    full_name = serializers.CharField()
+    password = serializers.CharField()
+    password2 = serializers.CharField()
 
-class LoginCodeEntrySerialiazer(serializers.Serializer):
+class LoginCodeEntrySerializer(serializers.Serializer):
         
     email = serializers.EmailField()
     entry_code = serializers.CharField(max_length=6)
     
 
-class LoginPasswordSerialiazer(serializers.Serializer):
+class LoginPasswordSerializer(serializers.Serializer):
         
     email = serializers.EmailField()
     password = serializers.CharField(max_length=225)
@@ -38,6 +43,7 @@ class SetPasswordSerializer(serializers.Serializer):
 
     password = serializers.CharField(max_length=255, write_only=True)
     confirm_password = serializers.CharField(max_length=255, write_only=True)
+
     
     
 class ResendEntryCodeSerializer(serializers.Serializer):
@@ -54,6 +60,7 @@ class VerifyOtpSerializer(ResendOtpSerializer):
     otp = serializers.IntegerField()
     
     
-class SetNewPasswordSerializer(VerifyOtpSerializer):
+class SetNewPasswordSerializer(ResendEntryCodeSerializer):
+    """set new password for user"""
     password = serializers.CharField()
     password2 = serializers.CharField()

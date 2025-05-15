@@ -9,6 +9,7 @@ class ErrorCode:
     INVALID_AUTH = "invalid_auth"
     INVALID_TOKEN = "invalid_token"
     INVALID_CREDENTIALS = "invalid_credentials"
+    INVALID_ACTION = "invalid_action"
     INVALID_TYPE = "invalid_type"
     UNVERIFIED_USER = "unverified_user"
     NON_EXISTENT = "non_existent"
@@ -19,3 +20,4 @@ class ErrorCode:
     INVALID_DATA_TYPE = "invalid_data_type"
     NOT_FOUND = "not_found"
     BAD_REQUEST = "bad_request"
+    FORBIDDEN = "forbidden"

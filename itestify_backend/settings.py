@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "corsheaders",
     "donations",
     "common",
-    "mobile_user_auth",
     "django_celery_beat",
     "django_celery_results",
     # "rest_framework.authtoken",
@@ -102,9 +101,7 @@ if not DEPLOY:
     }
 else:
     DATABASES = {
-        "default": dj_database_url.parse(
-            os.getenv("POSTGRESDB")
-        )
+        "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
     }
 
 
@@ -259,15 +256,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CSRF NAME: Prefer the Laravel Style
 CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
-
-
-# # Email
-# EMAIL_BACKEND = os.getenv("MAIL_DRIVER", default=None)
-# EMAIL_HOST = os.getenv("MAIL_HOST", default=None)
-# EMAIL_PORT = os.getenv("MAIL_PORT", default=None)
-# EMAIL_HOST_USER = os.getenv("MAIL_USERNAME", default=None)
-# EMAIL_HOST_PASSWORD = os.getenv("MAIL_PASSWORD", default=None)
-# EMAIL_USE_TLS = os.getenv("MAIL_ENCRYPTION")
 
 # Email
 EMAIL_OTP_EXPIRE_SECONDS = 300
