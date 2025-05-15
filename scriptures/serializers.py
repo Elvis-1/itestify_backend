@@ -1,5 +1,13 @@
 from rest_framework import serializers
 from .models import ScriptureComment, Scriptures
+from django_celery_results.models import TaskResult
+from django_celery_beat.models import PeriodicTask, IntervalSchedule
+
+
+class IntervalScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IntervalSchedule
+        fields = ['pk', 'every', 'period']
 
 
 # SCRIPTURES COMMENT SERIALIZER
