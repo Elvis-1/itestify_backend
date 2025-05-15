@@ -1,5 +1,6 @@
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from common.responses import CustomResponse
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -28,17 +29,17 @@ class StandardResultsSetPagination(PageNumberPagination):
             Response: A Response object with metadata and the paginated data.
         """
         current_page = self.page.number
-        total_pages = self.page.paginator.num_pages
-        return Response(
-            {
+        total_pages = self.page.paginator.num_pages 
+        return CustomResponse.success(
+            message="Success",
+            data= {
                 "count": self.page.paginator.count,
                 "next": self.get_next_link(),
                 "previous": self.get_previous_link(),
                 "current_page": current_page,
                 "total_pages": total_pages,
-                "success": True,
-                "message": "Success",
                 "data": data,
-            }
-        )
+                },
+            status_code=200
+)
 

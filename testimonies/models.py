@@ -31,7 +31,7 @@ class UPLOAD_STATUS(models.TextChoices):
 
 class Testimony(TouchDatesMixim):
     title = models.CharField(max_length=255, help_text="Enter Title")
-    category = models.CharField(max_length=50, choices=CATEGORY.choices)
+    category = models.CharField(max_length=50, choices=CATEGORY.choices, db_index=True)
     # upload_status = models.CharField(
     #    max_length=50, choices=UPLOAD_STATUS.choices, null=True, blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -63,7 +63,7 @@ class TextTestimony(Testimony):
 
     content = models.TextField()
     status = models.CharField(
-        max_length=20, choices=STATUS.choices, default=STATUS.PENDING)
+        max_length=20, choices=STATUS.choices, default=STATUS.PENDING, db_index=True)
 
 
 class VideoTestimony(Testimony):
@@ -72,6 +72,7 @@ class VideoTestimony(Testimony):
         max_length=255, help_text="Video source", null=True, blank=True)
     upload_status = models.CharField(
         max_length=225, choices=UPLOAD_STATUS.choices)
+    is_published = models.BooleanField(default=False)
     video_file = models.FileField(
         upload_to='videos/', help_text="Upload video file", null=True, blank=True)
     thumbnail = models.ImageField(upload_to='thumbnails/', blank=True, null=True,

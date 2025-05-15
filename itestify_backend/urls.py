@@ -37,14 +37,13 @@ urlpatterns = [
     path('admin/', admin.site.urls),  # Django admin
     path("", home),  # Home page
     path('', include('testimonies.urls')),
-    path('', include('user.urls')),
+    path('auths/', include('user.urls')),
     path('', include('donations.urls')),
     path('', include("scriptures.urls")),
-    path("mobile/auth/", include("mobile_user_auth.urls")),
-    path("mobile/", include("mobile_user_testimonies.urls")),
     path('review/', include('reviews.urls')),
 
 ]
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
    

@@ -31,7 +31,6 @@ def success_response(
 def failed_response(
     data=None,
     message="Failed",
-    status_code=status.HTTP_400_BAD_REQUEST,
     *args,
     **kwargs,
 ):
