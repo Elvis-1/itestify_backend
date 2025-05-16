@@ -4,11 +4,10 @@ from rest_framework import status, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from .models import EntryCode, User, Otp
 from .utils import Util
-from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer
+from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer, ChangePasswordSerializer
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
@@ -253,34 +252,51 @@ class LoginViewSet(viewsets.ViewSet):
     
 
 class DashboardViewSet(viewsets.ViewSet):
-    
-    serializer_class = SetPasswordSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
+    permission_classes = [IsAuthenticated]
+
     @action(detail=False, methods=["post"])
     def create_password(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = SetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         password = serializer.validated_data.get("password")
         confirm_password = serializer.validated_data.get("confirm_password")
         
         if password != confirm_password:
-            return CustomResponse.error(message="Passwords does not match", err_code=ErrCode.BAD_REQUEST, status_code=400)
+            return CustomResponse.error(
+                message="Passwords do not match",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
         
         user = request.user
         user.created_password = True
         user.set_password(password)
         user.save()
 
-        return CustomResponse.success(message="Passwords changed successfully", status_code=200)
+        return CustomResponse.success(
+            message="Password created successfully",
+            status_code=200
+        )
 
+    @action(detail=False, methods=["post"])
+    def change_password(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
 
+        user = request.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return CustomResponse.success(
+            message="Password changed successfully",
+            status_code=200
+        )
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
         pass
-    
+
 
 class SendPasswordResetOtpView(GenericAPIView):
     serializer_class = ResendOtpSerializer
@@ -447,7 +463,7 @@ class UsersViewSet(viewsets.ViewSet):
         except User.DoesNotExist or user is None:
             return CustomResponse.error(
                 message="User not found.",
-                err_code=ErrCode.NOT_FOUND,
+                err_code=ErrorCode.NOT_FOUND,
                 status_code=404
             )
 
@@ -490,5 +506,3 @@ class LogOutApiView(GenericAPIView):
         response.delete_cookie('access')
 
         return response
-
-        
