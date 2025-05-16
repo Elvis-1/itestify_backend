@@ -1,4 +1,5 @@
 import random, threading
+import os
 
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage, EmailMultiAlternatives
@@ -15,7 +16,7 @@ class EmailThread(threading.Thread):
         self.email.send()
 
 
-class Util:
+class EmailUtil:
     def send_password_reset_email(user):
         from_email = "If not God Tech <{}>".format(settings.EMAIL_HOST_USER)
         subject = 'Password Reset OTP'
@@ -57,13 +58,21 @@ class Util:
             otp.save()
         
         email_message = EmailMessage(
-        subject=subject,
-        body=message,
-        to=[user.email],
-        from_email=from_email
-    )
+            subject=subject,
+            body=message,
+            to=[user.email],
+            from_email=from_email
+        )
         email_message.content_subtype = 'html'
 
         EmailThread(email_message).start()
+
+    @staticmethod
+    def send_email(data):
+        email = EmailMessage(
+            subject=data['email_subject'], from_email=os.environ.get('EMAIL_HOST_USER'), body=data['email_body'], to=[data['to_email']])
+        email.send()
+
+    
             
             
