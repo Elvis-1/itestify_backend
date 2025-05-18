@@ -2,6 +2,7 @@ import string
 from django.urls import reverse
 from rest_framework.response import Response
 from rest_framework import viewsets
+from rest_framework.views import APIView
 from rest_framework import status, permissions
 from rest_framework.decorators import action
 from .models import EntryCode, User
@@ -164,67 +165,53 @@ class LoginViewSet(viewsets.ViewSet):
         return Response({'success': True, "message": f"A new entry code has been sent to your email {email}"}, status=status.HTTP_200_OK)
 
 
-class ForgotPasswordViewSet(viewsets.ViewSet):
+class ForgotPasswordView(APIView):
     account_activation_token = PasswordResetTokenGenerator()
 
-    @action(detail=False, methods=["post"])
-    def forgot_password(self, request):
+    def post(self, request):
         payload = {}
         email = request.data.get("email")
         if not email:
             return Response({"success": False, "message": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
         try:
             user = User.objects.get(email=email)
-            current_site = get_current_site(request)
-            email_content = {
-                'user': user[0],
-                'doamin': current_site.domain,
+            reset_password_token = {
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                 'token': self.account_activation_token.make_token(user)
             }
 
-            link = reverse('reset-user-pass', kwargs={
-                'uidb64': email_content['uid'], 'token': email_content['token']
-            })
-
-            reset_url = f'http://{current_site.domain}{link}'
-
-            # Prepare email data and send the email
-            email_data = {
-                'to_email': email,
-                'email_subject': "Password reset Instructions",
-                'email_body': f"Hi {email}, Kindly click the link below to reset your password\n {reset_url}"
-            }
-
-            Util.send_email(email_data)
             payload = {
-                "success": True, "message": "Password reset link has been sent to your email", "data": email_data
+                "success": True, "message": "Password reset link has been sent to your email", "uid": f"{reset_password_token['uid']}", "token": f"{reset_password_token['token']}"
             }
             return Response(payload, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"success": False, "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
-    def reset_password(self, request, uidb64, token):
-        password = request.POST.get('password')
+
+class ResetPasswordView(APIView):
+    account_activation_token = PasswordResetTokenGenerator()
+
+    def post(self, request, uidb64, token):
+        password = request.data.get('password')
         if len(password) < 8:
-            return Response({"msg": "At least enter 8 Character"})
+            return Response({"msg": "At least enter 8 Character"}, status=status.HTTP_400_BAD_REQUEST)
         elif not has_uppercase(password):
-            return Response({"msg": "One Uppercase Letter (A-Z)"})
+            return Response({"msg": "One Uppercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
         elif not has_lowercase(password):
-            return Response({"msg": "One Lowercase Letter (A-Z)"})
+            return Response({"msg": "One Lowercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
         elif not has_number(password):
-            return Response({"msg": "One Number (0-9)"})
+            return Response({"msg": "One Number (0-9)"}, status=status.HTTP_400_BAD_REQUEST)
         elif not has_special_character(password):
-            return Response({"msg": "One Special Character (!@#$%^&*)"})
+            return Response({"msg": "One Special Character (!@#$%^&*)"}, status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
                 user_id = force_str(urlsafe_base64_decode(uidb64))
                 user = User.objects.get(pk=user_id)
                 user.set_password(password)
                 user.save()
-                if PasswordResetTokenGenerator().check_token(user, token):
-                    return Response({"msg": "Password link invalid, Pls request for a new one"})
-                return Response({"msg": "Password link invalid, Pls request for a new one"})
+                if self.account_activation_token.check_token(user, token):
+                    return Response({"msg": "Password link invalid, Pls request for a new one"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK)
             except User.DoesNotExist:
                 return Response({"msg": "User Does not exist"})
 

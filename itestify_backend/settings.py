@@ -17,8 +17,8 @@ AUTH_USER_MODEL = 'user.User'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
-
+# SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = 'django-insecure-=q11n9)f*85j(txsls!1wo=#qlx40gd%rigl^pc14zm(sq*!t5'
 
 DEBUG = True
 
@@ -52,8 +52,15 @@ INSTALLED_APPS = [
     # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
     'reviews',
-    'django_filters'
+    'django_filters',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.apple'
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -65,6 +72,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'itestify_backend.urls'
@@ -94,19 +102,19 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if not DEPLOY:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# if not DEPLOY:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
+}
+'''else:
     DATABASES = {
         "default": dj_database_url.parse(
             os.getenv("POSTGRESDB")
         )
-    }
+    }'''
 
 
 # REDIS SETTINGS
@@ -117,6 +125,20 @@ CHANNEL_LAYERS = {
             "hosts": [("localhost", 6379)],
         },
     },
+}
+
+# Provider specific settings
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        # For each OAuth based provider, either add a ``SocialApp``
+        # (``socialaccount`` app) containing the required client
+        # credentials, or list them here:
+        'APP': {
+            'client_id': '123',
+            'secret': '456',
+            'key': ''
+        }
+    }
 }
 
 # Password validation
@@ -183,6 +205,7 @@ REST_FRAMEWORK = {
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend"
 ]
 
 APPEND_SLASH = False
@@ -282,8 +305,10 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
 # celery settings
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+# CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+# CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
+CELERY_BROKER_URL = "redis://127.0.0.1:6379"
+CELERY_RESULT_BACKEND = 'django-db'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = "Africa/Lagos"

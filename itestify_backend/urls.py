@@ -43,6 +43,7 @@ urlpatterns = [
     path("mobile/auth/", include("mobile_user_auth.urls")),
     path("mobile/", include("mobile_user_testimonies.urls")),
     path('review/', include('reviews.urls')),
+    path('auth/social/', include('allauth.socialaccount.urls')),
 
 ]
 if settings.DEBUG:
