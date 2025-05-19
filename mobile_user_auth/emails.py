@@ -40,11 +40,11 @@ class Util:
             otp.code = code
             otp.save()
 
+        print(code)
+        #email_message = EmailMessage(subject=subject, body=message, to=[user.email], from_email=from_email)
+        #email_message.content_subtype = 'html'
 
-        email_message = EmailMessage(subject=subject, body=message, to=[user.email], from_email=from_email)
-        email_message.content_subtype = 'html'
-
-        EmailThread(email_message).start()
+        #EmailThread(email_message).start()
 
     def send_verification_email(user):
         from_email = "If not God Tech <{}>".format(settings.EMAIL_HOST_USER)

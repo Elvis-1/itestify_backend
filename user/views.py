@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework import status, permissions
 from rest_framework.decorators import action
 from .models import EntryCode, Otp, User
-from .utils import Util
+from mobile_user_auth.emails import Util
 from .serializers import LoginCodeEntrySerialiazer, LoginPasswordSerialiazer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
