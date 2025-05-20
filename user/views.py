@@ -41,12 +41,14 @@ class RegisterViewSet(viewsets.ViewSet):
 
         user = User.objects.get_or_none(email=serializer.validated_data["email"])
 
-        if user:
+        if user and user.status != "deleted":
             return CustomResponse.error(
                 message="User with this email already exists",
                 err_code=ErrorCode.INVALID_ENTRY,
                 status_code=400
             )
+
+        user.delete()
 
         serializer.validated_data.pop("password2", None)
         user = User.objects.create_user(**serializer.validated_data)
