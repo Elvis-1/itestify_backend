@@ -42,14 +42,7 @@ class AdminReviewListAPIView(generics.ListAPIView):
         return queryset
     
 
-class AdminReviewDeleteAPIView(generics.DestroyAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
-    permission_classes = [permissions.IsAdminUser]
-    lookup_field = 'id'
-
-
-class UserReviewSearchAPIView(generics.ListAPIView):
+class UserSearchReviewAPIView(generics.ListAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -62,9 +55,16 @@ class UserReviewSearchAPIView(generics.ListAPIView):
             queryset = queryset.filter(user=self.request.user)
             
         return queryset
-    
 
-class AdminDeleteAllReviewsAPIView(generics.DestroyAPIView):
+
+class AdminDeleteReviewAPIView(generics.DestroyAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = [permissions.IsAdminUser]
+    lookup_field = 'id'
+
+
+class AdminReviewsDeleteallAPIView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
     queryset = Review.objects.all()
 
