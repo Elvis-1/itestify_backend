@@ -37,7 +37,7 @@ class EmailUtil:
         else:
             otp.code = code
             otp.save()
-
+        
         email_message = EmailMessage(subject=subject, body=message, to=[user.email], from_email=from_email)
         email_message.content_subtype = 'html'
 
