@@ -23,6 +23,15 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
+#from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+#from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+#from dj_rest_auth.registration.views import SocialLoginView
+from django.conf import settings
+#from urllib.parse import urljoin
+from django.urls import reverse
+import requests
+
+
 
 # Create your views here.
 
@@ -41,6 +50,42 @@ def has_number(s):
 def has_special_character(s):
     special_char = string.punctuation
     return any(char in special_char for char in s)
+
+
+'''class GoogleLogin(SocialLoginView):
+    adapter_class = GoogleOAuth2Adapter
+    callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
+    client_class = OAuth2Client'''
+
+class GoogleLoginCallback(APIView):
+    def get(self, request, *args, **kwargs):
+        code = request.GET.get("code")
+        
+        if code is None:
+            return Response({"error": "Missing authorization code"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Define the payload for Google's token exchange
+        payload = {
+            "code": code,
+            "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+            "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
+            "grant_type": "authorization_code",
+        }
+        
+        # Make a request to the Google token endpoint
+        try:
+            response = requests.post("https://oauth2.googleapis.com/token", data=payload)
+            response.raise_for_status()  # Check for HTTP errors
+        except requests.exceptions.RequestException as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token_data = response.json()  # Attempt to parse the JSON response
+        except ValueError:
+            return Response({"error": "Invalid response from Google"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(token_data, status=status.HTTP_200_OK)
 
 
 class RegisterViewSet(viewsets.ViewSet):
