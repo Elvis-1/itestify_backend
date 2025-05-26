@@ -1,12 +1,14 @@
-import random, threading
+import random
+import threading
 import os
-
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.conf import settings
 from user import models as account_model
 
 # Email threading
+
+
 class EmailThread(threading.Thread):
     def __init__(self, email):
         self.email = email
@@ -37,7 +39,7 @@ class EmailUtil:
         else:
             otp.code = code
             otp.save()
-        
+
         email_message = EmailMessage(subject=subject, body=message, to=[user.email], from_email=from_email)
         email_message.content_subtype = 'html'
 
@@ -48,15 +50,15 @@ class EmailUtil:
         subject = 'Email Verification'
         code = random.randint(1000, 9999)
         message = f'Your email verification OTP is: <strong>{code}</strong>'
-        
+
         otp = account_model.Otp.objects.get_or_none(user=user)
 
         if not otp:
-            account_model.Otp.objects.create(user=user, code=code)    
+            account_model.Otp.objects.create(user=user, code=code)
         else:
             otp.code = code
             otp.save()
-        
+
         email_message = EmailMessage(
             subject=subject,
             body=message,
@@ -72,7 +74,3 @@ class EmailUtil:
         email = EmailMessage(
             subject=data['email_subject'], from_email=os.environ.get('EMAIL_HOST_USER'), body=data['email_body'], to=[data['to_email']])
         email.send()
-
-    
-            
-            
