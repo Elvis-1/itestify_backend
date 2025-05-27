@@ -11,12 +11,11 @@ from rest_framework import status, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import EntryCode, User, Otp
 from .utils import Util
-from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer
+from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer, ChangePasswordSerializer
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
@@ -114,7 +113,7 @@ class RegisterViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="register")
     def register(self, request):
         data = request.data
-
+        
         serializer = self.serializer_class(data=data or None)
         if serializer.is_valid(raise_exception=True):
             if not validate_email.validate_email(serializer.validated_data.get("email")) or serializer.validated_data.get("email") == "":
@@ -176,6 +175,30 @@ class RegisterViewSet(viewsets.ViewSet):
                         err_code=ErrorCode.INVALID_ENTRY,
                         status_code=400
                     )
+        if password != password2:
+            return CustomResponse.error(
+                message="Passwords do not match",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+
+        user = User.objects.get_or_none(email=serializer.validated_data["email"])
+
+        if user and user.status != "deleted":
+            return CustomResponse.error(
+                message="User with this email already exists",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+
+        if user and user.status == "deleted":
+            user.delete()
+
+        serializer.validated_data.pop("password2", None)
+        user = User.objects.create_user(**serializer.validated_data)
+        user.role = "viewer"
+        token = user.tokens()
+        user.save()
 
         return CustomResponse.error(
             message="Invalid data",
@@ -382,10 +405,11 @@ class DashboardViewSet(viewsets.ViewSet):
 
     serializer_class = SetPasswordSerializer
     permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["post"])
     def create_password(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = SetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         password = serializer.validated_data.get("password")
@@ -394,12 +418,35 @@ class DashboardViewSet(viewsets.ViewSet):
         if password != confirm_password:
             return CustomResponse.error(message="Passwords does not match", err_code=ErrCode.BAD_REQUEST, status_code=400)
 
+            return CustomResponse.error(
+                message="Passwords do not match",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+        
         user = request.user
         user.created_password = True
         user.set_password(password)
         user.save()
 
-        return CustomResponse.success(message="Passwords changed successfully", status_code=200)
+        return CustomResponse.success(
+            message="Password created successfully",
+            status_code=200
+        )
+
+    @action(detail=False, methods=["post"])
+    def change_password(self, request):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        return CustomResponse.success(
+            message="Password changed successfully",
+            status_code=200
+        )
 
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -427,7 +474,7 @@ class SendPasswordResetOtpView(GenericAPIView):
             )
 
         EmailUtil.send_password_reset_email(user)
-
+        
         return CustomResponse.success(
             message="Password reset otp has been sent",
             status_code=200
@@ -571,7 +618,7 @@ class UsersViewSet(viewsets.ViewSet):
         except User.DoesNotExist or user is None:
             return CustomResponse.error(
                 message="User not found.",
-                err_code=ErrCode.NOT_FOUND,
+                err_code=ErrorCode.NOT_FOUND,
                 status_code=404
             )
 
@@ -615,7 +662,6 @@ class LogOutApiView(GenericAPIView):
         response.delete_cookie('access')
 
         return response
-
 
 class ForgotPasswordView(APIView):
     account_activation_token = PasswordResetTokenGenerator()
