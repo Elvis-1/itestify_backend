@@ -5,6 +5,7 @@ from common.managers import GetOrNoneQuerySet
 from django.conf import settings
 from datetime import datetime
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 
 from itestify_backend.mixims import TouchDatesMixim
 
@@ -44,6 +45,25 @@ class UserManager(BaseUserManager):
         return self.get_queryset().get_or_none(**kwargs)
 
 
+    def create_invited_user(self, email, full_name=None, role=None, invited_by=None):
+        if email is None:
+            raise TypeError('User should have an Email')
+            
+        if role == self.model.Roles.SUPER_ADMIN:
+            role = self.model.Roles.ADMIN
+            
+        user = self.model(
+            email=self.normalize_email(email),
+            full_name=full_name,
+            role=role,
+            invited_by=invited_by,
+            status=self.model.STATUS.INVITED
+        )
+        user.set_unusable_password()
+        user.save()
+        return user
+
+
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     
     class Roles(models.TextChoices):
@@ -54,6 +74,8 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     class STATUS(models.TextChoices):
         DELETED = "deleted", "deleted"
         REGISTERED = "registered", "registered"
+        INVITED = "invited", "Invited"
+
         
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
@@ -64,12 +86,20 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     status = models.CharField(max_length=255, null=True, blank=True, choices=STATUS.choices, default=STATUS.REGISTERED)
     is_email_verified = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False, null=True, blank=True)
-    
+    invited_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='invited_users')
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     objects = UserManager()
     
+    @property
+    def is_super_admin(self):
+        return self.role == self.Roles.SUPER_ADMIN
+    
+    @property
+    def is_active(self):
+        return self.status != self.STATUS.DELETED
     
     def __str__(self):
         return self.email
@@ -102,7 +132,31 @@ class Otp(TouchDatesMixim):
         if diff.total_seconds() > settings.EMAIL_OTP_EXPIRE_SECONDS:
             return True
         return False
+
+class UserInvitation(TouchDatesMixim):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invitations')
+    code = models.CharField(max_length=12, unique=True)
+    is_used = models.BooleanField(default=False)
+    expires_at = models.DateTimeField()
     
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+        
+    @classmethod
+    def create_invitation(cls, user):
+        # Generate a unique code
+        while True:
+            code = get_random_string(length=12)
+            if not cls.objects.filter(code=code).exists():
+                break
+                
+        # Create invitation
+        return cls.objects.create(
+            user=user,
+            code=code,
+            expires_at=timezone.now() + timezone.timedelta(days=7)
+        )
+
     def is_expired(self):
         # Check if current time is more than 2 minutes after creation
         return timezone.now() > self.created_at + timezone.timedelta(minutes=2)

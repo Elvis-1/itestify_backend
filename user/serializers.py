@@ -68,6 +68,25 @@ class SetNewPasswordSerializer(ResendEntryCodeSerializer):
     password = serializers.CharField()
     password2 = serializers.CharField()
 
+class UserInvitationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'full_name', 'role', 'status']
+
+class CreateMemberSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    full_name = serializers.CharField()
+    role = serializers.ChoiceField(choices=User.Roles.choices)
+
+class InvitationResponseSerializer(serializers.Serializer):
+    user = UserInvitationSerializer()
+    invitation_code = serializers.CharField()
+
+class SetPasswordWithInvitationSerializer(serializers.Serializer):
+    invitation_code = serializers.CharField()
+    password = serializers.CharField()
+    password2 = serializers.CharField()
+
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
