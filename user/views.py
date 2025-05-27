@@ -8,7 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import EntryCode, User, Otp
+from .serializers import CreateMemberSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
+from .models import EntryCode, User, Otp, UserInvitation
 from .utils import Util
 from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer
 from common.exceptions import handle_custom_exceptions
@@ -291,7 +292,7 @@ class DashboardViewSet(viewsets.ViewSet):
         confirm_password = serializer.validated_data.get("confirm_password")
         
         if password != confirm_password:
-            return CustomResponse.error(message="Passwords does not match", err_code=ErrCode.BAD_REQUEST, status_code=400)
+            return CustomResponse.error(message="Passwords does not match", err_code=ErrorCode.BAD_REQUEST, status_code=400)
         
         user = request.user
         user.created_password = True
@@ -472,7 +473,7 @@ class UsersViewSet(viewsets.ViewSet):
         except User.DoesNotExist or user is None:
             return CustomResponse.error(
                 message="User not found.",
-                err_code=ErrCode.NOT_FOUND,
+                err_code=ErrorCode.NOT_FOUND,
                 status_code=404
             )
 
@@ -577,3 +578,217 @@ class ResetPasswordView(APIView):
                 return Response({"msg": "User Does not exist"})
 
         
+class MemberManagementViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        return User.objects.exclude(status=User.STATUS.DELETED)
+    
+    @action(detail=False, methods=['post'], url_path='create-member')
+    def create_member(self, request):
+        if not request.user.is_super_admin:
+            return CustomResponse.error(
+                message="Only super admins can create members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+            
+        serializer = CreateMemberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data['email']
+        if User.objects.filter(email=email).exists():
+            return CustomResponse.error(
+                message="User with this email already exists",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+            
+        # Create user with invited status
+        user = User.objects.create_invited_user(
+            email=email,
+            full_name=serializer.validated_data['full_name'],
+            role=serializer.validated_data['role'],
+            invited_by=request.user
+        )
+        
+        # Create invitation
+        invitation = UserInvitation.create_invitation(user)
+        
+        # Send email with invitation code
+        EmailUtil.send_invitation_email(user, invitation.code)
+        
+        response_data = {
+            'user': UserInvitationSerializer(user).data,
+            'invitation_code': invitation.code
+        }
+        
+        return CustomResponse.success(
+            data=response_data,
+            message="Member created successfully. Invitation sent.",
+            status_code=201
+        )
+    
+    @action(detail=True, methods=['patch'], url_path='update-member')
+    def update_member(self, request, pk=None):
+        if not request.user.is_super_admin:
+            return CustomResponse.error(
+                message="Only super admins can update members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+            
+        try:
+            member = User.objects.get(pk=pk, status=User.STATUS.REGISTERED)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="Member not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+            
+        if member.is_super_admin:
+            return CustomResponse.error(
+                message="Cannot modify super admin",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+            
+        serializer = CreateMemberSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        # Update fields
+        if 'email' in serializer.validated_data:
+            member.email = serializer.validated_data['email']
+        if 'full_name' in serializer.validated_data:
+            member.full_name = serializer.validated_data['full_name']
+        if 'role' in serializer.validated_data:
+            member.role = serializer.validated_data['role']
+            
+        member.save()
+        
+        return CustomResponse.success(
+            data=UserInvitationSerializer(member).data,
+            message="Member updated successfully",
+            status_code=200
+        )
+    
+    @action(detail=True, methods=['delete'], url_path='delete-member')
+    def delete_member(self, request, pk=None):
+        if not request.user.is_super_admin:
+            return CustomResponse.error(
+                message="Only super admins can delete members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+            
+        try:
+            member = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="Member not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+            
+        if member.is_super_admin:
+            return CustomResponse.error(
+                message="Cannot delete super admin",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+            
+        member.status = User.STATUS.DELETED
+        member.save()
+        
+        return CustomResponse.success(
+            message="Member deleted successfully",
+            status_code=200
+        )
+    
+    @action(detail=False, methods=['get'], url_path='list-members')
+    def list_members(self, request):
+        if not request.user.is_super_admin and not request.user.role == User.Roles.ADMIN:
+            return CustomResponse.error(
+                message="You don't have permission to view members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+            
+        members = self.get_queryset().exclude(pk=request.user.pk)
+        serializer = UserInvitationSerializer(members, many=True)
+        
+        return CustomResponse.success(
+            data=serializer.data,
+            status_code=200
+        )
+
+
+class AcceptInvitationView(GenericAPIView):
+    serializer_class = SetPasswordWithInvitationSerializer
+    
+    @handle_custom_exceptions
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        invitation_code = serializer.validated_data['invitation_code']
+        password = serializer.validated_data['password']
+        password2 = serializer.validated_data['password2']
+        
+        if password != password2:
+            return CustomResponse.error(
+                message="Passwords do not match",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+            
+        try:
+            invitation = UserInvitation.objects.get(
+                code=invitation_code,
+                is_used=False
+            )
+        except UserInvitation.DoesNotExist:
+            return CustomResponse.error(
+                message="Invalid or expired invitation code",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+            
+        if invitation.is_expired():
+            return CustomResponse.error(
+                message="Invitation code has expired",
+                err_code=ErrorCode.EXPIRED_TOKEN,
+                status_code=400
+            )
+            
+        user = invitation.user
+        if user.status != User.STATUS.INVITED:
+            return CustomResponse.error(
+                message="User already registered",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+            
+        # Set password and update status
+        user.set_password(password)
+        user.status = User.STATUS.REGISTERED
+        user.created_password = True
+        user.save()
+        
+        # Mark invitation as used
+        invitation.is_used = True
+        invitation.save()
+        
+        # Return tokens
+        token = user.tokens()
+        
+        return CustomResponse.success(
+            data={
+                'user': ReturnUserSerializer(user).data,
+                'token': token['access'],
+                'refresh': token['refresh']
+            },
+            message="Account activated successfully",
+            status_code=200
+        )

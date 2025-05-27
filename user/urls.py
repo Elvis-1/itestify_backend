@@ -1,11 +1,12 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path
-from .views import (DashboardViewSet, LoginViewSet, UsersViewSet, SendPasswordResetOtpView,  ForgotPasswordView, ResetPasswordView, VerifyOtpView, SetNewPasswordView, RegisterViewSet, LogOutApiView)
+from .views import (DashboardViewSet, MemberManagementViewSet, AcceptInvitationView, LoginViewSet, UsersViewSet, SendPasswordResetOtpView,  ForgotPasswordView, ResetPasswordView, VerifyOtpView, SetNewPasswordView, RegisterViewSet, LogOutApiView)
 
 router = DefaultRouter()
 router.register(r'login', LoginViewSet, basename="login")
 router.register(r'dashboard', DashboardViewSet, basename="dashboard")
 router.register(r'users', UsersViewSet, basename="users")
+router.register(r'members', MemberManagementViewSet, basename='members')
 
 urlpatterns = [
     path("register", RegisterViewSet.as_view({"post": "register"}), name="register"),
@@ -18,6 +19,8 @@ urlpatterns = [
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/<str:uidb64>/<str:token>/',
          ResetPasswordView.as_view(), name='reset-user-pass'),
+
+    path('accept-invitation/', AcceptInvitationView.as_view(), name='accept-invitation'),
 ]
 
 urlpatterns += router.urls
