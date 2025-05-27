@@ -6,10 +6,11 @@ from user.models import User
 
 
 class UserRegisterSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    full_name = serializers.CharField()
-    password = serializers.CharField()
-    password2 = serializers.CharField()
+    email = serializers.EmailField(required=True)
+    full_name = serializers.CharField(required=False)
+    password = serializers.CharField(required=False)
+    password2 = serializers.CharField(required=False)
+    otp = serializers.IntegerField(required=False)
 
 class LoginCodeEntrySerializer(serializers.Serializer):
         

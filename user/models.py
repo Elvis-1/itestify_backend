@@ -66,6 +66,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     is_verified = models.BooleanField(default=False, null=True, blank=True)
     
     USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
 
     objects = UserManager()
     
@@ -91,7 +92,7 @@ class EntryCode(TouchDatesMixim):
     
 
 class Otp(TouchDatesMixim):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='otp')
     code = models.IntegerField()
 
     def check_expiration(self):
@@ -101,3 +102,7 @@ class Otp(TouchDatesMixim):
         if diff.total_seconds() > settings.EMAIL_OTP_EXPIRE_SECONDS:
             return True
         return False
+    
+    def is_expired(self):
+        # Check if current time is more than 2 minutes after creation
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=2)
