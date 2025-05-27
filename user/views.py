@@ -359,12 +359,12 @@ class SendOtpCodeView(APIView):
         Otp.objects.create(code=code)
 
         # Prepare email data and send the email
-        '''email_data = {
+        email_data = {
             'to_email': email,
             'email_subject': "Request For a New Entry Code",
             'email_body': f"Your new entry code: {code}"
         }
-        EmailUtil.send_email(email_data)'''
+        EmailUtil.send_email(email_data)
 
         return CustomResponse.success(message=f"A new entry code {code} has been sent to your email {email}", status_code=200)
 
