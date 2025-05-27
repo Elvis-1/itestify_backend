@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from user.models import User, EntryCode #Otp
+from user.models import User, EntryCode#, Otp
 
 # Register your models here.
 

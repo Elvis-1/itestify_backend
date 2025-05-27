@@ -65,12 +65,6 @@ def has_special_character(s):
     callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
     client_class = OAuth2Client'''
 
-class GoogleLoginCallback(APIView):
-    def get(self, request, *args, **kwargs):
-        code = request.GET.get("code")
-        
-        if code is None:
-            return Response({"error": "Missing authorization code"}, status=status.HTTP_400_BAD_REQUEST)
 
 class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
@@ -87,9 +81,6 @@ class GoogleLoginCallback(APIView):
             "grant_type": "authorization_code",
         }
         
-        # Make a request to the Google token endpoint
-        try:
-            response = requests.post("https://oauth2.googleapis.com/token", data=payload)
 
         # Make a request to the Google token endpoint
         try:
