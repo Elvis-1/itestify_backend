@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
     'reviews',
-    'django_filters'
+    'django_filters',
+    'channels',
 ]
 
 MIDDLEWARE = [
