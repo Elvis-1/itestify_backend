@@ -1,13 +1,16 @@
 from rest_framework import serializers
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 from user.models import User
 
 
 class UserRegisterSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    full_name = serializers.CharField()
-    password = serializers.CharField()
-    password2 = serializers.CharField()
+    email = serializers.EmailField(required=True)
+    full_name = serializers.CharField(required=False)
+    password = serializers.CharField(required=False)
+    password2 = serializers.CharField(required=False)
+    otp = serializers.IntegerField(required=False)
 
 class LoginCodeEntrySerializer(serializers.Serializer):
         
@@ -65,7 +68,6 @@ class SetNewPasswordSerializer(ResendEntryCodeSerializer):
     password = serializers.CharField()
     password2 = serializers.CharField()
 
-
 class UserInvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -84,3 +86,25 @@ class SetPasswordWithInvitationSerializer(serializers.Serializer):
     invitation_code = serializers.CharField()
     password = serializers.CharField()
     password2 = serializers.CharField()
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Old password is not correct")
+        return value
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("Password mismatch!")
+        
+        try:
+            validate_password(data['new_password'], self.context['request'].user)
+        except ValidationError as e:
+            raise serializers.ValidationError(list(e.messages))
+        
+        return data
