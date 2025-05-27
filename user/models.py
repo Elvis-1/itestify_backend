@@ -66,6 +66,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     is_verified = models.BooleanField(default=False, null=True, blank=True)
     
     USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
 
     objects = UserManager()
     
