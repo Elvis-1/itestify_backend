@@ -21,6 +21,7 @@ class EmailUtil:
         from_email = "If not God Tech <{}>".format(settings.EMAIL_HOST_USER)
         subject = 'Password Reset OTP'
         code = random.randint(1000, 9999)
+        print(code)
         # message = render_to_string(
         #     'password_reset_email.html',
         #     {
@@ -37,7 +38,7 @@ class EmailUtil:
         else:
             otp.code = code
             otp.save()
-
+        
         email_message = EmailMessage(subject=subject, body=message, to=[user.email], from_email=from_email)
         email_message.content_subtype = 'html'
 
@@ -47,6 +48,7 @@ class EmailUtil:
         from_email = "If not God Tech <{}>".format(settings.EMAIL_HOST_USER)
         subject = 'Email Verification'
         code = random.randint(1000, 9999)
+        print(code)
         message = f'Your email verification OTP is: <strong>{code}</strong>'
         
         otp = account_model.Otp.objects.get_or_none(user=user)

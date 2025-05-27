@@ -1,9 +1,11 @@
+import string
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import status, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from .models import EntryCode, User, Otp
 from .utils import Util
@@ -15,9 +17,29 @@ from rest_framework.generics import GenericAPIView
 from datetime import datetime
 from .emails import EmailUtil
 from support.helpers import StandardResultsSetPagination
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+# from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 
 
 # Create your views here.
+
+def has_uppercase(s):
+    return any(char.isupper() for char in s)
+
+
+def has_lowercase(s):
+    return any(char.islower() for char in s)
+
+
+def has_number(s):
+    return any(char.isdigit() for char in s)
+
+
+def has_special_character(s):
+    special_char = string.punctuation
+    return any(char in special_char for char in s)
 
 
 class RegisterViewSet(viewsets.ViewSet):
@@ -48,7 +70,8 @@ class RegisterViewSet(viewsets.ViewSet):
                 status_code=400
             )
 
-        user.delete()
+        if user and user.status == "deleted":
+            user.delete()
 
         serializer.validated_data.pop("password2", None)
         user = User.objects.create_user(**serializer.validated_data)
@@ -321,7 +344,7 @@ class SendPasswordResetOtpView(GenericAPIView):
             )
         
         EmailUtil.send_password_reset_email(user)
-
+        
         return CustomResponse.success(
             message="Password reset otp has been sent",
             status_code=200
@@ -508,3 +531,64 @@ class LogOutApiView(GenericAPIView):
         response.delete_cookie('access')
 
         return response
+
+class ForgotPasswordView(APIView):
+    account_activation_token = PasswordResetTokenGenerator()
+
+    def post(self, request):
+        payload = {}
+        email = request.data.get("email")
+        if not email:
+            return Response({"success": False, "message": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+            EmailUtil.send_password_reset_email(user)
+            reset_password_token = {
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': self.account_activation_token.make_token(user)
+            }
+
+            payload = {
+                "success": True, "message": "Password reset link has been sent to your email", "uid": f"{reset_password_token['uid']}", "token": f"{reset_password_token['token']}"
+            }
+            return Response(payload, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"success": False, "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+        
+class ResetPasswordView(APIView):
+    account_activation_token = PasswordResetTokenGenerator()
+
+    def post(self, request, uidb64, token):
+        otp = request.data.get('otp')
+        password = request.data.get('password')
+        if len(password) < 8:
+            return Response({"msg": "At least enter 8 Character"}, status=status.HTTP_400_BAD_REQUEST)
+        elif not has_uppercase(password):
+            return Response({"msg": "One Uppercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
+        elif not has_lowercase(password):
+            return Response({"msg": "One Lowercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
+        elif not has_number(password):
+            return Response({"msg": "One Number (0-9)"}, status=status.HTTP_400_BAD_REQUEST)
+        elif not has_special_character(password):
+            return Response({"msg": "One Special Character (!@#$%^&*)"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            try:
+                user_id = force_str(urlsafe_base64_decode(uidb64))
+                user = User.objects.get(pk=user_id)
+                if not self.account_activation_token.check_token(user, token):
+                    return Response({"msg": "Password link invalid, Pls request for a new one"}, status=status.HTTP_400_BAD_REQUEST)
+                otp_code = Otp.objects.get(user=user, code=int(otp))
+                print(otp_code)
+                if otp_code is None or otp_code.code != int(otp):
+                    return Response({"msg": "Otp is not correct"}, status=status.HTTP_400_BAD_REQUEST)
+                if otp_code.check_expiration():
+                    return Response({"msg": "Otp has expired"}, status=status.HTTP_400_BAD_REQUEST)
+                user.set_password(password)
+                user.save()
+                otp_code.delete()
+
+                return Response({"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK)
+            except User.DoesNotExist:
+                return Response({"msg": "User Does not exist"})
+
+    
