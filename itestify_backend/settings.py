@@ -17,7 +17,8 @@ AUTH_USER_MODEL = 'user.User'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+# SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = 'django-insecure-i+j@pat2b8%ii7qu$345c)17$92$fob_mg(6q71&@k142_djvx'
 
 DEBUG = True
 
@@ -137,17 +138,17 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if not DEPLOY:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# if not DEPLOY:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
+}
+'''else:
     DATABASES = {
         "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
-    }
+    }'''
 
 
 # REDIS SETTINGS
@@ -235,10 +236,10 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none" # Do 
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Do
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 
-#https://medium.com/@michal.drozdze/django-rest-framework-jwt-authentication-social-login-login-with-google-8911332f1008
+# https://medium.com/@michal.drozdze/django-rest-framework-jwt-authentication-social-login-login-with-google-8911332f1008
 
 GOOGLE_OAUTH_CLIENT_ID = ""
 GOOGLE_OAUTH_CLIENT_SECRET = ""
