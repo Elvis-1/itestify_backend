@@ -17,8 +17,7 @@ AUTH_USER_MODEL = 'user.User'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = os.getenv('SECRET_KEY')
-SECRET_KEY = 'django-insecure-i+j@pat2b8%ii7qu$345c)17$92$fob_mg(6q71&@k142_djvx'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
@@ -138,17 +137,17 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-# if not DEPLOY:
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+if not DEPLOY:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-'''else:
+else:
     DATABASES = {
         "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
-    }'''
+    }
 
 
 # REDIS SETTINGS
