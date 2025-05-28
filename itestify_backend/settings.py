@@ -235,10 +235,10 @@ AUTHENTICATION_BACKENDS = [
 ACCOUNT_AUTHENTICATION_METHOD = "email"  # Use Email / Password authentication
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "none" # Do 
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Do
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 
-#https://medium.com/@michal.drozdze/django-rest-framework-jwt-authentication-social-login-login-with-google-8911332f1008
+# https://medium.com/@michal.drozdze/django-rest-framework-jwt-authentication-social-login-login-with-google-8911332f1008
 
 GOOGLE_OAUTH_CLIENT_ID = ""
 GOOGLE_OAUTH_CLIENT_SECRET = ""
