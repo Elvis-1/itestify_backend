@@ -1,6 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path
-from .views import (DashboardViewSet, MemberManagementViewSet, AcceptInvitationView, LoginViewSet, UsersViewSet, SendPasswordResetOtpView,  ForgotPasswordView, ResetPasswordView, VerifyOtpView, SetNewPasswordView, RegisterViewSet, LogOutApiView)
+from .views import (DashboardViewSet, MemberManagementViewSet, AcceptInvitationView, LoginViewSet, UsersViewSet, SendPasswordResetOtpView,
+                    ForgotPasswordView, ResetPasswordView, VerifyOtpView, SetNewPasswordView, RegisterViewSet, LogOutApiView)
 from .views import (DashboardViewSet, LoginViewSet, SendOtpCodeView, UsersViewSet, SendPasswordResetOtpView,
                     ForgotPasswordView, ResetPasswordView, VerifyOtpView, SetNewPasswordView, RegisterViewSet, LogOutApiView)
 
@@ -22,10 +23,11 @@ urlpatterns = [
     path("reset-password", SetNewPasswordView.as_view(), name="reset-password"),
     path("logout", LogOutApiView.as_view(), name="logout"),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
-    path('reset-password/<str:uidb64>/<str:token>/',
+    path('reset-password/',
          ResetPasswordView.as_view(), name='reset-user-pass'),
 
-    path('accept-invitation/', AcceptInvitationView.as_view(), name='accept-invitation'),
+    path('accept-invitation/', AcceptInvitationView.as_view(),
+         name='accept-invitation'),
     path('send-otp/', SendOtpCodeView.as_view(), name='send-otp'),
 ]
 

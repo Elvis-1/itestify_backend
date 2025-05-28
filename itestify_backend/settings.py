@@ -19,6 +19,7 @@ AUTH_USER_MODEL = 'user.User'
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
 DEBUG = True
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -59,6 +60,9 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'channels',
 ]
+
+# os.getenv("FRONT_END_URL", "http://localhost:3000")
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
 # django.contrib.sites
 SITE_ID = 1
