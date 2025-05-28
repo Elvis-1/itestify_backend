@@ -1,8 +1,10 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+import uuid
 
-# Create your models here.
+def generate_temp_review_id():
+    return f"RE-TEMP-{str(uuid.uuid4())[:8].upper()}"
 
 class Review(models.Model):
     RATING_CHOICES = [
@@ -13,6 +15,13 @@ class Review(models.Model):
         (5, '5 - Excellent'),
     ]
     
+    id = models.CharField(
+        max_length=20,
+        primary_key=True,
+        editable=False,
+        unique=True,
+        default=generate_temp_review_id
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -39,3 +48,10 @@ class Review(models.Model):
     
     def __str__(self):
         return f"Review by {self.user.email} - {self.get_rating_display()}"
+    
+    def save(self, *args, **kwargs):
+        if self.id.startswith('RE-TEMP-'):
+            # Get the count of existing reviews to generate the next ID
+            count = Review.objects.count() + 1
+            self.id = f"RE-{count:03d}"
+        super().save(*args, **kwargs)

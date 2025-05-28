@@ -21,16 +21,16 @@ class AdminReviewListAPIView(generics.ListAPIView):
     filterset_fields = {
         'rating': ['exact', 'gte', 'lte'],
         'created_at': ['gte', 'lte', 'date'],
-        'user__email': ['exact', 'icontains']
+        'user__email': ['exact', 'icontains'],
+        'user__full_name': ['exact', 'icontains']
     }
-    search_fields = ['message', 'user__email']
+    search_fields = ['message', 'user__email', 'user__full_name']
     ordering_fields = ['rating', 'created_at']
-    ordering = ['-created_at']  # Default ordering
+    ordering = ['-created_at']
 
     def get_queryset(self):
         queryset = Review.objects.all().select_related('user')
         
-        # Custom date range filters
         date_from = self.request.query_params.get('date_from')
         date_to = self.request.query_params.get('date_to')
         
@@ -40,13 +40,12 @@ class AdminReviewListAPIView(generics.ListAPIView):
             queryset = queryset.filter(created_at__lte=date_to)
             
         return queryset
-    
 
 class UserSearchReviewAPIView(generics.ListAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
-    search_fields = ['message']
+    search_fields = ['message', 'user__full_name']
     
     def get_queryset(self):
         queryset = Review.objects.all()
@@ -56,13 +55,11 @@ class UserSearchReviewAPIView(generics.ListAPIView):
             
         return queryset
 
-
 class AdminDeleteReviewAPIView(generics.DestroyAPIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAdminUser]
     lookup_field = 'id'
-
 
 class AdminReviewsDeleteallAPIView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAdminUser]

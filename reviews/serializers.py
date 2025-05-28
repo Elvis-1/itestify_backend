@@ -9,14 +9,18 @@ class ReviewSerializer(serializers.ModelSerializer):
         required=False
     )
     user_email = serializers.SerializerMethodField(read_only=True)
+    user_full_name = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Review
-        fields = ['id', 'user', 'user_email', 'rating', 'message', 'created_at']
-        read_only_fields = ['id', 'created_at', 'user_email']
+        fields = ['id', 'user', 'user_email', 'user_full_name', 'rating', 'message', 'created_at']
+        read_only_fields = ['id', 'created_at', 'user_email', 'user_full_name']
     
     def get_user_email(self, obj):
         return obj.user.email if obj.user else None
+    
+    def get_user_full_name(self, obj):
+        return obj.user.full_name if obj.user else None
 
     def validate_rating(self, value):
         if value < 1 or value > 5:
