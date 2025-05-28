@@ -62,7 +62,6 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
-
     class Roles(models.TextChoices):
         SUPER_ADMIN = "super_admin", "super_admin"
         ADMIN = "admin", "admin"
