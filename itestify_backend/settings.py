@@ -61,6 +61,9 @@ INSTALLED_APPS = [
     'channels',
 ]
 
+# os.getenv("FRONT_END_URL", "http://localhost:3000")
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
+
 # django.contrib.sites
 SITE_ID = 1
 
@@ -232,6 +235,7 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods, such as login by email
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
 
 
 APPEND_SLASH = False

@@ -72,7 +72,6 @@ class VideoTestimony(Testimony):
         max_length=255, help_text="Video source", null=True, blank=True)
     upload_status = models.CharField(
         max_length=225, choices=UPLOAD_STATUS.choices)
-    is_published = models.BooleanField(default=False)
     video_file = models.FileField(
         upload_to='videos/', help_text="Upload video file", null=True, blank=True)
     thumbnail = models.ImageField(upload_to='thumbnails/', blank=True, null=True,
