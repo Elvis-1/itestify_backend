@@ -650,17 +650,11 @@ class ForgotPasswordView(APIView):
                 'token': self.account_activation_token.make_token(user)
             }
 
-            reset_url = f"https://yourfrontend.com/reset-password-confirm?uid={reset_password_token["uid"]}&token={reset_password_token["token"]}"
+            reset_url = f"{settings.FRONT_END_BASE_URL}reset-password?uid={reset_password_token["uid"]}&token={reset_password_token["token"]}"
 
-            email_data = {
-                'to_email': email,
-                'email_subject': "Password Reset Request",
-                'email_body': f"Click the link below to reset your password:\n{reset_url}\nIf you did not request this, please ignore this email."
-            }
-
-            EmailUtil.send_email(email_data)
+            EmailUtil.send_reset_password_email_link(user, reset_url)
             payload = {
-                "success": True, "message": "Password reset link has been sent to your email", "uid": f"{reset_password_token['uid']}", "token": f"{reset_password_token['token']}"
+                "success": True, "message": "Password reset link has been sent to your email", "reset_url": reset_url
             }
             return Response(payload, status=status.HTTP_200_OK)
         except User.DoesNotExist:
@@ -672,26 +666,26 @@ class ResetPasswordView(APIView):
     serializer_class = PasswordResetConfirmSerializer
 
     def post(self, request):
-        # otp = request.data.get('otp')
-        password = request.data.get('password')
-        if len(password) < 8:
+        new_password = self.serializer_class.validated_data["new_password"]
+        if len(new_password) < 8:
             return Response({"msg": "At least enter 8 Character"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_uppercase(password):
+        elif not has_uppercase(new_password):
             return Response({"msg": "One Uppercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_lowercase(password):
+        elif not has_lowercase(new_password):
             return Response({"msg": "One Lowercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_number(password):
+        elif not has_number(new_password):
             return Response({"msg": "One Number (0-9)"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_special_character(password):
+        elif not has_special_character(new_password):
             return Response({"msg": "One Special Character (!@#$%^&*)"}, status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
                 user_id = force_str(urlsafe_base64_decode(
-                    self.serializer.validated_data['uid']))
+                    self.serializer_class.validated_data['uid']))
                 user = User.objects.get(pk=user_id)
-                if not self.account_activation_token.check_token(user, self.serializer.validated_data['token']):
+                if not self.account_activation_token.check_token(user, self.serializer_class.validated_data['token']):
                     return Response({"msg": "Password link invalid, Pls request for a new one"}, status=status.HTTP_400_BAD_REQUEST)
-                user.set_password(password)
+                user.set_password(new_password
+                                  )
                 user.save()
 
                 return Response({"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK)

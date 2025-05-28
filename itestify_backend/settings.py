@@ -17,7 +17,8 @@ AUTH_USER_MODEL = 'user.User'
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+# SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = 'django-insecure-=q11n9)f*85j(txsls!1wo=#qlx40gd%rigl^pc14zm(sq*!t5'
 
 DEBUG = True
 
@@ -59,6 +60,9 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'channels',
 ]
+
+# os.getenv("FRONT_END_URL", "http://localhost:3000")
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
 # django.contrib.sites
 SITE_ID = 1
@@ -137,17 +141,17 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if not DEPLOY:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# if not DEPLOY:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
+}
+'''else:
     DATABASES = {
         "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
-    }
+    }'''
 
 
 # REDIS SETTINGS
