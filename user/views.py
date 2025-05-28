@@ -85,7 +85,7 @@ class RegisterViewSet(viewsets.ViewSet):
             status_code=201
         )
 
-        EmailUtil.send_verification_email(user)
+        # EmailUtil.send_verification_email(user)
             
         return response
 
