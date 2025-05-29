@@ -706,92 +706,92 @@ class LogOutApiView(GenericAPIView):
         return response
 
 
-class ForgotPasswordView(APIView):
-    account_activation_token = PasswordResetTokenGenerator()
+# class ForgotPasswordView(APIView):
+#     account_activation_token = PasswordResetTokenGenerator()
 
-    def post(self, request):
-        payload = {}
-        email = request.data.get("email")
-        if not email:
-            return Response(
-                {"success": False, "message": "Email is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            user = User.objects.get(email=email)
+#     def post(self, request):
+#         payload = {}
+#         email = request.data.get("email")
+#         if not email:
+#             return Response(
+#                 {"success": False, "message": "Email is required"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         try:
+#             user = User.objects.get(email=email)
 
-            reset_password_token = {
-                "uid": urlsafe_base64_encode(force_bytes(user.pk)),
-                "token": self.account_activation_token.make_token(user),
-            }
+#             reset_password_token = {
+#                 "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+#                 "token": self.account_activation_token.make_token(user),
+#             }
 
-            reset_url = f"{settings.FRONT_END_BASE_URL}reset-password?uid={reset_password_token["uid"]}&token={reset_password_token["token"]}"
+#             reset_url = f"{settings.FRONT_END_BASE_URL}reset-password?uid={reset_password_token["uid"]}&token={reset_password_token["token"]}"
 
-            EmailUtil.send_reset_password_email_link(user, reset_url)
-            payload = {
-                "success": True,
-                "message": "Password reset link has been sent to your email",
-                "reset_url": reset_url,
-            }
-            return Response(payload, status=status.HTTP_200_OK)
-        except User.DoesNotExist:
-            return Response(
-                {"success": False, "message": "User does not exist"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+#             EmailUtil.send_reset_password_email_link(user, reset_url)
+#             payload = {
+#                 "success": True,
+#                 "message": "Password reset link has been sent to your email",
+#                 "reset_url": reset_url,
+#             }
+#             return Response(payload, status=status.HTTP_200_OK)
+#         except User.DoesNotExist:
+#             return Response(
+#                 {"success": False, "message": "User does not exist"},
+#                 status=status.HTTP_404_NOT_FOUND,
+#             )
 
 
-class ResetPasswordView(APIView):
-    account_activation_token = PasswordResetTokenGenerator()
-    serializer_class = PasswordResetConfirmSerializer
+# class ResetPasswordView(APIView):
+#     account_activation_token = PasswordResetTokenGenerator()
+#     serializer_class = PasswordResetConfirmSerializer
 
-    def post(self, request):
-        new_password = self.serializer_class.validated_data["new_password"]
-        if len(new_password) < 8:
-            return Response(
-                {"msg": "At least enter 8 Character"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        elif not has_uppercase(new_password):
-            return Response(
-                {"msg": "One Uppercase Letter (A-Z)"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        elif not has_lowercase(new_password):
-            return Response(
-                {"msg": "One Lowercase Letter (A-Z)"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        elif not has_number(new_password):
-            return Response(
-                {"msg": "One Number (0-9)"}, status=status.HTTP_400_BAD_REQUEST
-            )
-        elif not has_special_character(new_password):
-            return Response(
-                {"msg": "One Special Character (!@#$%^&*)"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        else:
-            try:
-                user_id = force_str(
-                    urlsafe_base64_decode(self.serializer_class.validated_data["uid"])
-                )
-                user = User.objects.get(pk=user_id)
-                if not self.account_activation_token.check_token(
-                    user, self.serializer_class.validated_data["token"]
-                ):
-                    return Response(
-                        {"msg": "Password link invalid, Pls request for a new one"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                user.set_password(new_password)
-                user.save()
+#     def post(self, request):
+#         new_password = self.serializer_class.validated_data["new_password"]
+#         if len(new_password) < 8:
+#             return Response(
+#                 {"msg": "At least enter 8 Character"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         elif not has_uppercase(new_password):
+#             return Response(
+#                 {"msg": "One Uppercase Letter (A-Z)"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         elif not has_lowercase(new_password):
+#             return Response(
+#                 {"msg": "One Lowercase Letter (A-Z)"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         elif not has_number(new_password):
+#             return Response(
+#                 {"msg": "One Number (0-9)"}, status=status.HTTP_400_BAD_REQUEST
+#             )
+#         elif not has_special_character(new_password):
+#             return Response(
+#                 {"msg": "One Special Character (!@#$%^&*)"},
+#                 status=status.HTTP_400_BAD_REQUEST,
+#             )
+#         else:
+#             try:
+#                 user_id = force_str(
+#                     urlsafe_base64_decode(self.serializer_class.validated_data["uid"])
+#                 )
+#                 user = User.objects.get(pk=user_id)
+#                 if not self.account_activation_token.check_token(
+#                     user, self.serializer_class.validated_data["token"]
+#                 ):
+#                     return Response(
+#                         {"msg": "Password link invalid, Pls request for a new one"},
+#                         status=status.HTTP_400_BAD_REQUEST,
+#                     )
+#                 user.set_password(new_password)
+#                 user.save()
 
-                return Response(
-                    {"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK
-                )
-            except User.DoesNotExist:
-                return Response({"msg": "User Does not exist"})
+#                 return Response(
+#                     {"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK
+#                 )
+#             except User.DoesNotExist:
+#                 return Response({"msg": "User Does not exist"})
 
 
 class MemberManagementViewSet(viewsets.ViewSet):

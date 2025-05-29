@@ -7,8 +7,8 @@ from .views import (
     LoginViewSet,
     UsersViewSet,
     SendPasswordResetOtpView,
-    ForgotPasswordView,
-    ResetPasswordView,
+    # ForgotPasswordView,
+    # ResetPasswordView,
     VerifyOtpView,
     SetNewPasswordView,
     RegisterViewSet,
@@ -38,9 +38,9 @@ urlpatterns = [
     path("verify-otp", VerifyOtpView.as_view(), name="verify-otp"),
     path("reset-password", SetNewPasswordView.as_view(), name="reset-password"),
     path("logout", LogOutApiView.as_view(), name="logout"),
-    path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
-    path('reset-password/',
-     ResetPasswordView.as_view(), name='reset-user-pass'),
+    # path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    # path('reset-password/',
+    #  ResetPasswordView.as_view(), name='reset-user-pass'),
     path(
         "accept-invitation/", AcceptInvitationView.as_view(), name="accept-invitation"
     ),
