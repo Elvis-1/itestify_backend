@@ -150,8 +150,8 @@ if not DEPLOY:
     }
 else:
     DATABASES = {
-        "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
-    }
+            "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
+        }
 
 
 # REDIS SETTINGS
