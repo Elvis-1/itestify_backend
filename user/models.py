@@ -48,6 +48,7 @@ class UserManager(BaseUserManager):
 
     def create_invited_user(self, email, full_name=None, role=None, invited_by=None):
         if email is None:
+
             raise TypeError("User should have an Email")
 
         if role == self.model.Roles.SUPER_ADMIN:
@@ -66,6 +67,7 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
+
     class Roles(models.TextChoices):
         SUPER_ADMIN = "super_admin", "super_admin"
         ADMIN = "admin", "admin"
@@ -78,10 +80,12 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.VIEWER)
+    role = models.CharField(
+        max_length=20, choices=Roles.choices, default=Roles.VIEWER)
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
+
     status = models.CharField(
         max_length=255,
         null=True,
@@ -100,6 +104,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     )
 
     USERNAME_FIELD = "email"
+
     REQUIRED_FIELDS = []
 
     objects = UserManager()
@@ -117,11 +122,13 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)
+
         return {"refresh": str(refresh), "access": str(refresh.access_token)}
 
 
 class EntryCode(TouchDatesMixim):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="entry_code")
+
     code = models.CharField(max_length=4, unique=True)
     is_used = models.BooleanField(default=False)
 
@@ -131,8 +138,10 @@ class EntryCode(TouchDatesMixim):
 
 class Otp(TouchDatesMixim):
     user = models.OneToOneField(
+
         User, on_delete=models.CASCADE, null=True, blank=True, related_name="otp"
     )
+
     code = models.IntegerField()
 
     def check_expiration(self):
@@ -148,7 +157,9 @@ class Otp(TouchDatesMixim):
 
 
 class UserInvitation(TouchDatesMixim):
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
+
     code = models.CharField(max_length=12, unique=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
@@ -168,7 +179,3 @@ class UserInvitation(TouchDatesMixim):
         return cls.objects.create(
             user=user, code=code, expires_at=timezone.now() + timezone.timedelta(days=7)
         )
-
-    def is_expired(self):
-        # Check if current time is more than 2 minutes after creation
-        return timezone.now() > self.created_at + timezone.timedelta(minutes=2)
