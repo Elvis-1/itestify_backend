@@ -1,5 +1,9 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from rest_framework_simplejwt.tokens import RefreshToken
 from common.managers import GetOrNoneQuerySet
 from django.conf import settings
@@ -15,7 +19,7 @@ class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
 
         if email is None:
-            raise TypeError('User should have an Email')
+            raise TypeError("User should have an Email")
 
         user = self.model(email=self.normalize_email(email), **extra_fields)
         user.set_password(password)
@@ -26,7 +30,7 @@ class UserManager(BaseUserManager):
     def create_superuser(self, email, password=None):
 
         if password is None:
-            raise TypeError('Password should not be none')
+            raise TypeError("Password should not be none")
 
         user = self.create_user(email, password)
         user.role = User.Roles.SUPER_ADMIN
@@ -44,7 +48,7 @@ class UserManager(BaseUserManager):
 
     def create_invited_user(self, email, full_name=None, role=None, invited_by=None):
         if email is None:
-            raise TypeError('User should have an Email')
+            raise TypeError("User should have an Email")
 
         if role == self.model.Roles.SUPER_ADMIN:
             role = self.model.Roles.ADMIN
@@ -54,7 +58,7 @@ class UserManager(BaseUserManager):
             full_name=full_name,
             role=role,
             invited_by=invited_by,
-            status=self.model.STATUS.INVITED
+            status=self.model.STATUS.INVITED,
         )
         user.set_unusable_password()
         user.save()
@@ -74,19 +78,28 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.CharField(
-        max_length=20, choices=Roles.choices, default=Roles.VIEWER)
+    role = models.CharField(max_length=20, choices=Roles.choices, default=Roles.VIEWER)
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
-    status = models.CharField(max_length=255, null=True, blank=True,
-                              choices=STATUS.choices, default=STATUS.REGISTERED)
+    status = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        choices=STATUS.choices,
+        default=STATUS.REGISTERED,
+    )
     is_email_verified = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False, null=True, blank=True)
     invited_by = models.ForeignKey(
-        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='invited_users')
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invited_users",
+    )
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
@@ -104,15 +117,11 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)
-        return {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token)
-        }
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}
 
 
 class EntryCode(TouchDatesMixim):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='entry_code')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="entry_code")
     code = models.CharField(max_length=4, unique=True)
     is_used = models.BooleanField(default=False)
 
@@ -122,7 +131,8 @@ class EntryCode(TouchDatesMixim):
 
 class Otp(TouchDatesMixim):
     user = models.OneToOneField(
-        User, on_delete=models.CASCADE, null=True, blank=True, related_name='otp')
+        User, on_delete=models.CASCADE, null=True, blank=True, related_name="otp"
+    )
     code = models.IntegerField()
 
     def check_expiration(self):
@@ -138,8 +148,7 @@ class Otp(TouchDatesMixim):
 
 
 class UserInvitation(TouchDatesMixim):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='invitations')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
     code = models.CharField(max_length=12, unique=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
@@ -157,9 +166,7 @@ class UserInvitation(TouchDatesMixim):
 
         # Create invitation
         return cls.objects.create(
-            user=user,
-            code=code,
-            expires_at=timezone.now() + timezone.timedelta(days=7)
+            user=user, code=code, expires_at=timezone.now() + timezone.timedelta(days=7)
         )
 
     def is_expired(self):
