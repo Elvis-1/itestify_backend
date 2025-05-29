@@ -422,16 +422,12 @@ class LoginViewSet(viewsets.ViewSet):
         # Prepare email data and send the email
 
         email_data = {
-            'to_email': email,
-            'email_subject': "Request For a New Entry Code",
-            'email_body': f"Your new entry code: {code}"
-
-        email_data = {
             "to_email": email,
             "email_subject": "Request For a New Entry Code",
             "email_body": f"Your new entry code: {code}",
 
         }
+        
         EmailUtil.send_email(email_data)
 
         return CustomResponse.success(
