@@ -66,11 +66,9 @@ FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
 # django.contrib.sites
 SITE_ID = 1
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
-# ACCOUNT_LOGIN_METHODS = {'email'}  # Use Email / Password authentication
-# ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-# ACCOUNT_EMAIL_VERIFICATION = "none"  # Do not require email confirmation
-# ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+
 
 # Google OAuth
 # GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
