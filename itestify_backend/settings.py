@@ -19,6 +19,7 @@ AUTH_USER_MODEL = 'user.User'
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
 DEBUG = True
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -60,28 +61,28 @@ INSTALLED_APPS = [
     'channels',
 ]
 
+# os.getenv("FRONT_END_URL", "http://localhost:3000")
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
+
 # django.contrib.sites
 SITE_ID = 1
 FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
-'''ACCOUNT_LOGIN_METHODS = {'email'}  # Use Email / Password authentication
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = "none"  # Do not require email confirmation
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+
 
 # Google OAuth
-GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+# GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+# GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 # os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
-GOOGLE_OAUTH_CALLBACK_URL = "http://127.0.0.1:8000/api/v1/auth/google/callback/"
+# GOOGLE_OAUTH_CALLBACK_URL = "http://127.0.0.1:8000/api/v1/auth/google/callback/"
 
 # django-allauth (social)
 # Authenticate if local account with this email address already exists
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+# SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
 # Connect local account and social account if local account with that email address already exists
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+# SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
-SOCIALACCOUNT_PROVIDERS = {
+'''SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [
             {
@@ -147,8 +148,8 @@ if not DEPLOY:
     }
 else:
     DATABASES = {
-        "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
-    }
+            "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
+        }
 
 
 # REDIS SETTINGS
@@ -232,6 +233,7 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods, such as login by email
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
 
 
 APPEND_SLASH = False

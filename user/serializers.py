@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
@@ -12,20 +13,21 @@ class UserRegisterSerializer(serializers.Serializer):
     password2 = serializers.CharField(required=False)
     otp = serializers.IntegerField(required=False)
 
+
 class LoginCodeEntrySerializer(serializers.Serializer):
-        
+
     email = serializers.EmailField()
     entry_code = serializers.CharField(max_length=6)
-    
+
 
 class LoginPasswordSerializer(serializers.Serializer):
-        
+
     email = serializers.EmailField()
     password = serializers.CharField(max_length=225)
 
 
 class ReturnUserSerializer(serializers.ModelSerializer):
-    
+
     class Meta:
         model = User
         fields = [
@@ -47,50 +49,55 @@ class SetPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(max_length=255, write_only=True)
     confirm_password = serializers.CharField(max_length=255, write_only=True)
 
-    
-    
+
 class ResendEntryCodeSerializer(serializers.Serializer):
     """resend entry code for user"""
 
     email = serializers.EmailField()
-    
-    
-class ResendOtpSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(min_length=8)
-    
-    
+
+
+class ResendOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
 class VerifyOtpSerializer(ResendOtpSerializer):
     otp = serializers.IntegerField()
-    
-    
+
+
 class SetNewPasswordSerializer(ResendEntryCodeSerializer):
     """set new password for user"""
     password = serializers.CharField()
     password2 = serializers.CharField()
+
 
 class UserInvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'full_name', 'role', 'status']
 
+
 class CreateMemberSerializer(serializers.Serializer):
     email = serializers.EmailField()
     full_name = serializers.CharField()
     role = serializers.ChoiceField(choices=User.Roles.choices)
 
+
 class InvitationResponseSerializer(serializers.Serializer):
     user = UserInvitationSerializer()
     invitation_code = serializers.CharField()
+
 
 class SetPasswordWithInvitationSerializer(serializers.Serializer):
     invitation_code = serializers.CharField()
     password = serializers.CharField()
     password2 = serializers.CharField()
+
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True)
@@ -106,10 +113,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate(self, data):
         if data['new_password'] != data['confirm_password']:
             raise serializers.ValidationError("Password mismatch!")
-        
+
         try:
-            validate_password(data['new_password'], self.context['request'].user)
+            validate_password(data['new_password'],
+                              self.context['request'].user)
         except ValidationError as e:
             raise serializers.ValidationError(list(e.messages))
-        
+
         return data

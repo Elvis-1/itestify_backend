@@ -79,7 +79,7 @@ class EmailUtil:
         email.send()
 
     @staticmethod
-    def send_reset_password_email_link(user, reset_url):
+    def send_reset_password_email_link(user, reset_link):
         from_email = os.environ.get('EMAIL_HOST_USER')
         subject = 'Password Reset Request'
 
@@ -97,13 +97,13 @@ class EmailUtil:
                 <p>To reset your password, please click the link below:</p>
                 
                 <p>
-                    <a href="{reset_url}" style="color: #3498db; text-decoration: none; font-weight: bold;">
+
+                    <a href="{reset_link}" style="color: #3498db;">
+
                         Reset Password
                     </a>
                 </p>
-                
-                <p>This link will expire in 24 hours.</p>
-                
+
                 <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
                     If you have any questions, feel free to contact our support team.
                 </p>
