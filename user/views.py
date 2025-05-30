@@ -380,11 +380,10 @@ class LoginViewSet(viewsets.ViewSet):
         # Prepare email data and send the email
 
         email_data = {
-            'to_email': email,
-            'email_subject': "Request For a New Entry Code",
-            'email_body': f"Your new entry code: {code}"
+            "to_email": email,
+            "email_subject": "Request For a New Entry Code",
+            "email_body": f"Your new entry code: {code}",
         }
-
 
 class SendOtpCodeView(APIView):
     def post(self, request):
@@ -402,6 +401,7 @@ class SendOtpCodeView(APIView):
             'email_subject': "Request For a New Entry Code",
             'email_body': f"Your new entry code: {code}"
         }
+
         # Email send otp
 
         EmailUtil.send_email(email_data)
