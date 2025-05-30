@@ -97,11 +97,13 @@ class EmailUtil:
                 <p>To reset your password, please click the link below:</p>
                 
                 <p>
+
                     <a href="{reset_link}" style="color: #3498db;">
+
                         Reset Password
                     </a>
                 </p>
-                
+
                 <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
                     If you have any questions, feel free to contact our support team.
                 </p>
