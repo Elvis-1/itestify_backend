@@ -127,7 +127,8 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
 
 class EntryCode(TouchDatesMixim):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="entry_code")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="entry_code")
 
     code = models.CharField(max_length=4, unique=True)
     is_used = models.BooleanField(default=False)
@@ -138,7 +139,6 @@ class EntryCode(TouchDatesMixim):
 
 class Otp(TouchDatesMixim):
     user = models.OneToOneField(
-
         User, on_delete=models.CASCADE, null=True, blank=True, related_name="otp"
     )
 
@@ -156,9 +156,17 @@ class Otp(TouchDatesMixim):
         return timezone.now() > self.created_at + timezone.timedelta(minutes=2)
 
 
+class SendOtp(TouchDatesMixim):
+    code = models.IntegerField()
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=2)
+
+
 class UserInvitation(TouchDatesMixim):
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="invitations")
 
     code = models.CharField(max_length=12, unique=True)
     is_used = models.BooleanField(default=False)
