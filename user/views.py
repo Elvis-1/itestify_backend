@@ -1,7 +1,9 @@
 import string
+from tokenize import TokenError
 import requests
 from django.conf import settings
 import validate_email
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -11,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from .serializers import CreateMemberSerializer, PasswordResetConfirmSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
+from .serializers import CreateMemberSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
 from .models import User, Otp, UserInvitation
 from .utils import Util
 from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer, ChangePasswordSerializer
@@ -30,7 +32,6 @@ from django.utils.encoding import force_bytes, force_str
 # from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 # from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 # from dj_rest_auth.registration.views import SocialLoginView
-from django.conf import settings
 # from urllib.parse import urljoin
 # from django.urls import reverse
 import requests
@@ -360,12 +361,12 @@ class SendOtpCodeView(APIView):
         Otp.objects.create(code=code)
 
         # Prepare email data and send the email
-        '''email_data = {
+        email_data = {
             'to_email': email,
             'email_subject': "Request For a New Entry Code",
             'email_body': f"Your new entry code: {code}"
         }
-        EmailUtil.send_email(email_data)'''
+        EmailUtil.send_email(email_data)
 
         return CustomResponse.success(message=f"A new entry code {code} has been sent to your email {email}", status_code=200)
 
@@ -387,12 +388,6 @@ class DashboardViewSet(viewsets.ViewSet):
         if password != confirm_password:
 
             return CustomResponse.error(message="Passwords does not match", err_code=ErrorCode.BAD_REQUEST, status_code=400)
-
-            return CustomResponse.error(
-                message="Passwords do not match",
-                err_code=ErrorCode.BAD_REQUEST,
-                status_code=400
-            )
 
         user = request.user
         user.created_password = True
@@ -650,9 +645,9 @@ class ForgotPasswordView(APIView):
                 'uid': urlsafe_base64_encode(force_bytes(user.pk)),
                 'token': self.account_activation_token.make_token(user)
             }
-            reset_url = f"{settings.FRONT_END_BASE_URL}reset-password?uid={reset_password_token["uid"]}&token={reset_password_token["token"]}"
+            reset_url = f"{settings.FRONT_END_BASE_URL}reset-password?uid={reset_password_token['uid']}&token={reset_password_token['token']}"
 
-            # EmailUtil.send_reset_password_email_link(user, reset_url)
+            EmailUtil.send_reset_password_email_link(user, reset_url)
 
             payload = {
                 "success": True, "message": "Password reset link has been sent to your email", "uid": f"{reset_password_token['uid']}", "token": f"{reset_password_token['token']}"
