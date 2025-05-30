@@ -19,7 +19,6 @@ AUTH_USER_MODEL = 'user.User'
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-
 DEBUG = True
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -67,7 +66,6 @@ FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 # django.contrib.sites
 SITE_ID = 1
 FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
-
 
 
 # Google OAuth
@@ -148,8 +146,8 @@ if not DEPLOY:
     }
 else:
     DATABASES = {
-            "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
-        }
+        "default": dj_database_url.parse("postgresql://itestifydb2_user:zcFvOps0ySDee2z1hbysNBth9OIrXitZ@dpg-d09i8kp5pdvs73do9qq0-a.ohio-postgres.render.com/itestifydb2")
+    }
 
 
 # REDIS SETTINGS
@@ -233,7 +231,6 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods, such as login by email
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-
 
 
 APPEND_SLASH = False

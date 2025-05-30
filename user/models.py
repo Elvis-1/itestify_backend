@@ -138,8 +138,8 @@ class EntryCode(TouchDatesMixim):
 
 
 class Otp(TouchDatesMixim):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, null=True, blank=True, related_name="otp"
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, null=True, blank=True
     )
 
     code = models.IntegerField()
@@ -156,7 +156,8 @@ class Otp(TouchDatesMixim):
         return timezone.now() > self.created_at + timezone.timedelta(minutes=2)
 
 
-class SendOtp(TouchDatesMixim):
+
+class SendOtp2(TouchDatesMixim):
     code = models.IntegerField()
 
     def is_expired(self):

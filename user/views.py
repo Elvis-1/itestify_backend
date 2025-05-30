@@ -13,7 +13,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from .serializers import CreateMemberSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import EntryCode, User, Otp, UserInvitation, SendOtp
+from .models import EntryCode, User, Otp, UserInvitation, SendOtp2
 
 from .utils import Util
 from .serializers import (
@@ -167,7 +167,7 @@ class RegisterViewSet(viewsets.ViewSet):
                 )
             else:
                 try:
-                    otp_code = SendOtp.objects.get(
+                    otp_code = SendOtp2.objects.get(
                         code=serializer.validated_data.get("otp")
                     )
                     if otp_code.is_expired():
@@ -232,7 +232,6 @@ class RegisterViewSet(viewsets.ViewSet):
             message="A new OTP has been sent to your email. Please check your inbox or spam folder.",
             status_code=200,
         )
-
 
 
 class LoginViewSet(viewsets.ViewSet):
@@ -385,6 +384,7 @@ class LoginViewSet(viewsets.ViewSet):
             "email_body": f"Your new entry code: {code}",
         }
 
+
 class SendOtpCodeView(APIView):
     def post(self, request):
         serializer = ResendEntryCodeSerializer(data=request.data)
@@ -393,7 +393,7 @@ class SendOtpCodeView(APIView):
         email = serializer.validated_data.get('email')
 
         code = Util.generate_entry_code()
-        SendOtp.objects.create(code=code)
+        SendOtp2.objects.create(code=code)
 
         # Prepare email data and send the email
         email_data = {
