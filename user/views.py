@@ -11,10 +11,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from .serializers import CreateMemberSerializer, PasswordResetConfirmSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
-from .models import User, Otp, UserInvitation
+from .serializers import CreateMemberSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import EntryCode, User, Otp, UserInvitation
+from .models import EntryCode, User, Otp, UserInvitation, SendOtp
 
 from .utils import Util
 from .serializers import (
@@ -48,8 +47,6 @@ from django.utils.encoding import force_bytes, force_str
 
 # from urllib.parse import urljoin
 from django.urls import reverse
-
-import requests
 
 # from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 
@@ -170,7 +167,7 @@ class RegisterViewSet(viewsets.ViewSet):
                 )
             else:
                 try:
-                    otp_code = Otp.objects.get(
+                    otp_code = SendOtp.objects.get(
                         code=serializer.validated_data.get("otp")
                     )
                     if otp_code.is_expired():
@@ -236,29 +233,6 @@ class RegisterViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
-
-class SendOtpCodeView(APIView):
-    def post(self, request):
-        serializer = ResendEntryCodeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data.get("email")
-
-        code = Util.generate_entry_code()
-        Otp.objects.create(code=code)
-
-        # Prepare email data and send the email
-        email_data = {
-            "to_email": email,
-            "email_subject": "Request For a New Entry Code",
-            "email_body": f"Your new entry code: {code}",
-        }
-        EmailUtil.send_email(email_data)
-
-        return CustomResponse.success(
-            message=f"A new entry code {code} has been sent to your email {email}",
-            status_code=200,
-        )
 
 
 class LoginViewSet(viewsets.ViewSet):
@@ -419,7 +393,7 @@ class SendOtpCodeView(APIView):
         email = serializer.validated_data.get('email')
 
         code = Util.generate_entry_code()
-        Otp.objects.create(code=code)
+        SendOtp.objects.create(code=code)
 
         # Prepare email data and send the email
         email_data = {
