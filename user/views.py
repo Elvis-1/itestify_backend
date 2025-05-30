@@ -366,6 +366,7 @@ class SendOtpCodeView(APIView):
             'email_subject': "Request For a New Entry Code",
             'email_body': f"Your new entry code: {code}"
         }
+        # Email send otp
         EmailUtil.send_email(email_data)
 
         return CustomResponse.success(message=f"A new entry code {code} has been sent to your email {email}", status_code=200)
@@ -438,7 +439,7 @@ class SendPasswordResetOtpView(GenericAPIView):
                 err_code=ErrorCode.INVALID_ENTRY,
                 status_code=400
             )
-
+        
         EmailUtil.send_password_reset_email(user)
 
         return CustomResponse.success(
