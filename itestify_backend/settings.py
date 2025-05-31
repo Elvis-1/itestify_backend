@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
+import psycopg2
 
 
 load_dotenv()
@@ -67,7 +68,6 @@ FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 # django.contrib.sites
 SITE_ID = 1
 FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
-
 
 
 # Google OAuth
@@ -148,8 +148,15 @@ if not DEPLOY:
     }
 else:
     DATABASES = {
-            "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
+        'default': {
+            "ENGINE": "django.db.backends.postgresql",           
+            "USER": os.getenv("USER"),
+            "PASSWORD":os.getenv("PASSWORD"),
+            "HOST": os.getenv("HOST"),
+            "PORT": os.getenv("PORT"),
+            "NAME": os.getenv("DBNAME"),
         }
+    }
 
 
 # REDIS SETTINGS
@@ -233,7 +240,6 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods, such as login by email
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
-
 
 
 APPEND_SLASH = False
