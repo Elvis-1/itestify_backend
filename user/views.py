@@ -1,4 +1,5 @@
 import string
+import os
 from tokenize import TokenError
 from django.conf import settings
 import validate_email
@@ -255,11 +256,12 @@ class LoginViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"}, status=status.HTTP_404_NOT_FOUND
+            return CustomResponse.error(
+                message="User not found", 
+                status=404
             )
 
-        entry_code_obj = user.entry_code.all().first()
+        entry_code_obj = EntryCode.objects.get(user__email=email)
         token = user.tokens()
 
         if entry_code_obj.code == entry_code and not entry_code_obj.is_used:
@@ -375,7 +377,11 @@ class LoginViewSet(viewsets.ViewSet):
         email = serializer.validated_data["email"]
 
         code = Util.generate_entry_code()
-        Otp.objects.create(code=code)
+        
+        user = EntryCode.objects.get(user__email=email)
+
+        user.code = code
+        user.save()
 
         # Prepare email data and send the email
 
@@ -384,6 +390,14 @@ class LoginViewSet(viewsets.ViewSet):
             "email_subject": "Request For a New Entry Code",
             "email_body": f"Your new entry code: {code}",
         }
+
+        EmailUtil.send_email(email_data)
+
+        return CustomResponse.success(
+            message="A new entry code has been sent to your email",
+            status_code=200,
+        )
+
 
 class SendOtpCodeView(APIView):
     def post(self, request):
@@ -592,9 +606,9 @@ class UsersViewSet(viewsets.ViewSet):
         status = request.query_params.get("status", None)
 
         if not status or status == "":
-            users = User.objects.all()
+            users = User.objects.all().exclude(email=os.getenv("ADMIN_EMAIL"))
         else:
-            users = User.objects.filter(status=status)
+            users = User.objects.filter(status=status).exclude(email=os.getenv("ADMIN_EMAIL"))
         paginator = self.pagination_class()
         paginator_queryset = paginator.paginate_queryset(users, request)
         serializer = self.serializer_class(paginator_queryset, many=True)
