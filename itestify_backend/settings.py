@@ -62,27 +62,28 @@ INSTALLED_APPS = [
     'channels',
 ]
 
-# os.getenv("FRONT_END_URL", "http://localhost:3000")
-FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
 # django.contrib.sites
 SITE_ID = 1
-FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
+os.getenv("FRONT_END_BASE_URL")
 
 
-# Google OAuth
-# GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
-# GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
-# os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
-# GOOGLE_OAUTH_CALLBACK_URL = "http://127.0.0.1:8000/api/v1/auth/google/callback/"
+ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None 
 
-# django-allauth (social)
-# Authenticate if local account with this email address already exists
-# SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
-# Connect local account and social account if local account with that email address already exists
-# SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+#Google OAuth
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_OAUTH_CALLBACK_URL = os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
 
-'''SOCIALACCOUNT_PROVIDERS = {
+#django-allauth (social)
+#Authenticate if local account with this email address already exists
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+#Connect local account and social account if local account with that email address already exists
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [
             {
@@ -97,7 +98,7 @@ FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
         },
         'EMAIL_AUTHENTICATION': True
     }
-}'''
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -344,3 +345,4 @@ CELERY_BEAT_SCHEDULE = {
     }
 }
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+

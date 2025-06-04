@@ -4,6 +4,7 @@ from tokenize import TokenError
 from django.conf import settings
 import validate_email
 from rest_framework_simplejwt.tokens import RefreshToken
+import requests
 
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -37,8 +38,6 @@ from datetime import datetime
 from .emails import EmailUtil
 from support.helpers import StandardResultsSetPagination
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-
-# from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
@@ -46,10 +45,9 @@ from django.utils.encoding import force_bytes, force_str
 # from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 # from dj_rest_auth.registration.views import SocialLoginView
 
-# from urllib.parse import urljoin
 from django.urls import reverse
 
-# from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+
 
 
 # Create your views here.
@@ -79,7 +77,7 @@ def has_special_character(s):
     client_class = OAuth2Client"""
 
 
-'''class GoogleLoginCallback(APIView):
+class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
 
@@ -114,7 +112,7 @@ def has_special_character(s):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        return Response(token_data, status=status.HTTP_200_OK)'''
+        return Response(token_data, status=status.HTTP_200_OK)
 
 
 class RegisterViewSet(viewsets.ViewSet):
