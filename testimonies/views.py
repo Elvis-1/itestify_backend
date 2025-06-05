@@ -102,7 +102,7 @@ class TextTestimonyApprovalView(APIView):
 
         testimony.save()
         return CustomResponse.success(
-            message="Testimony updated successfully", status=200
+            message="Testimony updated successfully", status_code=200
         )
 
 
