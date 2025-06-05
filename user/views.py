@@ -91,7 +91,7 @@ class GoogleLoginCallback(APIView):
             "code": code,
             "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
             "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
+            "redirect_uri": "http://127.0.0.1:8000/api/v1/auth/google/callback/",
             "grant_type": "authorization_code",
         }
 
@@ -100,6 +100,7 @@ class GoogleLoginCallback(APIView):
             response = requests.post(
                 "https://oauth2.googleapis.com/token", data=payload
             )
+            print(response)
             response.raise_for_status()  # Check for HTTP errors
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
