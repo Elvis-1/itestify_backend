@@ -77,7 +77,13 @@ def has_special_character(s):
     client_class = OAuth2Client"""
 
 
+
+
+
 class GoogleLoginCallback(APIView):
+
+
+
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
 

@@ -346,3 +346,4 @@ CELERY_BEAT_SCHEDULE = {
 }
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
+
