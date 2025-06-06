@@ -19,7 +19,7 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
-from user.views import GoogleLoginCallback
+from user.views import GoogleLoginCallback, GoogleLogin
 
 
 def home(request):
