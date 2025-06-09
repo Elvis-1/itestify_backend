@@ -6,6 +6,7 @@ from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
 import psycopg2
+import cloudinary
 
 
 load_dotenv()
@@ -60,6 +61,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'channels',
+    "cloudinary_storage",
 ]
 
 # os.getenv("FRONT_END_URL", "http://localhost:3000")
@@ -107,6 +109,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'itestify_backend.middlewares.JWTUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
@@ -344,3 +347,11 @@ CELERY_BEAT_SCHEDULE = {
     }
 }
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+
+
+# Cloudinary Setup
+cloudinary.config( 
+  cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
+  api_key = os.getenv("CLOUDINARY_API_KEY"), 
+  api_secret = os.getenv("CLOUDINARY_API_SECRET"),
+)

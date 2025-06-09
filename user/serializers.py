@@ -42,6 +42,18 @@ class ReturnUserSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        is_testimony = self.context.get("is_testimony")
+
+        # conditionally remove 'uploaded_by' field based on user's role
+        if is_testimony:
+            fields_to_remove = ["created_password", "last_login", "created_at", "updated_at"]
+
+            for field in fields_to_remove:
+                self.fields.pop(field, None)
+
 
 class SetPasswordSerializer(serializers.Serializer):
     """set user password in dashboard"""
