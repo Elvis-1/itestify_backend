@@ -1,11 +1,12 @@
 from dotenv import load_dotenv
 import os
-import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
-import psycopg2
+import psycopg
+import cloudinary
+from datetime import timedelta
 
 
 load_dotenv()
@@ -108,6 +109,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'itestify_backend.middlewares.JWTUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
@@ -338,12 +340,18 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
-        "task": "testimonies.tasks.display_name",
-        "schedule": crontab(minute="*/2"),  # 5min
-        # "schedule": 5, #5 sec
+        "task": "testimonies.tasks.upload_schedule_videos",
+        # "schedule": crontab(second="*/5"),  # 5min
+        "schedule": timedelta(minutes=30), # 30 mins
         # "args": [""]
     }
 }
+
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
-
+# Cloudinary Setup
+cloudinary.config( 
+  cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
+  api_key = os.getenv("CLOUDINARY_API_KEY"), 
+  api_secret = os.getenv("CLOUDINARY_API_SECRET"),
+)

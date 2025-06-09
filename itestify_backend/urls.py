@@ -47,8 +47,9 @@ urlpatterns = [
     #path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
     path("api/v1/auth/google/callback/", GoogleLoginCallback.as_view(), name="google_login"),
     
-
-
+    path("common/", include("common.urls")),
+    # path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
+    # path("api/v1/auth/google/", GoogleLogin.as_view(), name="google_login"),
 ]
 
 if settings.DEBUG:

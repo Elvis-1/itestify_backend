@@ -22,13 +22,6 @@ def upload_schedule_videos():
 
 
 @shared_task
-def display_name():
-    print("starting scheduler...")
-    print("my name is jerry")
-    return "Done..."
-
-
-@shared_task
 def upload_video(video_id):
     try:
         video = VideoTestimony.objects.get(id=video_id)

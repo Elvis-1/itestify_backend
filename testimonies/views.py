@@ -31,37 +31,55 @@ from common.responses import CustomResponse
 from common.error import ErrorCode
 from .tasks import upload_video
 
+from django.db.models import Q
+
 
 class TextTestimonyListView(APIView):
-    """Fetch all testimonies with filtering and search."""
+    """Fetch all testimonies in the db with filtering and search."""
+    pagination_class = StandardResultsSetPagination
 
     def get(self, request):
-        testimonies = TextTestimony.objects.all()
-        # Filters
-        category = request.query_params.get("category")
-        status_filter = request.query_params.get("status")
-        search = request.query_params.get("search")
-        start_date = request.query_params.get("start_date")
-        end_date = request.query_params.get("end_date")
+        # Get filter parameter
+        status = request.query_params.get("status", "").lower()
+        category = request.query_params.get("category", "").lower()
+        from_date = request.query_params.get("from")
+        to_date = request.query_params.get("to")
+        search = request.query_params.get("search", "").strip()
+
+        # get all texts
+        testimony_qs = TextTestimony.objects.all()
+
+        if status:
+            testimony_qs = testimony_qs.filter(status=status)
 
         if category:
-            testimonies = testimonies.filter(category=category)
-        if status_filter:
-            testimonies = testimonies.filter(status=status_filter)
+            testimony_qs = testimony_qs.filter(category=category)
+
+        # Apply date filtering
+        if from_date:
+            parsed_from_date = parse_date(from_date)
+            if parsed_from_date:
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__gte=parsed_from_date
+                )
+
+        if to_date:
+            parsed_to_date = parse_date(to_date)
+            if parsed_to_date:
+                # Set time to the end of the day for inclusivity
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+
         if search:
-            testimonies = testimonies.filter(name__icontains=search)
-        if start_date and end_date:
-            testimonies = testimonies.filter(
-                date_submitted__range=[start_date, end_date]
+            testimony_qs = testimony_qs.filter(
+                Q(uploaded_by__full_name__icontains=search) |
+                Q(category__icontains=search)
             )
 
         # Pagination
-        paginator = PageNumberPagination()
-        paginator.page_size = 10
-        paginated_testimonies = paginator.paginate_queryset(request, testimonies)
+        paginator = self.pagination_class()
+        paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
+        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
 
-        # Serialize and return
-        serializer = TextTestimonySerializer(paginated_testimonies, many=True)
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -82,7 +100,7 @@ class TextTestimonyApprovalView(APIView):
         rejection_reason = request.data.get("rejection_reason", "")
 
         if action == "approve":
-            testimony.status = "Approved"
+            testimony.status = "approved"
             testimony.rejection_reason = ""
         elif action == "reject":
             if rejection_reason == "":
@@ -91,7 +109,7 @@ class TextTestimonyApprovalView(APIView):
                     err_code=ErrorCode.BAD_REQUEST,
                     status_code=400,
                 )
-            testimony.status = "Rejected"
+            testimony.status = "rejected"
             testimony.rejection_reason = rejection_reason
         else:
             return CustomResponse.error(
@@ -102,7 +120,7 @@ class TextTestimonyApprovalView(APIView):
 
         testimony.save()
         return CustomResponse.success(
-            message="Testimony updated successfully", status=200
+            message="Testimony updated successfully", status_code=200
         )
 
 
@@ -154,16 +172,30 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        serializer = VideoTestimonySerializer(
-            data=request.data, context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        testimony = serializer.save()
+        video_testimonies = request.data["video_testimonies"]
+        total_response_data = []
 
-        return_serializer = ReturnVideoTestimonySerializer(
-            testimony, context={"request": request}
-        )
-        return CustomResponse.success(data=return_serializer.data, status_code=201)
+        for video in video_testimonies:
+            serializer = VideoTestimonySerializer(
+                data=video, context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer = ""
+
+        for video in video_testimonies:
+            serializer = VideoTestimonySerializer(
+                data=video, context={"request": request}
+            )
+
+            serializer.is_valid(raise_exception=True)
+            testimony = serializer.save()
+
+            return_serializer = ReturnVideoTestimonySerializer(
+                testimony, context={"request": request}
+            )
+
+            total_response_data.append(return_serializer.data)
+        return CustomResponse.success(data=total_response_data, status_code=201)
 
     def list(self, request):
         """Get all testimonies"""
@@ -173,10 +205,11 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         category = request.query_params.get("category", "").lower()
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
+        search = request.query_params.get("search", "").strip()
 
         # get all videos and
-        testimony_qs = VideoTestimony.objects.all()
-        print(testimony_qs)
+        testimony_qs = VideoTestimony.objects.all().order_by("-created_at")
+    
         if upload_status:
             testimony_qs = testimony_qs.filter(upload_status=upload_status)
 
@@ -193,6 +226,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
         if to_date:
             parsed_to_date = parse_date(to_date)
+    
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
                 testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
@@ -292,26 +326,24 @@ class TextTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
 
     def list(self, request):
-        """Get all Text testimonies"""
+        """Get all Text testimonies for the logged in user."""
+        user = request.user_data
 
         # Get filter parameter
-        status = request.query_params.get("type", "").lower()
+        status = request.query_params.get("status", "").lower()
         category = request.query_params.get("category", "").lower()
-        from_date = request.query_params.get("from_date")
-        to_date = request.query_params.get("to_date")
-        user_id = request.query_params.get("user_id")
+        from_date = request.query_params.get("from")
+        to_date = request.query_params.get("to")
+        search = request.query_params.get("search", "").strip()
 
         # get all texts
-        testimony_qs = TextTestimony.objects.all()
+        testimony_qs = TextTestimony.objects.filter(uploaded_by=user["id"]).order_by("-created_at")
 
         if status:
             testimony_qs = testimony_qs.filter(status=status)
 
         if category:
             testimony_qs = testimony_qs.filter(category=category)
-
-        if user_id:
-            testimony_qs = testimony_qs.filter(uploaded_by=user_id)
 
         # Apply date filtering
         if from_date:
@@ -327,9 +359,15 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 # Set time to the end of the day for inclusivity
                 testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
+        if search:
+            testimony_qs = testimony_qs.filter(
+                Q(uploaded_by__full_name__icontains=search) |
+                Q(category__icontains=search)
+            )
+
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True, context={"user": user})
 
         return paginator.get_paginated_response(serializer.data)
 
@@ -401,6 +439,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         )
 
     def destroy(self, request, pk=None):
+        user = request.user_data
+
         """Delete a specific text testimony by ID"""
         try:
             testimony = TextTestimony.objects.get(id=pk)
@@ -411,6 +451,14 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
+
+        if user["role"] == "viewer" and user["id"] != testimony.uploaded_by.id:
+            return CustomResponse.error(message="Sorry, you are not allowed to perform this operation.", err_code=ErrorCode.FORBIDDEN, status_code=403)
+
+
+        if (user["role"] == "admin" or user["role"] == "super_admin") and testimony.status == "pending":
+            return CustomResponse.error(message="You can't delete a pending testimony, please accept or reject it.", err_code=ErrorCode.FORBIDDEN, status_code=403)
+
 
         # Delete the found testimony
         testimony.delete()
