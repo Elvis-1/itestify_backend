@@ -4,6 +4,7 @@ from tokenize import TokenError
 from django.conf import settings
 import validate_email
 from rest_framework_simplejwt.tokens import RefreshToken
+import requests
 
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -37,19 +38,17 @@ from datetime import datetime
 from .emails import EmailUtil
 from support.helpers import StandardResultsSetPagination
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-
-# from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
-# from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-# from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-# from dj_rest_auth.registration.views import SocialLoginView
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+#from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from allauth.socialaccount.helpers import complete_social_login
+from allauth.socialaccount.models import SocialLogin #SocialAccount
+from allauth.socialaccount.adapter import get_adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Error
+from allauth.socialaccount.models import SocialToken
 
-# from urllib.parse import urljoin
-from django.urls import reverse
-
-# from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 
 
 # Create your views here.
@@ -73,13 +72,8 @@ def has_special_character(s):
 
 
 # -------------- GOOGLE SOCIAL LOGIN ----------------
-"""class GoogleLogin(SocialLoginView):
-    adapter_class = GoogleOAuth2Adapter
-    callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
-    client_class = OAuth2Client"""
+class GoogleLoginCallback(APIView):
 
-
-'''class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
 
@@ -93,7 +87,7 @@ def has_special_character(s):
             "code": code,
             "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
             "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
+            "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
             "grant_type": "authorization_code",
         }
 
@@ -103,18 +97,57 @@ def has_special_character(s):
                 "https://oauth2.googleapis.com/token", data=payload
             )
             response.raise_for_status()  # Check for HTTP errors
+            token_data = response.json()
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return Response({"error": "No access token received from Google"}, status=400)
 
+        # Fetch user info from Google
         try:
-            token_data = response.json()  # Attempt to parse the JSON response
-        except ValueError:
-            return Response(
-                {"error": "Invalid response from Google"},
-                status=status.HTTP_400_BAD_REQUEST,
+            user_info_response = requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
             )
+            user_info_response.raise_for_status()
+            user_info = user_info_response.json()
+        except requests.RequestException:
+            return Response({"error": "Failed to fetch user info from Google"}, status=400)
 
-        return Response(token_data, status=status.HTTP_200_OK)'''
+        # Social Login flow
+        adapter = GoogleOAuth2Adapter(request)
+        app = get_adapter().get_app(request, adapter.provider_id)
+        token = SocialToken(token=access_token, token_secret=None, app=app)
+        print(token)
+        try:
+            # Use Google profile response in complete_login
+            login = adapter.complete_login(request, app, token, user_info)
+            login.token = token
+            login.state = SocialLogin.state_from_request(request)
+
+            # This creates User + SocialAccount
+            complete_social_login(request, login)
+
+            if not login.is_existing:
+                # Saves the user & socialaccount
+                login.save(request, connect=True)
+
+            user = login.user
+
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                }
+            })
+
+        except OAuth2Error as e:
+            return Response({"error": str(e)}, status=400)
 
 
 class RegisterViewSet(viewsets.ViewSet):
@@ -235,7 +268,6 @@ class RegisterViewSet(viewsets.ViewSet):
         )
 
 
-
 class LoginViewSet(viewsets.ViewSet):
 
     serializer_class = LoginCodeEntrySerializer
@@ -257,7 +289,7 @@ class LoginViewSet(viewsets.ViewSet):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return CustomResponse.error(
-                message="User not found", 
+                message="User not found",
                 status=404
             )
 
@@ -377,7 +409,7 @@ class LoginViewSet(viewsets.ViewSet):
         email = serializer.validated_data["email"]
 
         code = Util.generate_entry_code()
-        
+
         user = EntryCode.objects.get(user__email=email)
 
         user.code = code
@@ -608,7 +640,8 @@ class UsersViewSet(viewsets.ViewSet):
         if not status or status == "":
             users = User.objects.all().exclude(email=os.getenv("ADMIN_EMAIL"))
         else:
-            users = User.objects.filter(status=status).exclude(email=os.getenv("ADMIN_EMAIL"))
+            users = User.objects.filter(status=status).exclude(
+                email=os.getenv("ADMIN_EMAIL"))
         paginator = self.pagination_class()
         paginator_queryset = paginator.paginate_queryset(users, request)
         serializer = self.serializer_class(paginator_queryset, many=True)
