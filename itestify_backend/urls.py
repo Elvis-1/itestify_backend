@@ -19,7 +19,7 @@ from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
-from user.views import GoogleLoginCallback
+# from user.views import GoogleLoginCallback
 
 
 def home(request):
@@ -44,13 +44,10 @@ urlpatterns = [
     path('review/', include('reviews.urls')),
     path("api/v1/auth/", include("dj_rest_auth.urls")),
     path('api/v1/auth/accounts/', include('allauth.urls')),
-    path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
-    #path("api/v1/auth/google/", GoogleLogin.as_view(), name="google_login"),
-    path(
-        "api/v1/auth/google/callback/",
-        GoogleLoginCallback.as_view(),
-        name="google_login_callback",
-    ),
+    path("common/", include("common.urls")),
+    # path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
+    # path("api/v1/auth/google/", GoogleLogin.as_view(), name="google_login"),
+
 
 ]
 

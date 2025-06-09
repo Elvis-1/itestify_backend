@@ -1,9 +1,9 @@
 import string
-# from django.urls import reverse
-import requests
+import os
+from tokenize import TokenError
 from django.conf import settings
-# from urllib.parse import urljoin
 import validate_email
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -12,10 +12,23 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.views import APIView
+from .serializers import CreateMemberSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import EntryCode, User, Otp, UserInvitation, SendOtp
 
-from .models import EntryCode, User, Otp
 from .utils import Util
-from .serializers import LoginCodeEntrySerializer, LoginPasswordSerializer, ResendEntryCodeSerializer, SetPasswordSerializer, ReturnUserSerializer, ResendOtpSerializer, SetNewPasswordSerializer, VerifyOtpSerializer, UserRegisterSerializer, ChangePasswordSerializer
+from .serializers import (
+    LoginCodeEntrySerializer,
+    LoginPasswordSerializer,
+    ResendEntryCodeSerializer,
+    SetPasswordSerializer,
+    ReturnUserSerializer,
+    ResendOtpSerializer,
+    SetNewPasswordSerializer,
+    VerifyOtpSerializer,
+    UserRegisterSerializer,
+    ChangePasswordSerializer,
+)
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
@@ -24,22 +37,23 @@ from datetime import datetime
 from .emails import EmailUtil
 from support.helpers import StandardResultsSetPagination
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+
 # from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
-#from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-#from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-#from dj_rest_auth.registration.views import SocialLoginView
-from django.conf import settings
-#from urllib.parse import urljoin
-from django.urls import reverse
-import requests
+# from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+# from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+# from dj_rest_auth.registration.views import SocialLoginView
 
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+# from urllib.parse import urljoin
+from django.urls import reverse
+
+# from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 
 
 # Create your views here.
+
 
 def has_uppercase(s):
     return any(char.isupper() for char in s)
@@ -58,20 +72,22 @@ def has_special_character(s):
     return any(char in special_char for char in s)
 
 
-
 # -------------- GOOGLE SOCIAL LOGIN ----------------
-'''class GoogleLogin(SocialLoginView):
+"""class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     callback_url = settings.GOOGLE_OAUTH_CALLBACK_URL
-    client_class = OAuth2Client'''
+    client_class = OAuth2Client"""
 
 
-class GoogleLoginCallback(APIView):
+'''class GoogleLoginCallback(APIView):
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
 
         if code is None:
-            return Response({"error": "Missing authorization code"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Missing authorization code"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         # Define the payload for Google's token exchange
         payload = {
             "code": code,
@@ -80,12 +96,12 @@ class GoogleLoginCallback(APIView):
             "redirect_uri": settings.GOOGLE_OAUTH_CALLBACK_URL,
             "grant_type": "authorization_code",
         }
-        
 
         # Make a request to the Google token endpoint
         try:
             response = requests.post(
-                "https://oauth2.googleapis.com/token", data=payload)
+                "https://oauth2.googleapis.com/token", data=payload
+            )
             response.raise_for_status()  # Check for HTTP errors
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -93,9 +109,12 @@ class GoogleLoginCallback(APIView):
         try:
             token_data = response.json()  # Attempt to parse the JSON response
         except ValueError:
-            return Response({"error": "Invalid response from Google"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid response from Google"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        return Response(token_data, status=status.HTTP_200_OK)
+        return Response(token_data, status=status.HTTP_200_OK)'''
 
 
 class RegisterViewSet(viewsets.ViewSet):
@@ -104,50 +123,67 @@ class RegisterViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="register")
     def register(self, request):
         data = request.data
-        
+
         serializer = self.serializer_class(data=data or None)
         if serializer.is_valid(raise_exception=True):
-            if not validate_email.validate_email(serializer.validated_data.get("email")) or serializer.validated_data.get("email") == "":
+            if (
+                not validate_email.validate_email(
+                    serializer.validated_data.get("email")
+                )
+                or serializer.validated_data.get("email") == ""
+            ):
                 return CustomResponse.error(
                     message="Invalid email address or email is empty",
                     err_code=ErrorCode.INVALID_ENTRY,
-                    status_code=400
+                    status_code=400,
                 )
             elif not serializer.validated_data.get("otp"):
                 return CustomResponse.error(
                     message="OTP is required for email verification",
                     err_code=ErrorCode.INVALID_ENTRY,
-                    status_code=400
+                    status_code=400,
                 )
             elif len(serializer.validated_data.get("full_name")) < 3:
                 return CustomResponse.error(
                     message="Full name must be at least 3 characters long",
                     err_code=ErrorCode.INVALID_ENTRY,
-                    status_code=400
+                    status_code=400,
                 )
-            elif len(serializer.validated_data.get("password")) < 8 or len(serializer.validated_data.get("password2")) < 8:
+            elif (
+                len(serializer.validated_data.get("password")) < 8
+                or len(serializer.validated_data.get("password2")) < 8
+            ):
                 return CustomResponse.error(
                     message="Password must be at least 8 characters long",
                     err_code=ErrorCode.INVALID_ENTRY,
-                    status_code=400
+                    status_code=400,
                 )
-            elif serializer.validated_data.get("password") != serializer.validated_data.get("password2"):
+            elif serializer.validated_data.get(
+                "password"
+            ) != serializer.validated_data.get("password2"):
                 return CustomResponse.error(
                     message="Passwords do not match",
                     err_code=ErrorCode.INVALID_ENTRY,
-                    status_code=400
+                    status_code=400,
                 )
             else:
                 try:
-                    otp_code = Otp.objects.get(
-                        code=serializer.validated_data.get("otp"))
+                    otp_code = SendOtp.objects.get(
+                        code=serializer.validated_data.get("otp")
+                    )
                     if otp_code.is_expired():
                         return CustomResponse.error(
                             message="OTP has expired",
                             err_code=ErrorCode.EXPIRED_OTP,
-                            status_code=400
+                            status_code=400,
                         )
 
+                    if User.objects.filter(email=serializer.validated_data["email"]).exists():
+                        return CustomResponse.error(
+                            message="User with this email already exists",
+                            err_code=ErrorCode.INVALID_ENTRY,
+                            status_code=400
+                        )
                     User.objects.create_user(serializer.validated_data["email"],
                                              full_name=serializer.validated_data["full_name"],
                                              role=User.Roles.VIEWER,
@@ -157,45 +193,21 @@ class RegisterViewSet(viewsets.ViewSet):
                                              is_email_verified=True)
 
                     return CustomResponse.success(
-                        message="Account created successfully",
-                        status_code=201
+                        message="Account created successfully", status_code=201
                     )
                 except Otp.DoesNotExist:
                     return CustomResponse.error(
                         message="Invalid OTP",
                         err_code=ErrorCode.INVALID_ENTRY,
-                        status_code=400
+                        status_code=400,
                     )
-        if password != password2:
-            return CustomResponse.error(
-                message="Passwords do not match",
-                err_code=ErrorCode.BAD_REQUEST,
-                status_code=400
-            )
 
-        user = User.objects.get_or_none(email=serializer.validated_data["email"])
-
-        if user and user.status != "deleted":
+        else:
             return CustomResponse.error(
-                message="User with this email already exists",
+                message="Invalid data",
                 err_code=ErrorCode.INVALID_ENTRY,
-                status_code=400
+                status_code=400,
             )
-
-        if user and user.status == "deleted":
-            user.delete()
-
-        serializer.validated_data.pop("password2", None)
-        user = User.objects.create_user(**serializer.validated_data)
-        user.role = "viewer"
-        token = user.tokens()
-        user.save()
-
-        return CustomResponse.error(
-            message="Invalid data",
-            err_code=ErrorCode.INVALID_ENTRY,
-            status_code=400
-        )
 
     @action(detail=False, methods=["post"])
     def resend_verification_token(self, request):
@@ -212,15 +224,16 @@ class RegisterViewSet(viewsets.ViewSet):
                 return CustomResponse.error(
                     message="Email already verified",
                     err_code=ErrorCode.FORBIDDEN,
-                    status_code=403
+                    status_code=403,
                 )
 
             EmailUtil.send_verification_email(user)
 
         return CustomResponse.success(
             message="A new OTP has been sent to your email. Please check your inbox or spam folder.",
-            status_code=200
+            status_code=200,
         )
+
 
 
 class LoginViewSet(viewsets.ViewSet):
@@ -233,7 +246,9 @@ class LoginViewSet(viewsets.ViewSet):
 
         serializer = self.serializer_class(data=request.data)
         if not serializer.is_valid(raise_exception=True):
-            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         email = serializer.validated_data["email"]
         entry_code = serializer.validated_data["entry_code"]
@@ -241,9 +256,12 @@ class LoginViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            return CustomResponse.error(
+                message="User not found", 
+                status=404
+            )
 
-        entry_code_obj = user.entry_code.all().first()
+        entry_code_obj = EntryCode.objects.get(user__email=email)
         token = user.tokens()
 
         if entry_code_obj.code == entry_code and not entry_code_obj.is_used:
@@ -254,11 +272,11 @@ class LoginViewSet(viewsets.ViewSet):
 
             response = CustomResponse.success(
                 data={
-                    'user': serializer.data,
+                    "user": serializer.data,
                     "token": token["access"],
-                    "refresh": token["refresh"]
+                    "refresh": token["refresh"],
                 },
-                status_code=200
+                status_code=200,
             )
 
             response.set_cookie(
@@ -268,7 +286,9 @@ class LoginViewSet(viewsets.ViewSet):
             )
             response.set_cookie(
                 # Set HttpOnly flag
-                key="access", value=token["access"], httponly=True
+                key="access",
+                value=token["access"],
+                httponly=True,
             )
 
             return response
@@ -276,14 +296,16 @@ class LoginViewSet(viewsets.ViewSet):
         return CustomResponse.error(
             message="Invalid entry code",
             err_code=ErrorCode.INVALID_ENTRY,
-            status_code=400
+            status_code=400,
         )
 
     @action(detail=False, methods=["post"])
     def password(self, request):
         serializer = LoginPasswordSerializer(data=request.data)
         if not serializer.is_valid(raise_exception=True):
-            return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
@@ -296,14 +318,14 @@ class LoginViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="User not found",
                 err_code=ErrorCode.INVALID_ENTRY,
-                status_code=404
+                status_code=404,
             )
 
         if user.status and user.status == "deleted":
             return CustomResponse.error(
                 message="This account has been deleted.",
                 err_code=ErrorCode.FORBIDDEN,
-                status_code=403
+                status_code=403,
             )
 
         # Check if the password is correct
@@ -321,10 +343,7 @@ class LoginViewSet(viewsets.ViewSet):
                 "last_login": user.last_login,
                 "created_at": user.created_at,
                 "created_password": user.created_password,
-                "token": {
-                    "access": token['access'],
-                    "refresh": token['refresh']
-                }
+                "token": {"access": token["access"], "refresh": token["refresh"]},
             }
 
             response = CustomResponse.success(data=data, status_code=200)
@@ -346,7 +365,7 @@ class LoginViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="Invalid password",
                 err_code=ErrorCode.INVALID_ENTRY,
-                status_code=401
+                status_code=401,
             )
 
     @action(detail=False, methods=["post"])
@@ -355,20 +374,29 @@ class LoginViewSet(viewsets.ViewSet):
         serializer = ResendEntryCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data['email']
+        email = serializer.validated_data["email"]
 
         code = Util.generate_entry_code()
-        Otp.objects.create(code=code)
+        
+        user = EntryCode.objects.get(user__email=email)
+
+        user.code = code
+        user.save()
 
         # Prepare email data and send the email
+
         email_data = {
-            'to_email': email,
-            'email_subject': "Request For a New Entry Code",
-            'email_body': f"Your new entry code: {code}"
+            "to_email": email,
+            "email_subject": "Request For a New Entry Code",
+            "email_body": f"Your new entry code: {code}",
         }
+
         EmailUtil.send_email(email_data)
 
-        return CustomResponse.success(message=f"A new entry code {code} has been sent to your email {email}", status_code=200)
+        return CustomResponse.success(
+            message="A new entry code has been sent to your email",
+            status_code=200,
+        )
 
 
 class SendOtpCodeView(APIView):
@@ -379,7 +407,7 @@ class SendOtpCodeView(APIView):
         email = serializer.validated_data.get('email')
 
         code = Util.generate_entry_code()
-        Otp.objects.create(code=code)
+        SendOtp.objects.create(code=code)
 
         # Prepare email data and send the email
         email_data = {
@@ -387,9 +415,15 @@ class SendOtpCodeView(APIView):
             'email_subject': "Request For a New Entry Code",
             'email_body': f"Your new entry code: {code}"
         }
+
+        # Email send otp
+
         EmailUtil.send_email(email_data)
 
-        return CustomResponse.success(message=f"A new entry code {code} has been sent to your email {email}", status_code=200)
+        return CustomResponse.success(
+            message=f"A new entry code {code} has been sent to your email {email}",
+            status_code=200,
+        )
 
 
 class DashboardViewSet(viewsets.ViewSet):
@@ -407,39 +441,40 @@ class DashboardViewSet(viewsets.ViewSet):
         confirm_password = serializer.validated_data.get("confirm_password")
 
         if password != confirm_password:
-            return CustomResponse.error(message="Passwords does not match", err_code=ErrCode.BAD_REQUEST, status_code=400)
 
             return CustomResponse.error(
-                message="Passwords do not match",
+                message="Passwords does not match",
                 err_code=ErrorCode.BAD_REQUEST,
-                status_code=400
+                status_code=400,
             )
-        
+
         user = request.user
         user.created_password = True
         user.set_password(password)
         user.save()
 
         return CustomResponse.success(
-            message="Password created successfully",
-            status_code=200
+            message="Password created successfully", status_code=200
         )
 
     @action(detail=False, methods=["post"])
     def change_password(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer = ChangePasswordSerializer(
+
+            data=request.data, context={"request": request}
+        )
+
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        user.set_password(serializer.validated_data['new_password'])
+        user.set_password(serializer.validated_data["new_password"])
         user.save()
 
         return CustomResponse.success(
-            message="Password changed successfully",
-            status_code=200
+            message="Password changed successfully", status_code=200
         )
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def stats(self, request):
         pass
 
@@ -461,14 +496,13 @@ class SendPasswordResetOtpView(GenericAPIView):
             return CustomResponse.error(
                 message="User does not exist",
                 err_code=ErrorCode.INVALID_ENTRY,
-                status_code=400
+                status_code=400,
             )
 
         EmailUtil.send_password_reset_email(user)
-        
+
         return CustomResponse.success(
-            message="Password reset otp has been sent",
-            status_code=200
+            message="Password reset otp has been sent", status_code=200
         )
 
 
@@ -493,14 +527,14 @@ class VerifyOtpView(GenericAPIView):
             return CustomResponse.error(
                 message="Otp is not correct",
                 err_code=ErrorCode.INCORRECT_OTP,
-                status_code=400
+                status_code=400,
             )
 
         if otp_obj.check_expiration():
             return CustomResponse.error(
                 message="Otp has expired",
                 err_code=ErrorCode.EXPIRED_OTP,
-                status_code=400
+                status_code=400,
             )
 
         if route_name == "verify-email":
@@ -510,7 +544,9 @@ class VerifyOtpView(GenericAPIView):
 
         user.save()
 
-        return CustomResponse.success(message="Otp successfully verified", status_code=200)
+        return CustomResponse.success(
+            message="Otp successfully verified", status_code=200
+        )
 
 
 class SetNewPasswordView(GenericAPIView):
@@ -532,26 +568,29 @@ class SetNewPasswordView(GenericAPIView):
             return CustomResponse.error(
                 message="User does not exist!",
                 err_code=ErrorCode.INVALID_ENTRY,
-                status_code=400
+                status_code=400,
             )
 
         if not user.is_verified:
             return CustomResponse.error(
                 message="You have not verified otp",
                 err_code=ErrorCode.FORBIDDEN,
-                status_code=403
+                status_code=403,
             )
 
         if password != password2:
-            return CustomResponse.error(message='Passwords do not match', err_code=ErrorCode.INVALID_ENTRY, status_code=400)
+            return CustomResponse.error(
+                message="Passwords do not match",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
 
         user.set_password(password)
         user.is_verified = False
         user.save()
 
         return CustomResponse.success(
-            message="Password changed successfully",
-            status_code=200
+            message="Password changed successfully", status_code=200
         )
 
 
@@ -567,9 +606,9 @@ class UsersViewSet(viewsets.ViewSet):
         status = request.query_params.get("status", None)
 
         if not status or status == "":
-            users = User.objects.all()
+            users = User.objects.all().exclude(email=os.getenv("ADMIN_EMAIL"))
         else:
-            users = User.objects.filter(status=status)
+            users = User.objects.filter(status=status).exclude(email=os.getenv("ADMIN_EMAIL"))
         paginator = self.pagination_class()
         paginator_queryset = paginator.paginate_queryset(users, request)
         serializer = self.serializer_class(paginator_queryset, many=True)
@@ -583,11 +622,14 @@ class UsersViewSet(viewsets.ViewSet):
             user.status = "deleted"
             user.save()
             return CustomResponse.success(
-                message="Account deleted successfully.",
-                status_code=200
+                message="Account deleted successfully.", status_code=200
             )
         except User.DoesNotExist:
-            return CustomResponse.error(message="User with this account does not exist.", err_code=ErrorCode.NOT_FOUND, status_code=404)
+            return CustomResponse.error(
+                message="User with this account does not exist.",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
 
     def destroy(self, request, pk=None):
         try:
@@ -597,20 +639,17 @@ class UsersViewSet(viewsets.ViewSet):
                 return CustomResponse.error(
                     message="Cannot delete a registered user.",
                     err_code=ErrorCode.BAD_REQUEST,
-                    status_code=400
+                    status_code=400,
                 )
 
             user.delete()
             return CustomResponse.success(
-                message="User deleted successfully",
-                status_code=200
+                message="User deleted successfully", status_code=200
             )
 
         except User.DoesNotExist or user is None:
             return CustomResponse.error(
-                message="User not found.",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404
+                message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
             )
 
 
@@ -619,13 +658,13 @@ class LogOutApiView(GenericAPIView):
 
     @handle_custom_exceptions
     def post(self, request: Request) -> Response:
-        refresh_token = request.COOKIES.get('refresh')
+        refresh_token = request.COOKIES.get("refresh")
 
         if not refresh_token:
             return CustomResponse.error(
                 message="Refresh token not found",
                 err_code=ErrorCode.BAD_REQUEST,
-                status_code=400
+                status_code=400,
             )
 
         try:
@@ -635,24 +674,23 @@ class LogOutApiView(GenericAPIView):
             return CustomResponse.error(
                 message="Invalid or expired refresh token",
                 err_code=ErrorCode.UNAUTHORIZED,
-                status_code=401
+                status_code=401,
             )
         except Exception as e:
             # Optional: log exception
             return CustomResponse.error(
                 message="Logout failed",
                 err_code=ErrorCode.INTERNAL_SERVER_ERROR,
-                status_code=500
+                status_code=500,
             )
 
         response = CustomResponse.success(
-            message="Logout successful",
-            status_code=200
-        )
-        response.delete_cookie('refresh')
-        response.delete_cookie('access')
+            message="Logout successful", status_code=200)
+        response.delete_cookie("refresh")
+        response.delete_cookie("access")
 
         return response
+
 
 class ForgotPasswordView(APIView):
     account_activation_token = PasswordResetTokenGenerator()
@@ -661,48 +699,281 @@ class ForgotPasswordView(APIView):
         payload = {}
         email = request.data.get("email")
         if not email:
-            return Response({"success": False, "message": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"success": False, "message": "Email is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             user = User.objects.get(email=email)
 
             reset_password_token = {
-                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
-                'token': self.account_activation_token.make_token(user)
+                "uid": urlsafe_base64_encode(force_bytes(user.pk)),
+                "token": self.account_activation_token.make_token(user),
             }
+            reset_url = f"{settings.FRONT_END_BASE_URL}reset-password?uid={reset_password_token['uid']}&token={reset_password_token['token']}"
 
+            EmailUtil.send_reset_password_email_link(user, reset_url)
             payload = {
-                "success": True, "message": "Password reset link has been sent to your email", "uid": f"{reset_password_token['uid']}", "token": f"{reset_password_token['token']}"
+                "success": True,
+                "message": "Password reset link has been sent to your email",
+                "reset_url": reset_url,
             }
             return Response(payload, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            return Response({"success": False, "message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"success": False, "message": "User does not exist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 class ResetPasswordView(APIView):
     account_activation_token = PasswordResetTokenGenerator()
 
-    def post(self, request, uidb64, token):
-        # otp = request.data.get('otp')
-        password = request.data.get('password')
-        if len(password) < 8:
+    # serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        new_password = request.data.get('password')
+        uid = request.data.get('uid')
+        token = request.data.get('token')
+
+        if len(new_password) < 8:
             return Response({"msg": "At least enter 8 Character"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_uppercase(password):
+        elif not has_uppercase(new_password):
             return Response({"msg": "One Uppercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_lowercase(password):
+        elif not has_lowercase(new_password):
             return Response({"msg": "One Lowercase Letter (A-Z)"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_number(password):
+        elif not has_number(new_password):
             return Response({"msg": "One Number (0-9)"}, status=status.HTTP_400_BAD_REQUEST)
-        elif not has_special_character(password):
+        elif not has_special_character(new_password):
             return Response({"msg": "One Special Character (!@#$%^&*)"}, status=status.HTTP_400_BAD_REQUEST)
         else:
             try:
-                user_id = force_str(urlsafe_base64_decode(uidb64))
+                user_id = force_str(urlsafe_base64_decode(
+                    uid))
                 user = User.objects.get(pk=user_id)
                 if not self.account_activation_token.check_token(user, token):
                     return Response({"msg": "Password link invalid, Pls request for a new one"}, status=status.HTTP_400_BAD_REQUEST)
-                user.set_password(password)
+
+                user.set_password(new_password)
                 user.save()
 
-                return Response({"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK)
+                return Response(
+                    {"msg": "Password Reset Successfully"}, status=status.HTTP_200_OK
+                )
             except User.DoesNotExist:
                 return Response({"msg": "User Does not exist"})
+
+
+class MemberManagementViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return User.objects.exclude(status=User.STATUS.DELETED)
+
+    @action(detail=False, methods=['post'], url_path='create-member')
+    def create_member(self, request):
+        if not request.user.is_super_admin:
+            return CustomResponse.error(
+                message="Only super admins can create members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        serializer = CreateMemberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+
+        if User.objects.filter(email=email).exists():
+            return CustomResponse.error(
+                message="User with this email already exists",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
+
+        # Create user with invited status
+        user = User.objects.create_invited_user(
+            email=email,
+            full_name=serializer.validated_data["full_name"],
+            role=serializer.validated_data["role"],
+            invited_by=request.user,
+        )
+
+        # Create invitation
+        invitation = UserInvitation.create_invitation(user)
+
+        # Send email with invitation code
+        EmailUtil.send_invitation_email(user, invitation.code)
+
+        response_data = {
+            "user": UserInvitationSerializer(user).data,
+            "invitation_code": invitation.code,
+        }
+
+        return CustomResponse.success(
+            data=response_data,
+            message="Member created successfully. Invitation sent.",
+            status_code=201,
+        )
+
+    @action(detail=True, methods=["patch"], url_path="update-member")
+    def update_member(self, request, pk=None):
+        if not request.user.is_super_admin:
+            return CustomResponse.error(
+                message="Only super admins can update members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        try:
+            member = User.objects.get(pk=pk, status=User.STATUS.REGISTERED)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="Member not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        if member.is_super_admin:
+            return CustomResponse.error(
+                message="Cannot modify super admin",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        serializer = CreateMemberSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        # Update fields
+
+        if "email" in serializer.validated_data:
+            member.email = serializer.validated_data["email"]
+        if "full_name" in serializer.validated_data:
+            member.full_name = serializer.validated_data["full_name"]
+        if "role" in serializer.validated_data:
+            member.role = serializer.validated_data["role"]
+
+        member.save()
+
+        return CustomResponse.success(
+            data=UserInvitationSerializer(member).data,
+            message="Member updated successfully",
+            status_code=200,
+        )
+
+    @action(detail=True, methods=["delete"], url_path="delete-member")
+    def delete_member(self, request, pk=None):
+        if not request.user.is_super_admin:
+            return CustomResponse.error(
+                message="Only super admins can delete members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        try:
+            member = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="Member not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        if member.is_super_admin:
+            return CustomResponse.error(
+                message="Cannot delete super admin",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        member.status = User.STATUS.DELETED
+        member.save()
+
+        return CustomResponse.success(
+            message="Member deleted successfully", status_code=200
+        )
+
+    @action(detail=False, methods=["get"], url_path="list-members")
+    def list_members(self, request):
+        if (
+            not request.user.is_super_admin
+            and not request.user.role == User.Roles.ADMIN
+        ):
+            return CustomResponse.error(
+                message="You don't have permission to view members",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        members = self.get_queryset().exclude(pk=request.user.pk)
+        serializer = UserInvitationSerializer(members, many=True)
+
+        return CustomResponse.success(data=serializer.data, status_code=200)
+
+
+class AcceptInvitationView(GenericAPIView):
+    serializer_class = SetPasswordWithInvitationSerializer
+
+    @handle_custom_exceptions
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        invitation_code = serializer.validated_data["invitation_code"]
+        password = serializer.validated_data["password"]
+        password2 = serializer.validated_data["password2"]
+
+        if password != password2:
+            return CustomResponse.error(
+                message="Passwords do not match",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
+
+        try:
+            invitation = UserInvitation.objects.get(
+                code=invitation_code, is_used=False)
+        except UserInvitation.DoesNotExist:
+            return CustomResponse.error(
+                message="Invalid or expired invitation code",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
+
+        if invitation.is_expired():
+            return CustomResponse.error(
+                message="Invitation code has expired",
+                err_code=ErrorCode.EXPIRED_TOKEN,
+                status_code=400,
+            )
+
+        user = invitation.user
+        if user.status != User.STATUS.INVITED:
+            return CustomResponse.error(
+                message="User already registered",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+
+        # Set password and update status
+        user.set_password(password)
+        user.status = User.STATUS.REGISTERED
+        user.created_password = True
+        user.save()
+
+        # Mark invitation as used
+        invitation.is_used = True
+        invitation.save()
+
+        # Return tokens
+        token = user.tokens()
+
+        return CustomResponse.success(
+            data={
+                "user": ReturnUserSerializer(user).data,
+                "token": token["access"],
+                "refresh": token["refresh"],
+            },
+            message="Account activated successfully",
+            status_code=200,
+        )
