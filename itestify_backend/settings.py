@@ -66,7 +66,7 @@ INSTALLED_APPS = [
 
 # django.contrib.sites
 SITE_ID = 1
-os.getenv("FRONT_END_BASE_URL")
+FRONT_END_BASE_URL = os.getenv("FRONT_END_BASE_URL")
 
 
 ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
@@ -293,7 +293,7 @@ STATIC_URL = 'static/'
 
 # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
 if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
     # and renames the files with unique names for each version to support long-term caching
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -312,9 +312,11 @@ CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 EMAIL_OTP_EXPIRE_SECONDS = 300
 
 # Email Configuration
-EMAIL_USE_SSL = True
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_TLS = True              # ✅ TLS enabled
+EMAIL_USE_SSL = False             # ❌ SSL disabled
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
+EMAIL_PORT = 587                  # ✅ TLS port
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
