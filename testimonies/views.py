@@ -29,7 +29,6 @@ from .permissions import IsAuthenticated, IsLoggedInUser
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
-from .tasks import upload_video
 
 from django.db.models import Q
 

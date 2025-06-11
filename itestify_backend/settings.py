@@ -329,14 +329,14 @@ CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
         "task": "testimonies.tasks.upload_schedule_videos",
-        "schedule": timedelta(seconds=30), # 30 secs
+        "schedule": timedelta(minutes=30), # 30 mins
         # "args": [""]
     },
     "ping_render_server": {
         "task": "common.tasks.ping_server",
         "schedule": timedelta(minutes=5), # 5 mins
     }
-} if DEBUG == False else {}
+}
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
