@@ -1,3 +1,5 @@
+import os
+
 from rest_framework import serializers
 
 from user.serializers import ReturnUserSerializer
@@ -10,8 +12,9 @@ from .models import (
 )
 
 from datetime import datetime, timezone
-from django.utils.timezone import now, timedelta
-from django.conf import settings
+from django.utils.timezone import now, timedelta, is_naive, is_aware, get_current_timezone
+
+DEBUG = True if os.getenv("DEBUG") == "True" else False
 
 
 class TestimonySettingsSerializer(serializers.ModelSerializer):
@@ -85,15 +88,15 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
             "scheduled_datetime",
             self.instance.scheduled_datetime if self.instance else None,
         )
-        
-        current_datetime = now() + timedelta(hours=1) if settings.DEBUG == True else now()
+         
+        # current_datetime = now() + timedelta(hours=1) if DEBUG == True else now()
 
-        if scheduled_datetime < current_datetime:
-            raise serializers.ValidationError(
-                {
-                    "scheduled_datetime": "You cannot schedule testimony for a past time."
-                }
-            )
+        # if scheduled_datetime < current_datetime:
+        #     raise serializers.ValidationError(
+        #         {
+        #             "scheduled_datetime": "You cannot schedule testimony for a past time."
+        #         }
+        #     )
 
         if upload_status == UPLOAD_STATUS.SCHEDULE_LATER and not scheduled_datetime:
             raise serializers.ValidationError(

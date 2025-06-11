@@ -8,12 +8,14 @@ from .error import ErrorCode
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 
+from django.utils.timezone import now
+
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
 @api_view(["GET"])
 def health_check(request):
-    return CustomResponse.success(message="Server Active.", status_code=200)
+    return CustomResponse.success(message="Server Active.", status_code=200, data={"now": now()})
 
 class MediaUploadViewAPIView(APIView):
     def post(self, request, *args, **kwargs):

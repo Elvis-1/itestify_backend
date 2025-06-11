@@ -9,9 +9,10 @@ from datetime import timedelta
 def upload_schedule_videos():
     # Fetch videos scheduled for later
     print("checking for scheduled videos...")
+    
     scheduled_videos = VideoTestimony.objects.filter(
         upload_status="scheduled",
-        scheduled_datetime__lte=now()   # Due for upload
+        scheduled_datetime__lte=now()  # Due for upload
     )
 
     for video in scheduled_videos:
