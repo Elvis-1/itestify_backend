@@ -11,7 +11,7 @@ def upload_schedule_videos():
     print("checking for scheduled videos...")
     scheduled_videos = VideoTestimony.objects.filter(
         upload_status="scheduled",
-        scheduled_datetime__lte=now() + timedelta(hours=1)   # Due for upload
+        scheduled_datetime__lte=now()   # Due for upload
     )
 
     for video in scheduled_videos:
