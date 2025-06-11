@@ -9,6 +9,9 @@ from .models import (
     TestimonySettings,
 )
 
+from datetime import datetime, timezone
+from django.utils.timezone import now, timedelta
+
 
 class TestimonySettingsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -72,19 +75,29 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        """Ensure scheduled_datetime is required when upload_status is 'schedule_for_later'."""
+        """Ensure scheduled_datetime is required when upload_status is 'scheduled'."""
         upload_status = data.get(
             "upload_status", self.instance.upload_status if self.instance else None
         )
+        
         scheduled_datetime = data.get(
             "scheduled_datetime",
             self.instance.scheduled_datetime if self.instance else None,
         )
+        
+        current_datetime = now() + timedelta(hours=1)
+
+        if scheduled_datetime < current_datetime:
+            raise serializers.ValidationError(
+                {
+                    "scheduled_datetime": "You cannot schedule testimony for a past time."
+                }
+            )
 
         if upload_status == UPLOAD_STATUS.SCHEDULE_LATER and not scheduled_datetime:
             raise serializers.ValidationError(
                 {
-                    "scheduled_datetime": "This field is required when upload_status is 'schedule_for_later'."
+                    "scheduled_datetime": "This field is required when upload_status is 'scheduled'."
                 }
             )
 
@@ -145,7 +158,7 @@ class InspirationalPicturesSerializer(serializers.ModelSerializer):
         fields = ["thumbnail", "status", "downloads_count", "scheduled_datetime"]
 
     def validate(self, data):
-        """Ensure scheduled_datetime is required when upload_status is 'schedule_for_later'."""
+        """Ensure scheduled_datetime is required when upload_status is 'scheduled'."""
         status = data.get("status", self.instance.status if self.instance else None)
         scheduled_datetime = data.get(
             "scheduled_datetime",
@@ -155,7 +168,7 @@ class InspirationalPicturesSerializer(serializers.ModelSerializer):
         if status == UPLOAD_STATUS.SCHEDULE_LATER and not scheduled_datetime:
             raise serializers.ValidationError(
                 {
-                    "scheduled_datetime": "This field is required when upload_status is 'schedule_for_later'."
+                    "scheduled_datetime": "This field is required when upload_status is 'scheduled'."
                 }
             )
 

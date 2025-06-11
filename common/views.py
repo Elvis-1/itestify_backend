@@ -6,8 +6,15 @@ from .serializers import MediaUploadSerializer
 from .error import ErrorCode
 
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
+import requests
 
 MAX_FILE_SIZE = 50 * 1024 * 1024
+
+
+@api_view(["GET"])
+def health_check(request):
+    return CustomResponse.success(message="Server Active.", status_code=200)
 
 
 class MediaUploadViewAPIView(APIView):

@@ -341,9 +341,12 @@ CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
         "task": "testimonies.tasks.upload_schedule_videos",
-        # "schedule": crontab(second="*/5"),  # 5min
-        "schedule": timedelta(minutes=30), # 30 mins
+        "schedule": timedelta(seconds=30), # 30 secs
         # "args": [""]
+    },
+    "ping_render_server": {
+        "task": "common.tasks.ping_server",
+        "schedule": timedelta(minutes=5), # 5 mins
     }
 }
 

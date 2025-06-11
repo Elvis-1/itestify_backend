@@ -25,7 +25,7 @@ class CATEGORY(models.TextChoices):
 
 class UPLOAD_STATUS(models.TextChoices):
     UPLOAD_NOW = "upload_now", "upload_now"
-    SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
+    SCHEDULE_LATER = "scheduled", "scheduled"
     DRAFT = "drafts", "drafts"
 
 

@@ -170,6 +170,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
+    @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
         video_testimonies = request.data["video_testimonies"]
@@ -240,6 +241,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
         return paginator.get_paginated_response(serializer.data)
 
+    @handle_custom_exceptions
     def retrieve(self, request, pk=None):
         """Retrieve a specific video testimony by ID"""
         try:
@@ -263,6 +265,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
+    @handle_custom_exceptions
     def update(self, request, pk=None):
         """Update a specific video testimony by ID"""
         try:
