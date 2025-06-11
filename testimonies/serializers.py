@@ -86,7 +86,7 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
             self.instance.scheduled_datetime if self.instance else None,
         )
         
-        current_datetime = now() + timedelta(hours=1) if settings.DEBUG == False else now()
+        current_datetime = now() + timedelta(hours=1) if settings.DEBUG == True else now()
 
         if scheduled_datetime < current_datetime:
             raise serializers.ValidationError(
