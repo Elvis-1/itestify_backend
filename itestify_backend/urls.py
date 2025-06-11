@@ -4,11 +4,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
 from user.views import GoogleLoginCallback
-from common.views import custom_page_not_found
-
-from django.conf.urls import handler404
-
-handler404 = custom_page_not_found
 
 def home(request):
     return JsonResponse(
