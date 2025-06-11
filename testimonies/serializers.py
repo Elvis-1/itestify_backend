@@ -11,6 +11,7 @@ from .models import (
 
 from datetime import datetime, timezone
 from django.utils.timezone import now, timedelta
+from django.conf import settings
 
 
 class TestimonySettingsSerializer(serializers.ModelSerializer):
@@ -85,7 +86,7 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
             self.instance.scheduled_datetime if self.instance else None,
         )
         
-        current_datetime = now() + timedelta(hours=1)
+        current_datetime = now() + timedelta(hours=1) if settings.DEBUG == False else now()
 
         if scheduled_datetime < current_datetime:
             raise serializers.ValidationError(
