@@ -7,17 +7,17 @@ from user.models import User
 
 
 class CATEGORY(models.TextChoices):
-    HEALING = "healing", "healing"
-    FINANCE = "finance", "finance"
-    BREAKTHROUGH = "breakthrough", "breakthrough"
-    PROTECTION = "protection", "protection"
-    SALVATION = "salvation", "salvation"
-    DELIVERANCE = "deliverance", "deliverance"
-    RESTORATION = "restoration", "restoration"
-    SPIRITUAL_GROWTH = "spiritual_growth", "spiritual growth"
-    EDUCATION = "education", "education"
-    CAREER = "career", "career"
-    OTHER = "other", "other"
+    HEALING = "Healing", "Healing"
+    FINANCE = "Finance", "Finance"
+    BREAKTHROUGH = "Breakthrough", "Breakthrough"
+    PROTECTION = "Protection", "Protection"
+    SALVATION = "Salvation", "Salvation"
+    DELIVERANCE = "Deliverance", "Deliverance"
+    RESTORATION = "Restoration", "Restoration"
+    SPIRITUAL_GROWTH = "Spiritual_growth", "Spiritual growth"
+    EDUCATION = "Education", "Education"
+    CAREER = "Career", "Career"
+    OTHER = "Other", "Other"
 
 
 """ Base Testimony Class """

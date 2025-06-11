@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
-import psycopg
+# import psycopg
 import cloudinary
 from datetime import timedelta
 
@@ -71,17 +71,17 @@ os.getenv("FRONT_END_BASE_URL")
 
 ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None 
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 
-#Google OAuth
+# Google OAuth
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
 
-#django-allauth (social)
-#Authenticate if local account with this email address already exists
+# django-allauth (social)
+# Authenticate if local account with this email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
-#Connect local account and social account if local account with that email address already exists
+# Connect local account and social account if local account with that email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -139,9 +139,9 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DATABASES = {
     'default': {
-        "ENGINE": "django.db.backends.postgresql",           
+        "ENGINE": "django.db.backends.postgresql",
         "USER": os.getenv("DB_USER"),
-        "PASSWORD":os.getenv("DB_PASSWORD"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST"),
         "PORT": os.getenv("DB_PORT"),
         "NAME": os.getenv("DB_NAME"),
@@ -190,7 +190,6 @@ TIME_ZONE = 'Africa/Lagos'
 USE_I18N = True
 
 USE_TZ = True
-
 
 
 LOCALE_PATHS = (os.path.join(BASE_DIR, "locale"),)
@@ -329,20 +328,20 @@ CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
         "task": "testimonies.tasks.upload_schedule_videos",
-        "schedule": timedelta(minutes=30), # 30 mins
+        "schedule": timedelta(minutes=30),  # 30 mins
         # "args": [""]
     },
     "ping_render_server": {
         "task": "common.tasks.ping_server",
-        "schedule": timedelta(minutes=5), # 5 mins
+        "schedule": timedelta(minutes=5),  # 5 mins
     }
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 # Cloudinary Setup
-cloudinary.config( 
-  cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
-  api_key = os.getenv("CLOUDINARY_API_KEY"), 
-  api_secret = os.getenv("CLOUDINARY_API_SECRET"),
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
