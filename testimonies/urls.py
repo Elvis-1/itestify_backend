@@ -24,7 +24,7 @@ urlpatterns = [
          name='testimony-settings'),
     path('testimonies/<str:category>/',
          TextTestimonyByCategoryView.as_view(), name='testimony-by-category'),
-    path('testimonies/comment/<str:category_comment>/',
+    path('testimonies/comment/<id>/',
          TextTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
     path('testimonies/all-comment/<str:category_comment>/',
          TextTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),

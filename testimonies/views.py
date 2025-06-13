@@ -266,9 +266,9 @@ class TextTestimonyCommentsView(APIView):
 
     serializer_class = ReturnTextTestimonySerializer
 
-    def post(self, request, category_comment):
+    def post(self, request, id):
         user = request.user
-        get_testimony = TextTestimony.objects.get(category=category_comment)
+        get_testimony = TextTestimony.objects.get(id=id)
         print(get_testimony)
         if not get_testimony:
             return CustomResponse.error(
@@ -307,8 +307,8 @@ class TextTestimonyCommentsView(APIView):
                 status_code=404,
             )
 
-    def get(self, request, category):
-        get_testimony = TextTestimony.objects.get(category=category)
+    def get(self, request, id):
+        get_testimony = TextTestimony.objects.get(id=id)
         if not get_testimony:
             return CustomResponse.error(
                 message="Testimony not found",
