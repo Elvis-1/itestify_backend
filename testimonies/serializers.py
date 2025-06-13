@@ -6,9 +6,11 @@ from user.serializers import ReturnUserSerializer
 from .models import (
     UPLOAD_STATUS,
     InspirationalPictures,
+    Like,
     TextTestimony,
     VideoTestimony,
     TestimonySettings,
+    Comment
 )
 
 from datetime import datetime, timezone
@@ -25,10 +27,44 @@ class TestimonySettingsSerializer(serializers.ModelSerializer):
         ]
 
 
+class TextTestimonyCommentSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer(context={"is_testimony": True})
+
+    class Meta:
+        model = Comment
+        fields = ["text", "user", "created_at", "updated_at"]
+
+
+class TextTestimonyLikeSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer(context={"is_testimony": True})
+
+    class Meta:
+        model = Like
+        fields = ["user", "created_at", "updated_at"]
+
+
+class VideoTestimonyCommentSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer(context={"is_testimony": True})
+
+    class Meta:
+        model = Comment
+        fields = ["text", "user", "created_at", "updated_at"]
+
+
+class VideoTestimonyLikeSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer(context={"is_testimony": True})
+
+    class Meta:
+        model = Like
+        fields = ["user", "created_at", "updated_at"]
+
+
 class TextTestimonySerializer(serializers.ModelSerializer):
+
     class Meta:
         model = TextTestimony
-        fields = ["id", "title", "category", "content"]
+        fields = ["id", "title", "category",
+                  "content"]
 
     def create(self, validated_data):
         # Add the currently authenticated user to the validated data
@@ -38,7 +74,10 @@ class TextTestimonySerializer(serializers.ModelSerializer):
 
 
 class ReturnTextTestimonySerializer(serializers.ModelSerializer):
-
+    comments = TextTestimonyCommentSerializer(
+        many=True, read_only=True)
+    likes = TextTestimonyLikeSerializer(
+        many=True, read_only=True)
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
 
     class Meta:
@@ -53,6 +92,8 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
             "uploaded_by",
             "created_at",
             "updated_at",
+            "comments",
+            "likes",
         ]
 
     def __init__(self, *args, **kwargs):
@@ -83,12 +124,12 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
         upload_status = data.get(
             "upload_status", self.instance.upload_status if self.instance else None
         )
-        
+
         scheduled_datetime = data.get(
             "scheduled_datetime",
             self.instance.scheduled_datetime if self.instance else None,
         )
-         
+
         # current_datetime = now() + timedelta(hours=1) if DEBUG == True else now()
 
         # if scheduled_datetime < current_datetime:
@@ -113,7 +154,12 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
         validated_data["uploaded_by"] = user
         return super().create(validated_data)
 
+
 class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
+    comments = VideoTestimonyCommentSerializer(
+        many=True, read_only=True)
+    likes = VideoTestimonyLikeSerializer(
+        many=True, read_only=True)
 
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
 
@@ -132,6 +178,8 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
             "uploaded_by",
             "created_at",
             "updated_at",
+            "comments",
+            "likes",
         ]
 
     def get_video_file(self, obj):
@@ -149,21 +197,23 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        request = self.context.get("request")
-        user = request.user_data
+        user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
         if user and user["role"] == "viewer":
             self.fields.pop("uploaded_by", None)
 
+
 class InspirationalPicturesSerializer(serializers.ModelSerializer):
     class Meta:
         model = InspirationalPictures
-        fields = ["thumbnail", "status", "downloads_count", "scheduled_datetime"]
+        fields = ["thumbnail", "status",
+                  "downloads_count", "scheduled_datetime"]
 
     def validate(self, data):
         """Ensure scheduled_datetime is required when upload_status is 'scheduled'."""
-        status = data.get("status", self.instance.status if self.instance else None)
+        status = data.get(
+            "status", self.instance.status if self.instance else None)
         scheduled_datetime = data.get(
             "scheduled_datetime",
             self.instance.scheduled_datetime if self.instance else None,
@@ -183,6 +233,7 @@ class InspirationalPicturesSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         validated_data["uploaded_by"] = user
         return super().create(validated_data)
+
 
 class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
     class Meta:

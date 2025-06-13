@@ -31,10 +31,12 @@ class UPLOAD_STATUS(models.TextChoices):
 
 class Testimony(TouchDatesMixim):
     title = models.CharField(max_length=255, help_text="Enter Title")
-    category = models.CharField(max_length=50, choices=CATEGORY.choices, db_index=True)
+    category = models.CharField(
+        max_length=50, choices=CATEGORY.choices, db_index=True)
     # upload_status = models.CharField(
     #    max_length=50, choices=UPLOAD_STATUS.choices, null=True, blank=True)
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.CASCADE)
     rejection_reason = models.TextField(blank=True, null=True)
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment")
@@ -96,7 +98,7 @@ class SocialInteraction(TouchDatesMixim):
         unique_together = ('content_type', 'object_id', 'user')
 
     def __str__(self):
-        return f"{self.__class__.__name__} by {self.user.full_name}"
+        return f"{self.__class__.__name__} by {self.user.email}"
 
 
 class Comment(SocialInteraction):

@@ -9,6 +9,7 @@ from django.utils.dateparse import parse_date
 from common.responses import CustomResponse
 from support import http
 from support.helpers import StandardResultsSetPagination
+from user.models import User
 from .models import (
     InspirationalPictures,
     TextTestimony,
@@ -66,7 +67,8 @@ class TextTestimonyListView(APIView):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -77,9 +79,302 @@ class TextTestimonyListView(APIView):
         # Pagination
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(
+            paginated_queryset, many=True)
 
         return paginator.get_paginated_response(serializer.data)
+
+
+class VideoTestimonyByCategoryView(APIView):
+    serializer_class = ReturnVideoTestimonySerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, category):
+        """Get testimonies by category."""
+        testimonies = VideoTestimony.objects.filter(
+            category=category)
+        if not testimonies:
+            return CustomResponse.error(
+                message="No testimonies found for this category",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        paginate = self.pagination_class()
+        if testimonies:
+            paginated_queryset = paginate.paginate_queryset(
+                testimonies, request)
+            serializer = self.serializer_class(
+                paginated_queryset, many=True)
+            return paginate.get_paginated_response(serializer.data)
+        else:
+            return CustomResponse.error(
+                message="No testimonies found for this category",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class VideoTestimonyCommentsView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    serializer_class = ReturnVideoTestimonySerializer
+
+    def post(self, request, category_comment):
+        user = request.user
+        get_testimony = VideoTestimony.objects.get(category=category_comment)
+        print(get_testimony)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        comment = request.data.get("comment")
+        if not comment:
+            return CustomResponse.error(
+                message="Comment cannot be empty",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+        try:
+            user_id = User.objects.get(id=user.id)  # Ensure user exists
+            if not user_id.Roles.VIEWER:
+                return CustomResponse.error(
+                    message="You are not allowed to comment on this testimony.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+            # Create the comment
+            get_testimony.comments.create(
+                text=comment,
+                user=user_id
+            )
+            return CustomResponse.success(
+                message="Comment added successfully",
+                status_code=201
+            )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, category_comment):
+        get_testimony = VideoTestimony.objects.get(category=category_comment)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        serializer = self.serializer_class(get_testimony, many=False)
+
+        if not serializer:
+            return CustomResponse.error(
+                message="No comments count found for this testimony",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        payload = {
+            "testimony": serializer.data,
+        }
+        return CustomResponse.success(
+            message="Comments retrieved successfully",
+            data=payload,
+            status_code=200
+        )
+
+
+class VideoTestimonyLikesView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, category_like):
+        user = request.user
+        get_testimony = VideoTestimony.objects.get(category=category_like)
+        print(get_testimony)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            user_id = User.objects.get(id=user.id)  # Ensure user exists
+            if not user_id.Roles.VIEWER:
+                return CustomResponse.error(
+                    message="You are not allowed to comment on this testimony.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+            # Create the comment
+            is_exist = get_testimony.likes.filter(user=user_id).exists()
+            if is_exist:
+                get_testimony.likes.filter(user=user_id).delete()
+                return CustomResponse.success(
+                    message="Unliked Testimony successfully",
+                    status_code=200,
+                )
+            get_testimony.likes.create(
+                user=user_id
+            )
+            return CustomResponse.success(
+                message="liked Testimony successfully",
+                status_code=201
+            )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class TextTestimonyByCategoryView(APIView):
+    serializer_class = ReturnTextTestimonySerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, category):
+        """Get testimonies by category."""
+        testimonies = TextTestimony.objects.filter(
+            category=category)
+        if not testimonies:
+            return CustomResponse.error(
+                message="No testimonies found for this category",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        paginate = self.pagination_class()
+        if testimonies:
+            paginated_queryset = paginate.paginate_queryset(
+                testimonies, request)
+            serializer = self.serializer_class(
+                paginated_queryset, many=True)
+            return paginate.get_paginated_response(serializer.data)
+        else:
+            return CustomResponse.error(
+                message="No testimonies found for this category",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class TextTestimonyCommentsView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    serializer_class = ReturnTextTestimonySerializer
+
+    def post(self, request, category_comment):
+        user = request.user
+        get_testimony = TextTestimony.objects.get(category=category_comment)
+        print(get_testimony)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        comment = request.data.get("comment")
+        if not comment:
+            return CustomResponse.error(
+                message="Comment cannot be empty",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+        try:
+            user_id = User.objects.get(id=user.id)  # Ensure user exists
+            if not user_id.Roles.VIEWER:
+                return CustomResponse.error(
+                    message="You are not allowed to comment on this testimony.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+            # Create the comment
+            get_testimony.comments.create(
+                text=comment,
+                user=user_id
+            )
+            return CustomResponse.success(
+                message="Comment added successfully",
+                status_code=201
+            )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, category):
+        get_testimony = TextTestimony.objects.get(category=category)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        serializer = self.serializer_class(get_testimony, many=False)
+
+        if not serializer:
+            return CustomResponse.error(
+                message="No comments count found for this testimony",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        payload = {
+            "testimony": serializer.data,
+        }
+        return CustomResponse.success(
+            message="Comments retrieved successfully",
+            data=payload,
+            status_code=200
+        )
+
+
+class TextTestimonyLikesView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, category_like):
+        user = request.user
+        get_testimony = TextTestimony.objects.get(category=category_like)
+        print(get_testimony)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            user_id = User.objects.get(id=user.id)  # Ensure user exists
+            if not user_id.Roles.VIEWER:
+                return CustomResponse.error(
+                    message="You are not allowed to comment on this testimony.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+            # Create the comment
+            is_exist = get_testimony.likes.filter(user=user_id).exists()
+            if is_exist:
+                get_testimony.likes.filter(user=user_id).delete()
+                return CustomResponse.success(
+                    message="Unliked Testimony successfully",
+                    status_code=200,
+                )
+            get_testimony.likes.create(
+                user=user_id
+            )
+            return CustomResponse.success(
+                message="liked Testimony successfully",
+                status_code=201
+            )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
 
 
 class TextTestimonyApprovalView(APIView):
@@ -209,7 +504,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
         # get all videos and
         testimony_qs = VideoTestimony.objects.all().order_by("-created_at")
-    
+
         if upload_status:
             testimony_qs = testimony_qs.filter(upload_status=upload_status)
 
@@ -226,10 +521,11 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
         if to_date:
             parsed_to_date = parse_date(to_date)
-    
+
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
@@ -339,7 +635,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         search = request.query_params.get("search", "").strip()
 
         # get all texts
-        testimony_qs = TextTestimony.objects.filter(uploaded_by=user["id"]).order_by("-created_at")
+        testimony_qs = TextTestimony.objects.filter(
+            uploaded_by=user["id"]).order_by("-created_at")
 
         if status:
             testimony_qs = testimony_qs.filter(status=status)
@@ -359,7 +656,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -369,7 +667,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True, context={"user": user})
+        serializer = ReturnTextTestimonySerializer(
+            paginated_queryset, many=True, context={"user": user})
 
         return paginator.get_paginated_response(serializer.data)
 
@@ -423,10 +722,12 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             )
 
         # Use the appropriate serializer to validate and update the data
-        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
+        serializer = TextTestimonySerializer(
+            testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
+            return_serializer = ReturnTextTestimonySerializer(
+                serializer.instance)
 
             return CustomResponse.success(
                 data=return_serializer.data,
@@ -457,10 +758,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         if user["role"] == "viewer" and user["id"] != testimony.uploaded_by.id:
             return CustomResponse.error(message="Sorry, you are not allowed to perform this operation.", err_code=ErrorCode.FORBIDDEN, status_code=403)
 
-
         if (user["role"] == "admin" or user["role"] == "super_admin") and testimony.status == "pending":
             return CustomResponse.error(message="You can't delete a pending testimony, please accept or reject it.", err_code=ErrorCode.FORBIDDEN, status_code=403)
-
 
         # Delete the found testimony
         testimony.delete()
@@ -520,7 +819,8 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(formatted_from_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
