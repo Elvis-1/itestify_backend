@@ -36,8 +36,10 @@ urlpatterns = [
          VideoTestimonyByCategoryView.as_view(), name='testimony-by-category'),
     path('testimonies/video-comment/<id>/',
          VideoTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
-    path('testimonies/video-comment-all/<str:category_comment>/',
+    path('testimonies/video-comment-all/<id>/',
          VideoTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
-    path('testimonies/video-like/<str:category_like>/',
+    path('testimonies/video-like/<id>/',
+         VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
+     path('testimonies/all-liked-video/<id>/',
          VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
 ]

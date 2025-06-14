@@ -130,6 +130,93 @@ class ReturnTextTestimonyCommentSerializer(serializers.ModelSerializer):
         if user and user["role"] == "viewer":
             self.fields.pop("uploaded_by", None)
 
+class ReturnVideoTestimonyCommentSerializer(serializers.ModelSerializer):
+    comments = TextTestimonyCommentSerializer(
+        many=True, read_only=True)
+    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
+    class Meta:
+        model = VideoTestimony
+        fields = [
+            "id",
+            "title",
+            "category",
+            "source",
+            "upload_status",
+            "video_file",
+            "thumbnail",
+            "rejection_reason",
+            "scheduled_datetime",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+            'comments'
+        ]
+
+    def get_video_file(self, obj):
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.video_file.url)
+        return obj.video_file.url
+
+    def get_thumbnail(self, obj):
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.thumbnail.url)
+        return obj.thumbnail.url
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        user = self.context.get("user")
+
+        # conditionally remove 'uploaded_by' field based on user's role
+        if user and user["role"] == "viewer":
+            self.fields.pop("uploaded_by", None)
+
+
+class ReturnVideoTestimonyLikeSerializer(serializers.ModelSerializer):
+    likes = TextTestimonyLikeSerializer(
+        many=True, read_only=True)
+    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
+    class Meta:
+        model = VideoTestimony
+        fields = [
+            "id",
+            "title",
+            "category",
+            "source",
+            "upload_status",
+            "video_file",
+            "thumbnail",
+            "rejection_reason",
+            "scheduled_datetime",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+            'likes'
+        ]
+
+    def get_video_file(self, obj):
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.video_file.url)
+        return obj.video_file.url
+
+    def get_thumbnail(self, obj):
+        request = self.context.get("request")
+        if request is not None:
+            return request.build_absolute_uri(obj.thumbnail.url)
+        return obj.thumbnail.url
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        user = self.context.get("user")
+
+        # conditionally remove 'uploaded_by' field based on user's role
+        if user and user["role"] == "viewer":
+            self.fields.pop("uploaded_by", None)
+
 
 class ReturnTextTestimonySerializer(serializers.ModelSerializer):
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})

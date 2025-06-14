@@ -20,6 +20,8 @@ from .serializers import (
     InspirationalPicturesSerializer,
     ReturnInspirationalPicturesSerializer,
     ReturnTextTestimonySerializer,
+    ReturnVideoTestimonyCommentSerializer,
+    ReturnVideoTestimonyLikeSerializer,
     ReturnVideoTestimonySerializer,
     TextTestimonySerializer,
     VideoTestimonySerializer,
@@ -120,7 +122,7 @@ class VideoTestimonyByCategoryView(APIView):
 class VideoTestimonyCommentsView(APIView):
     # permission_classes = [IsAuthenticated]
 
-    serializer_class = ReturnVideoTestimonySerializer
+    serializer_class = ReturnVideoTestimonyCommentSerializer
 
     def post(self, request, id):
         user = request.user
@@ -192,9 +194,11 @@ class VideoTestimonyCommentsView(APIView):
 class VideoTestimonyLikesView(APIView):
     # permission_classes = [IsAuthenticated]
 
-    def post(self, request, category_like):
+    serializer_class = ReturnVideoTestimonyLikeSerializer
+
+    def post(self, request, id):
         user = request.user
-        get_testimony = VideoTestimony.objects.get(category=category_like)
+        get_testimony = VideoTestimony.objects.get(id=id)
         print(get_testimony)
         if not get_testimony:
             return CustomResponse.error(
@@ -231,6 +235,32 @@ class VideoTestimonyLikesView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
+
+    def get(self, request, id):
+        get_testimony = VideoTestimony.objects.get(id=id)
+        print(get_testimony.category)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        serializer = self.serializer_class(get_testimony, many=False)
+
+        if not serializer:
+            return CustomResponse.error(
+                message="No Likes count found for this testimony",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        payload = {
+            "testimony": serializer.data,
+        }
+        return CustomResponse.success(
+            message="Likes retrieved successfully",
+            data=payload,
+            status_code=200
+        )
 
 
 class TextTestimonyByCategoryView(APIView):

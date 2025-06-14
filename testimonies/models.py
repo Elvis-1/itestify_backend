@@ -95,7 +95,8 @@ class SocialInteraction(TouchDatesMixim):
 
     class Meta:
         abstract = True
-        unique_together = ('content_type', 'object_id', 'user')
+        # unique_together = ('content_type', 'object_id', 'user')
+        unique_together = []
 
     def __str__(self):
         return f"{self.__class__.__name__} by {self.user.email}"
@@ -103,6 +104,7 @@ class SocialInteraction(TouchDatesMixim):
 
 class Comment(SocialInteraction):
     text = models.TextField()
+    
 
 
 class Like(SocialInteraction):
