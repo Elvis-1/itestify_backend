@@ -135,28 +135,24 @@ class Otp(TouchDatesMixim):
 
 class UserInvitation(TouchDatesMixim):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invitations')
-    code = models.CharField(max_length=12, unique=True)
+    token = models.CharField(max_length=64, unique=True, blank=True, null=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
     
     def is_expired(self):
         return timezone.now() > self.expires_at
-        
+
     @classmethod
     def create_invitation(cls, user):
-        # Generate a unique code
+        # Generate a unique token
         while True:
-            code = get_random_string(length=12)
-            if not cls.objects.filter(code=code).exists():
+            token = get_random_string(length=64)
+            if not cls.objects.filter(token=token).exists():
                 break
                 
         # Create invitation
         return cls.objects.create(
             user=user,
-            code=code,
+            token=token,
             expires_at=timezone.now() + timezone.timedelta(days=7)
         )
-
-    def is_expired(self):
-        # Check if current time is more than 2 minutes after creation
-        return timezone.now() > self.created_at + timezone.timedelta(minutes=2)

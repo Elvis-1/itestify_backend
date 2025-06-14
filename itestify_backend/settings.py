@@ -146,7 +146,14 @@ if not DEPLOY:
     }
 else:
     DATABASES = {
-        "default": dj_database_url.parse(os.getenv("POSTGRESDB"))
+        "default": {
+            'ENGINE': 'django.db.backends.postgresql',  
+            'USER': os.getenv("DB_USER"),
+            'PASSWORD': os.getenv("DB_PASSWORD"),
+            'HOST': os.getenv("DB_HOST"),
+            'PORT': os.getenv("DB_PORT"),
+            'NAME': os.getenv("DB_NAME"),
+        }
     }
 
 
