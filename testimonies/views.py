@@ -24,6 +24,8 @@ from .serializers import (
     TextTestimonySerializer,
     VideoTestimonySerializer,
     TestimonySettingsSerializer,
+    ReturnTextTestimonyCommentSerializer,
+    ReturnTextTestimonyLikeSerializer
 )
 
 from .permissions import IsAuthenticated, IsLoggedInUser
@@ -120,9 +122,9 @@ class VideoTestimonyCommentsView(APIView):
 
     serializer_class = ReturnVideoTestimonySerializer
 
-    def post(self, request, category_comment):
+    def post(self, request, id):
         user = request.user
-        get_testimony = VideoTestimony.objects.get(category=category_comment)
+        get_testimony = VideoTestimony.objects.get(id=id)
         print(get_testimony)
         if not get_testimony:
             return CustomResponse.error(
@@ -161,8 +163,8 @@ class VideoTestimonyCommentsView(APIView):
                 status_code=404,
             )
 
-    def get(self, request, category_comment):
-        get_testimony = VideoTestimony.objects.get(category=category_comment)
+    def get(self, request, id):
+        get_testimony = VideoTestimony.objects.get(id=id)
         if not get_testimony:
             return CustomResponse.error(
                 message="Testimony not found",
@@ -264,7 +266,7 @@ class TextTestimonyByCategoryView(APIView):
 class TextTestimonyCommentsView(APIView):
     # permission_classes = [IsAuthenticated]
 
-    serializer_class = ReturnTextTestimonySerializer
+    serializer_class = ReturnTextTestimonyCommentSerializer
 
     def post(self, request, id):
         user = request.user
@@ -309,6 +311,7 @@ class TextTestimonyCommentsView(APIView):
 
     def get(self, request, id):
         get_testimony = TextTestimony.objects.get(id=id)
+        print(get_testimony.category)
         if not get_testimony:
             return CustomResponse.error(
                 message="Testimony not found",
@@ -335,11 +338,19 @@ class TextTestimonyCommentsView(APIView):
 
 class TextTestimonyLikesView(APIView):
     # permission_classes = [IsAuthenticated]
+    serializer_class = ReturnTextTestimonyLikeSerializer
 
-    def post(self, request, category_like):
+    def post(self, request, id):
         user = request.user
-        get_testimony = TextTestimony.objects.get(category=category_like)
-        print(get_testimony)
+        try:
+            get_testimony = TextTestimony.objects.get(id=id)
+            print(get_testimony)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony does not exist",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
         if not get_testimony:
             return CustomResponse.error(
                 message="Testimony not found",
@@ -375,6 +386,32 @@ class TextTestimonyLikesView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
+
+    def get(self, request, id):
+        get_testimony = TextTestimony.objects.get(id=id)
+        print(get_testimony.category)
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        serializer = self.serializer_class(get_testimony, many=False)
+
+        if not serializer:
+            return CustomResponse.error(
+                message="No Likes count found for this testimony",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        payload = {
+            "testimony": serializer.data,
+        }
+        return CustomResponse.success(
+            message="Likes retrieved successfully",
+            data=payload,
+            status_code=200
+        )
 
 
 class TextTestimonyApprovalView(APIView):
