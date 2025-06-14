@@ -42,7 +42,8 @@ class EmailUtil:
             otp.code = code
             otp.save()
 
-        email_message = EmailMessage(subject=subject, body=message, to=[user.email], from_email=from_email)
+        email_message = EmailMessage(subject=subject, body=message, to=[
+                                     user.email], from_email=from_email)
         email_message.content_subtype = 'html'
 
         EmailThread(email_message).start()
@@ -79,6 +80,53 @@ class EmailUtil:
         email.send()
 
     @staticmethod
+    def send_reset_password_email_link(user, reset_link):
+        from_email = os.environ.get('EMAIL_HOST_USER')
+        subject = 'Password Reset Request'
+
+        # Create HTML email content directly
+        message = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0;">
+                <h2 style="color: #333;">Password Reset Request</h2>
+                
+                <p>Hello {user.full_name or 'there'},</p>
+                
+                <p>We received a request to reset your password. If you did not make this request, please ignore this email.</p>
+                
+                <p>To reset your password, please click the link below:</p>
+                
+                <p>
+
+                    <a href="{reset_link}" style="color: #3498db;">
+
+                        Reset Password
+                    </a>
+                </p>
+
+                <p style="margin-top: 30px; font-size: 0.9em; color: #777;">
+                    If you have any questions, feel free to contact our support team.
+                </p>
+                
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <p>Best regards,<br>The Team</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        email_message = EmailMessage(
+            subject=subject,
+            body=message,
+            to=[user.email],
+            from_email=from_email
+        )
+        email_message.content_subtype = 'html'
+        EmailThread(email_message).start()
+
+    @staticmethod
     def send_invitation_email(request, user, invitation_token):
         from_email = "If not God Tech <{}>".format(settings.EMAIL_HOST_USER)
         subject = 'You have been invited to join our platform'
@@ -87,6 +135,8 @@ class EmailUtil:
             reverse('accept-invitation') + f'?token={invitation_token}'
         )
         
+        # Create HTML email content directly
+
         message = f"""
         <html>
         <body>
@@ -102,7 +152,7 @@ class EmailUtil:
         </body>
         </html>
         """
-        
+
         email_message = EmailMessage(
             subject=subject,
             body=message,
@@ -111,3 +161,4 @@ class EmailUtil:
         )
         email_message.content_subtype = 'html'
         EmailThread(email_message).start()
+

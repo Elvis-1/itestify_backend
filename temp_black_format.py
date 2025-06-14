@@ -1,12 +1,10 @@
 from dotenv import load_dotenv
 import os
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
-import psycopg
-import cloudinary
-from datetime import timedelta
 
 
 load_dotenv()
@@ -63,28 +61,28 @@ INSTALLED_APPS = [
     'channels',
 ]
 
+# os.getenv("FRONT_END_URL", "http://localhost:3000")
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
 # django.contrib.sites
 SITE_ID = 1
-os.getenv("FRONT_END_BASE_URL")
+FRONT_END_BASE_URL = "https://itestify-dashboard-pa2s.vercel.app/"
 
 
-ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None 
 
-#Google OAuth
-GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
-GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
+# Google OAuth
+# GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+# GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+# os.getenv("GOOGLE_OAUTH_CALLBACK_URL")
+# GOOGLE_OAUTH_CALLBACK_URL = "http://127.0.0.1:8000/api/v1/auth/google/callback/"
 
-#django-allauth (social)
-#Authenticate if local account with this email address already exists
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
-#Connect local account and social account if local account with that email address already exists
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+# django-allauth (social)
+# Authenticate if local account with this email address already exists
+# SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
+# Connect local account and social account if local account with that email address already exists
+# SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
-SOCIALACCOUNT_PROVIDERS = {
+'''SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "APPS": [
             {
@@ -99,7 +97,7 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         'EMAIL_AUTHENTICATION': True
     }
-}
+}'''
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -109,7 +107,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'itestify_backend.middlewares.JWTUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "allauth.account.middleware.AccountMiddleware",
@@ -142,6 +139,12 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
+USER = os.getenv("USER")
+PASSWORD = os.getenv("PASSWORD")
+HOST= os.getenv("HOST")
+PORT=os.getenv("PORT")
+DBNAME=os.getenv("DBNAME")
+
 if not DEPLOY:
     DATABASES = {
         'default': {
@@ -150,17 +153,29 @@ if not DEPLOY:
         }
     }
 else:
-    DATABASES = {
-        'default': {
-            "ENGINE": "django.db.backends.postgresql",           
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD":os.getenv("DB_PASSWORD"),
-            "HOST": os.getenv("DB_HOST"),
-            "PORT": os.getenv("DB_PORT"),
-            "NAME": os.getenv("DB_NAME"),
+    try:
+        connection = psycopg2.connect(
+            user=USER,
+            password=PASSWORD,
+            host=HOST,
+            port=PORT,
+            dbname=DBNAME,
+        )
 
-        }
-    }
+        print("✅DB Connected Successfully...")
+
+        # Create a cursor to execute SQL queries
+    cursor = connection.cursor()
+    
+    # Example query
+    cursor.execute("SELECT NOW();")
+    result = cursor.fetchone()
+    print("Current Time:", result)
+
+    # Close the cursor and connection
+    cursor.close()
+    connection.close()
+    print("Connection closed.")
 
 
 # REDIS SETTINGS
@@ -244,6 +259,7 @@ AUTHENTICATION_BACKENDS = [
     # `allauth` specific authentication methods, such as login by email
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
 
 
 APPEND_SLASH = False
@@ -341,18 +357,10 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
-        "task": "testimonies.tasks.upload_schedule_videos",
-        # "schedule": crontab(second="*/5"),  # 5min
-        "schedule": timedelta(minutes=30), # 30 mins
+        "task": "testimonies.tasks.display_name",
+        "schedule": crontab(minute="*/2"),  # 5min
+        # "schedule": 5, #5 sec
         # "args": [""]
     }
 }
-
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
-
-# Cloudinary Setup
-cloudinary.config( 
-  cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
-  api_key = os.getenv("CLOUDINARY_API_KEY"), 
-  api_secret = os.getenv("CLOUDINARY_API_SECRET"),
-)

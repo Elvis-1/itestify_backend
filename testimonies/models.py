@@ -72,11 +72,8 @@ class VideoTestimony(Testimony):
         max_length=255, help_text="Video source", null=True, blank=True)
     upload_status = models.CharField(
         max_length=225, choices=UPLOAD_STATUS.choices)
-    is_published = models.BooleanField(default=False)
-    video_file = models.FileField(
-        upload_to='videos/', help_text="Upload video file", null=True, blank=True)
-    thumbnail = models.ImageField(upload_to='thumbnails/', blank=True, null=True,
-                                  help_text="Upload thumbnail image or leave blank for auto-generated")
+    video_file = models.URLField(null=True, blank=True)
+    thumbnail = models.URLField(null=True, blank=True)
     auto_generate_thumbnail = models.BooleanField(
         default=True, help_text="Auto-generate thumbnail if no upload")
     scheduled_datetime = models.DateTimeField(
