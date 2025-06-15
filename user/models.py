@@ -165,10 +165,8 @@ class SendOtp(TouchDatesMixim):
 
 class UserInvitation(TouchDatesMixim):
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="invitations")
-
-    code = models.CharField(max_length=12, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
+    token = models.CharField(max_length=64, unique=True, blank=True, null=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
 
@@ -177,13 +175,14 @@ class UserInvitation(TouchDatesMixim):
 
     @classmethod
     def create_invitation(cls, user):
-        # Generate a unique code
+        # Generate a unique token
         while True:
-            code = get_random_string(length=12)
-            if not cls.objects.filter(code=code).exists():
+            token = get_random_string(length=64)
+            if not cls.objects.filter(token=token).exists():
                 break
 
         # Create invitation
         return cls.objects.create(
-            user=user, code=code, expires_at=timezone.now() + timezone.timedelta(days=7)
+            user=user, token=token, expires_at=timezone.now() + timezone.timedelta(days=7)
+
         )

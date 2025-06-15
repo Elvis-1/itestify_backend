@@ -138,14 +138,30 @@ WSGI_APPLICATION = 'itestify_backend.wsgi.application'
 ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 
-DATABASES = {
-    'default': {
-        "ENGINE": "django.db.backends.postgresql",
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": os.getenv("DB_HOST"),
-        "PORT": os.getenv("DB_PORT"),
-        "NAME": os.getenv("DB_NAME"),
+
+# Database
+# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+
+DEPLOY = True
+
+if not DEPLOY:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            "ENGINE": "django.db.backends.postgresql",           
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD":os.getenv("DB_PASSWORD"),
+            "HOST": os.getenv("DB_HOST"),
+            "PORT": os.getenv("DB_PORT"),
+            "NAME": os.getenv("DB_NAME"),
+
+        }
     }
 }
 

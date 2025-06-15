@@ -106,7 +106,7 @@ class InvitationResponseSerializer(serializers.Serializer):
 
 
 class SetPasswordWithInvitationSerializer(serializers.Serializer):
-    invitation_code = serializers.CharField()
+    token = serializers.CharField()
     password = serializers.CharField()
     password2 = serializers.CharField()
 

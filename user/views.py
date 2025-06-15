@@ -77,10 +77,12 @@ class GoogleLoginCallback(APIView):
         code = request.GET.get("code")
         print(f"Authorization code received: {code}")
         if code is None:
+
             return Response(
                 {"error": "Missing authorization code"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         # Define the payload for Google's token exchange
         payload = {
             "code": code,
@@ -146,9 +148,10 @@ class GoogleLoginCallback(APIView):
                 }
             })
 
+         return Response(token_data, status=status.HTTP_200_OK)
+      
         except OAuth2Error as e:
             return Response({"error": str(e)}, status=400)
-
 
 class RegisterViewSet(viewsets.ViewSet):
     serializer_class = UserRegisterSerializer
@@ -825,6 +828,7 @@ class MemberManagementViewSet(viewsets.ViewSet):
             )
 
         # Create user with invited status
+
         user = User.objects.create_invited_user(
             email=email,
             full_name=serializer.validated_data["full_name"],
@@ -836,11 +840,12 @@ class MemberManagementViewSet(viewsets.ViewSet):
         invitation = UserInvitation.create_invitation(user)
 
         # Send email with invitation code
-        EmailUtil.send_invitation_email(user, invitation.code)
+        EmailUtil.send_invitation_email(request, user, invitation.token)
 
         response_data = {
             "user": UserInvitationSerializer(user).data,
-            "invitation_code": invitation.code,
+            "invitation_token": invitation.token,
+
         }
 
         return CustomResponse.success(
@@ -946,13 +951,60 @@ class MemberManagementViewSet(viewsets.ViewSet):
 
 class AcceptInvitationView(GenericAPIView):
     serializer_class = SetPasswordWithInvitationSerializer
-
+    
+    def get(self, request):
+        """Handle the invitation link click - validate token and return user email"""
+        token = request.GET.get('token')
+        if not token:
+            return CustomResponse.error(
+                message="Missing invitation token",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+            
+        try:
+            invitation = UserInvitation.objects.get(
+                token=token,
+                is_used=False
+            )
+        except UserInvitation.DoesNotExist:
+            return CustomResponse.error(
+                message="Invalid or expired invitation token",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400
+            )
+            
+        if invitation.is_expired():
+            return CustomResponse.error(
+                message="Invitation token has expired",
+                err_code=ErrorCode.EXPIRED_TOKEN,
+                status_code=400
+            )
+            
+        user = invitation.user
+        if user.status != User.STATUS.INVITED:
+            return CustomResponse.error(
+                message="User already registered",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+            
+        return CustomResponse.success(
+            data={
+                'email': user.email,
+                'token': token
+            },
+            message="Invitation token is valid",
+            status_code=200
+        )
+      
     @handle_custom_exceptions
     def post(self, request):
+        """Handle password submission"""
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        invitation_code = serializer.validated_data["invitation_code"]
+        token = serializer.validated_data['token']
         password = serializer.validated_data["password"]
         password2 = serializer.validated_data["password2"]
 
@@ -965,17 +1017,20 @@ class AcceptInvitationView(GenericAPIView):
 
         try:
             invitation = UserInvitation.objects.get(
-                code=invitation_code, is_used=False)
+                token=token, 
+              is_used=False
+            )
+
         except UserInvitation.DoesNotExist:
             return CustomResponse.error(
-                message="Invalid or expired invitation code",
+                message="Invalid or expired invitation token",
                 err_code=ErrorCode.INVALID_ENTRY,
                 status_code=400,
             )
 
         if invitation.is_expired():
             return CustomResponse.error(
-                message="Invitation code has expired",
+                message="Invitation token has expired",
                 err_code=ErrorCode.EXPIRED_TOKEN,
                 status_code=400,
             )
@@ -1008,5 +1063,7 @@ class AcceptInvitationView(GenericAPIView):
                 "refresh": token["refresh"],
             },
             message="Account activated successfully",
+
             status_code=200,
         )
+
