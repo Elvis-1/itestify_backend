@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
-import psycopg
+# import psycopg
 import cloudinary
 from datetime import timedelta
 
@@ -22,7 +22,7 @@ AUTH_USER_MODEL = 'user.User'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-DEBUG = True
+DEBUG = True if os.getenv("DEBUG") == "True" else False
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'admin_accounts',
     'testimonies',
     'scriptures',
+    'notification',
     'rest_framework',
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
@@ -66,22 +67,22 @@ INSTALLED_APPS = [
 
 # django.contrib.sites
 SITE_ID = 1
-os.getenv("FRONT_END_BASE_URL")
+FRONT_END_BASE_URL = os.getenv("FRONT_END_BASE_URL")
 
 
 ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None 
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 
-#Google OAuth
+# Google OAuth
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_REDIRECT_URI = os.getenv("GOOGLE_OAUTH_REDIRECT_URI")
 
-#django-allauth (social)
-#Authenticate if local account with this email address already exists
+# django-allauth (social)
+# Authenticate if local account with this email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = False
-#Connect local account and social account if local account with that email address already exists
+# Connect local account and social account if local account with that email address already exists
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -137,6 +138,7 @@ WSGI_APPLICATION = 'itestify_backend.wsgi.application'
 ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 
+
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -161,6 +163,7 @@ else:
 
         }
     }
+}
 
 
 # REDIS SETTINGS
@@ -307,7 +310,7 @@ STATIC_URL = 'static/'
 
 # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
 if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
     # and renames the files with unique names for each version to support long-term caching
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -326,9 +329,11 @@ CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 EMAIL_OTP_EXPIRE_SECONDS = 300
 
 # Email Configuration
-EMAIL_USE_SSL = True
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_TLS = True              # ✅ TLS enabled
+EMAIL_USE_SSL = False             # ❌ SSL disabled
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
+EMAIL_PORT = 587                  # ✅ TLS port
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
@@ -342,17 +347,20 @@ CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
         "task": "testimonies.tasks.upload_schedule_videos",
-        # "schedule": crontab(second="*/5"),  # 5min
-        "schedule": timedelta(minutes=30), # 30 mins
+        "schedule": timedelta(minutes=30),  # 30 mins
         # "args": [""]
+    },
+    "ping_render_server": {
+        "task": "common.tasks.ping_server",
+        "schedule": timedelta(minutes=5),  # 5 mins
     }
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 # Cloudinary Setup
-cloudinary.config( 
-  cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME"), 
-  api_key = os.getenv("CLOUDINARY_API_KEY"), 
-  api_secret = os.getenv("CLOUDINARY_API_SECRET"),
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )

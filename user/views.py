@@ -42,13 +42,12 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-#from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+# from allauth.socialaccount.providers.oauth2.client import OAuth2Client
 from allauth.socialaccount.helpers import complete_social_login
-from allauth.socialaccount.models import SocialLogin #SocialAccount
+from allauth.socialaccount.models import SocialLogin  # SocialAccount
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 from allauth.socialaccount.models import SocialToken
-
 
 
 # Create your views here.
@@ -76,7 +75,7 @@ class GoogleLoginCallback(APIView):
 
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
-
+        print(f"Authorization code received: {code}")
         if code is None:
 
             return Response(
@@ -89,7 +88,7 @@ class GoogleLoginCallback(APIView):
             "code": code,
             "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
             "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
+            "redirect_uri": "https://itestify-backend-38u1.onrender.com/api/v1/auth/google/callback/",
             "grant_type": "authorization_code",
         }
 
@@ -100,6 +99,7 @@ class GoogleLoginCallback(APIView):
             )
             response.raise_for_status()  # Check for HTTP errors
             token_data = response.json()
+
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         access_token = token_data.get("access_token")

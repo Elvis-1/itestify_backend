@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('schedule_date', models.DateTimeField(blank=True, null=True)),
                 ('bible_version', models.CharField(blank=True, choices=[('KJV', 'King James Version'), ('NIV', 'New International Version'), ('ESV', 'English Standard Version'), ('NLT', 'New Living Translation'), ('CSB', 'Christian Standard Bible'), ('NASB', 'New American Standard Bible'), ('NKJV', 'New King James Version')], max_length=30, null=True)),
                 ('prayer', models.TextField(blank=True, null=True)),
-                ('status', models.CharField(blank=True, choices=[('upload_now', 'upload_now'), ('schedule_for_later', 'schedule_for_later'), ('drafts', 'drafts')], max_length=30, null=True)),
+                ('status', models.CharField(blank=True, choices=[('upload_now', 'upload_now'), ('scheduled', 'scheduled'), ('drafts', 'drafts')], max_length=30, null=True)),
                 ('like_scripture', models.ManyToManyField(blank=True, to=settings.AUTH_USER_MODEL)),
                 ('uploaded_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='user_comment', to=settings.AUTH_USER_MODEL)),
             ],

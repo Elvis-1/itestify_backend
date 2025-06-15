@@ -81,7 +81,7 @@ class EmailUtil:
 
     @staticmethod
     def send_reset_password_email_link(user, reset_link):
-        from_email = os.environ.get('EMAIL_HOST_USER')
+        from_email = "ifnotgodtech@gmail.com"
         subject = 'Password Reset Request'
 
         # Create HTML email content directly

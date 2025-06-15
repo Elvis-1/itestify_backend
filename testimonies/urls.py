@@ -1,5 +1,8 @@
 from django.urls import include, path
-from .views import InspirationalPicturesViewSet, TextTestimonyApprovalView, TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet
+from .views import (InspirationalPicturesViewSet, TextTestimonyApprovalView,
+                    TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet,
+                    TextTestimonyByCategoryView, TextTestimonyCommentsView, TextTestimonyLikesView,
+                    VideoTestimonyByCategoryView, VideoTestimonyCommentsView, VideoTestimonyLikesView)
 from rest_framework.routers import DefaultRouter
 
 
@@ -19,5 +22,24 @@ urlpatterns = [
          TextTestimonyApprovalView.as_view(), name='text-testimony-review'),
     path('testimonies/settings/', TestimonySettingsView.as_view(),
          name='testimony-settings'),
-
+    path('testimonies/<str:category>/',
+         TextTestimonyByCategoryView.as_view(), name='testimony-by-category'),
+    path('testimonies/comment/<id>/',
+         TextTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
+    path('testimonies/all-comment/<id>/',
+         TextTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
+    path('testimonies/like/<id>/',
+         TextTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
+     path('testimonies/all-like/<id>/',
+         TextTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
+    path('testimonies/video/<str:category>/',
+         VideoTestimonyByCategoryView.as_view(), name='testimony-by-category'),
+    path('testimonies/video-comment/<id>/',
+         VideoTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
+    path('testimonies/video-comment-all/<id>/',
+         VideoTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
+    path('testimonies/video-like/<id>/',
+         VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
+     path('testimonies/all-liked-video/<id>/',
+         VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
 ]

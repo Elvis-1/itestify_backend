@@ -7,17 +7,17 @@ from user.models import User
 
 
 class CATEGORY(models.TextChoices):
-    HEALING = "healing", "healing"
-    FINANCE = "finance", "finance"
-    BREAKTHROUGH = "breakthrough", "breakthrough"
-    PROTECTION = "protection", "protection"
-    SALVATION = "salvation", "salvation"
-    DELIVERANCE = "deliverance", "deliverance"
-    RESTORATION = "restoration", "restoration"
-    SPIRITUAL_GROWTH = "spiritual_growth", "spiritual growth"
-    EDUCATION = "education", "education"
-    CAREER = "career", "career"
-    OTHER = "other", "other"
+    HEALING = "Healing", "Healing"
+    FINANCE = "Finance", "Finance"
+    BREAKTHROUGH = "Breakthrough", "Breakthrough"
+    PROTECTION = "Protection", "Protection"
+    SALVATION = "Salvation", "Salvation"
+    DELIVERANCE = "Deliverance", "Deliverance"
+    RESTORATION = "Restoration", "Restoration"
+    SPIRITUAL_GROWTH = "Spiritual_growth", "Spiritual growth"
+    EDUCATION = "Education", "Education"
+    CAREER = "Career", "Career"
+    OTHER = "Other", "Other"
 
 
 """ Base Testimony Class """
@@ -25,16 +25,18 @@ class CATEGORY(models.TextChoices):
 
 class UPLOAD_STATUS(models.TextChoices):
     UPLOAD_NOW = "upload_now", "upload_now"
-    SCHEDULE_LATER = "schedule_for_later", "schedule_for_later"
+    SCHEDULE_LATER = "scheduled", "scheduled"
     DRAFT = "drafts", "drafts"
 
 
 class Testimony(TouchDatesMixim):
     title = models.CharField(max_length=255, help_text="Enter Title")
-    category = models.CharField(max_length=50, choices=CATEGORY.choices, db_index=True)
+    category = models.CharField(
+        max_length=50, choices=CATEGORY.choices, db_index=True)
     # upload_status = models.CharField(
     #    max_length=50, choices=UPLOAD_STATUS.choices, null=True, blank=True)
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.CASCADE)
     rejection_reason = models.TextField(blank=True, null=True)
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment")
@@ -93,14 +95,16 @@ class SocialInteraction(TouchDatesMixim):
 
     class Meta:
         abstract = True
-        unique_together = ('content_type', 'object_id', 'user')
+        # unique_together = ('content_type', 'object_id', 'user')
+        unique_together = []
 
     def __str__(self):
-        return f"{self.__class__.__name__} by {self.user.full_name}"
+        return f"{self.__class__.__name__} by {self.user.email}"
 
 
 class Comment(SocialInteraction):
     text = models.TextField()
+    
 
 
 class Like(SocialInteraction):
