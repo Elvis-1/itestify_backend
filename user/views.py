@@ -803,7 +803,7 @@ class MemberManagementViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.exclude(status=User.STATUS.DELETED)
+        return User.objects.filter(role=User.Roles.ADMIN).exclude(status=User.STATUS.DELETED)
 
     @action(detail=False, methods=['post'], url_path='create-member')
     def create_member(self, request):

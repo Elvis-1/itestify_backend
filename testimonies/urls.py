@@ -2,7 +2,7 @@ from django.urls import include, path
 from .views import (InspirationalPicturesViewSet, TextTestimonyApprovalView,
                     TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet,
                     TextTestimonyByCategoryView, TextTestimonyCommentsView, TextTestimonyLikesView,
-                    VideoTestimonyByCategoryView, VideoTestimonyCommentsView, VideoTestimonyLikesView)
+                    VideoTestimonyByCategoryView, VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView)
 from rest_framework.routers import DefaultRouter
 
 
@@ -18,6 +18,10 @@ urlpatterns = [
     path('', include(router.urls)),
     path('text-testimonies/', TextTestimonyListView.as_view(),
          name='text-testimonies'),
+    path('text-testimonies-detail/<id>/', TextTestimonyDetailView.as_view(),
+         name='text-testimonies-detail'),
+     path('video-testimonies-detail/<id>/', VideoTestimonyDetailView.as_view(),
+         name='text-testimonies-detail'),
     path('text-testimonies/<str:pk>/review/',
          TextTestimonyApprovalView.as_view(), name='text-testimony-review'),
     path('testimonies/settings/', TestimonySettingsView.as_view(),
@@ -30,7 +34,7 @@ urlpatterns = [
          TextTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
     path('testimonies/like/<id>/',
          TextTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
-     path('testimonies/all-like/<id>/',
+    path('testimonies/all-like/<id>/',
          TextTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
     path('testimonies/video/<str:category>/',
          VideoTestimonyByCategoryView.as_view(), name='testimony-by-category'),
@@ -40,6 +44,6 @@ urlpatterns = [
          VideoTestimonyCommentsView.as_view(), name='testimony-by-category-comment'),
     path('testimonies/video-like/<id>/',
          VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
-     path('testimonies/all-liked-video/<id>/',
+    path('testimonies/all-liked-video/<id>/',
          VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
 ]
