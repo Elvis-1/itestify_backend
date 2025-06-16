@@ -97,9 +97,10 @@ class GoogleLoginCallback(APIView):
             response = requests.post(
                 "https://oauth2.googleapis.com/token", data=payload
             )
+            print(response)
             response.raise_for_status()  # Check for HTTP errors
             token_data = response.json()
-
+            print(token_data)
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         access_token = token_data.get("access_token")
