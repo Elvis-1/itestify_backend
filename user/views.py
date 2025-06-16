@@ -114,6 +114,7 @@ class GoogleLoginCallback(APIView):
             )
             user_info_response.raise_for_status()
             user_info = user_info_response.json()
+
         except requests.RequestException:
             return Response({"error": "Failed to fetch user info from Google"}, status=400)
 
@@ -121,7 +122,6 @@ class GoogleLoginCallback(APIView):
         adapter = GoogleOAuth2Adapter(request)
         app = get_adapter().get_app(request, adapter.provider_id)
         token = SocialToken(token=access_token, token_secret=None, app=app)
-        print(token)
         try:
             # Use Google profile response in complete_login
             login = adapter.complete_login(request, app, token, user_info)
@@ -148,10 +148,9 @@ class GoogleLoginCallback(APIView):
                 }
             })
 
-         return Response(token_data, status=status.HTTP_200_OK)
-      
         except OAuth2Error as e:
             return Response({"error": str(e)}, status=400)
+
 
 class RegisterViewSet(viewsets.ViewSet):
     serializer_class = UserRegisterSerializer
@@ -951,7 +950,7 @@ class MemberManagementViewSet(viewsets.ViewSet):
 
 class AcceptInvitationView(GenericAPIView):
     serializer_class = SetPasswordWithInvitationSerializer
-    
+
     def get(self, request):
         """Handle the invitation link click - validate token and return user email"""
         token = request.GET.get('token')
@@ -961,7 +960,7 @@ class AcceptInvitationView(GenericAPIView):
                 err_code=ErrorCode.INVALID_ENTRY,
                 status_code=400
             )
-            
+
         try:
             invitation = UserInvitation.objects.get(
                 token=token,
@@ -973,14 +972,14 @@ class AcceptInvitationView(GenericAPIView):
                 err_code=ErrorCode.INVALID_ENTRY,
                 status_code=400
             )
-            
+
         if invitation.is_expired():
             return CustomResponse.error(
                 message="Invitation token has expired",
                 err_code=ErrorCode.EXPIRED_TOKEN,
                 status_code=400
             )
-            
+
         user = invitation.user
         if user.status != User.STATUS.INVITED:
             return CustomResponse.error(
@@ -988,7 +987,7 @@ class AcceptInvitationView(GenericAPIView):
                 err_code=ErrorCode.BAD_REQUEST,
                 status_code=400
             )
-            
+
         return CustomResponse.success(
             data={
                 'email': user.email,
@@ -997,7 +996,7 @@ class AcceptInvitationView(GenericAPIView):
             message="Invitation token is valid",
             status_code=200
         )
-      
+
     @handle_custom_exceptions
     def post(self, request):
         """Handle password submission"""
@@ -1017,8 +1016,8 @@ class AcceptInvitationView(GenericAPIView):
 
         try:
             invitation = UserInvitation.objects.get(
-                token=token, 
-              is_used=False
+                token=token,
+                is_used=False
             )
 
         except UserInvitation.DoesNotExist:
@@ -1066,4 +1065,3 @@ class AcceptInvitationView(GenericAPIView):
 
             status_code=200,
         )
-

@@ -138,7 +138,6 @@ WSGI_APPLICATION = 'itestify_backend.wsgi.application'
 ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 
-
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -154,16 +153,14 @@ if not DEPLOY:
 else:
     DATABASES = {
         'default': {
-            "ENGINE": "django.db.backends.postgresql",           
+            "ENGINE": "django.db.backends.postgresql",
             "USER": os.getenv("DB_USER"),
-            "PASSWORD":os.getenv("DB_PASSWORD"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
             "HOST": os.getenv("DB_HOST"),
             "PORT": os.getenv("DB_PORT"),
             "NAME": os.getenv("DB_NAME"),
-
         }
     }
-}
 
 
 # REDIS SETTINGS
