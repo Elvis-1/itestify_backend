@@ -91,7 +91,7 @@ class GoogleLoginCallback(APIView):
             "redirect_uri": "https://itestify-backend-38u1.onrender.com/api/v1/auth/google/callback/",
             "grant_type": "authorization_code",
         }
-
+        print(payload["redirect_uri"])
         # Make a request to the Google token endpoint
         try:
             response = requests.post(
