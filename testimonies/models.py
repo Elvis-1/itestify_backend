@@ -41,6 +41,7 @@ class Testimony(TouchDatesMixim):
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment")
     shares = GenericRelation("Share")
+    views = models.PositiveIntegerField(default=0, null=True, blank=True) 
 
     class Meta:
         abstract = True

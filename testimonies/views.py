@@ -89,6 +89,53 @@ class TextTestimonyListView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 
+class TextTestimonyDetailView(APIView):
+    """Fetch a specific testimony by ID."""
+
+    def get(self, request, id):
+        try:
+            testimony = TextTestimony.objects.get(id=id)
+            testimony.views += 1
+            testimony.save()
+
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        serializer = ReturnTextTestimonySerializer(testimony)
+        return CustomResponse.success(
+            message="Testimony retrieved successfully",
+            data=serializer.data,
+            status_code=200
+        )
+    
+class VideoTestimonyDetailView(APIView):
+    """Fetch a specific testimony by ID."""
+
+    def get(self, request, id):
+        try:
+            testimony = VideoTestimony.objects.get(id=id)
+            testimony.views += 1
+            testimony.save()
+
+        except VideoTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        serializer = ReturnVideoTestimonySerializer(testimony)
+        return CustomResponse.success(
+            message="Testimony retrieved successfully",
+            data=serializer.data,
+            status_code=200
+        )
+
+
 class VideoTestimonyByCategoryView(APIView):
     serializer_class = ReturnVideoTestimonySerializer
     pagination_class = StandardResultsSetPagination
