@@ -75,7 +75,6 @@ class GoogleLoginCallback(APIView):
 
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
-        print(f"Authorization code received: {code}")
         if code is None:
 
             return Response(
@@ -88,7 +87,7 @@ class GoogleLoginCallback(APIView):
             "code": code,
             "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
             "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": "https://itestify-backend-38u1.onrender.com/api/v1/auth/google/callback/",
+            "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
             "grant_type": "authorization_code",
         }
 
