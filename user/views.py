@@ -75,7 +75,6 @@ class GoogleLoginCallback(APIView):
 
     def get(self, request, *args, **kwargs):
         code = request.GET.get("code")
-        print(f"Authorization code received: {code}")
         if code is None:
 
             return Response(
@@ -88,10 +87,10 @@ class GoogleLoginCallback(APIView):
             "code": code,
             "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
             "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": "https://itestify-backend-38u1.onrender.com/api/v1/auth/google/callback/",
+            "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
             "grant_type": "authorization_code",
         }
-
+       
         # Make a request to the Google token endpoint
         try:
             response = requests.post(
@@ -99,7 +98,6 @@ class GoogleLoginCallback(APIView):
             )
             response.raise_for_status()  # Check for HTTP errors
             token_data = response.json()
-
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         access_token = token_data.get("access_token")
