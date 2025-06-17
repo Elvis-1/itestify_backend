@@ -90,15 +90,16 @@ class GoogleLoginCallback(APIView):
             "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
             "grant_type": "authorization_code",
         }
-
+        print(payload["redirect_uri"])
         # Make a request to the Google token endpoint
         try:
             response = requests.post(
                 "https://oauth2.googleapis.com/token", data=payload
             )
+            print(response)
             response.raise_for_status()  # Check for HTTP errors
             token_data = response.json()
-
+            print(token_data)
         except requests.exceptions.RequestException as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         access_token = token_data.get("access_token")
