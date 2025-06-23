@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "donations",
+    'inspirational',
     "common",
     "django_celery_beat",
     "django_celery_results",

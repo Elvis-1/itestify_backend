@@ -928,7 +928,7 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
                 )
 
         if to_date:
-            day, month, year = from_date.split("/")
+            day, month, year = to_date.split("/")
             formatted_from_date = f"{year}-{month}-{day}"
             parsed_to_date = parse_date(formatted_from_date)
             if parsed_to_date:
