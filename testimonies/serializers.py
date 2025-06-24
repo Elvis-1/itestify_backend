@@ -381,6 +381,8 @@ class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "thumbnail",
+            "thumbnail_url",
+            "source",
             "status",
             "downloads_count",
             "uploaded_by",

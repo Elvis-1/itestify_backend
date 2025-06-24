@@ -22,7 +22,7 @@ AUTH_USER_MODEL = 'user.User'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-DEBUG = True if os.getenv("DEBUG") == "True" else False
+DEBUG = True  # if os.getenv("DEBUG") == "True" else False
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -351,6 +351,10 @@ CELERY_BEAT_SCHEDULE = {
     "ping_render_server": {
         "task": "common.tasks.ping_server",
         "schedule": timedelta(minutes=5),  # 5 mins
+    },
+    "schdule_Inspirational_pictures": {
+        "task": "testimonies.tasks.schdule_Inspirational_pictures",
+        "schedule": timedelta(minutes=30),  # 30 mins
     }
 }
 

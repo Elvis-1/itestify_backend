@@ -11,6 +11,7 @@ from support import http
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 from .models import (
+    UPLOAD_STATUS,
     InspirationalPictures,
     TextTestimony,
     VideoTestimony,
@@ -111,7 +112,8 @@ class TextTestimonyDetailView(APIView):
             data=serializer.data,
             status_code=200
         )
-    
+
+
 class VideoTestimonyDetailView(APIView):
     """Fetch a specific testimony by ID."""
 
@@ -783,8 +785,14 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
         serializer = ReturnTextTestimonySerializer(
             paginated_queryset, many=True, context={"user": user})
-
-        return paginator.get_paginated_response(serializer.data)
+        if serializer:
+            return paginator.get_paginated_response(serializer.data)
+        else:
+            return CustomResponse.error(
+                message="No testimonies found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
 
     def retrieve(self, request, pk=None):
         """Retrieve a specific text testimony by ID"""
@@ -889,12 +897,38 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"])
     def create_pic(self, request):
+        images = request.data.getlist("images")
+        if images:
+            # If images are provided, create multiple InspirationalPictures
+            total_response_data = []
+            for image in images:
+                serializer = InspirationalPicturesSerializer(
+                    data={"image": image}, context={"request": request}
+                )
+                serializer.is_valid(raise_exception=True)
+                testimony = serializer.save()
+                if not testimony.data["thumbnail"]:
+                    testimony.thumbnail = None
+                    testimony.save()
+
+                return_serializer = ReturnInspirationalPicturesSerializer(
+                    testimony, context={"request": request}
+                )
+                total_response_data.append(return_serializer.data)
+
+            return CustomResponse.success(
+                data=total_response_data,
+                status_code=201,
+            )
 
         serializer = InspirationalPicturesSerializer(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         testimony = serializer.save()
+        if not testimony.data["thumbnail"]:
+            testimony.thumbnail = None
+            testimony.save()
 
         return_serializer = ReturnInspirationalPicturesSerializer(
             testimony, context={"request": request}
@@ -941,7 +975,12 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         serializer = ReturnInspirationalPicturesSerializer(
             paginated_queryset, many=True, context={"request": request}
         )
-
+        if not serializer:
+            return CustomResponse.error(
+                message="No inspirational pictures found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
         return paginator.get_paginated_response(serializer.data)
 
     def retrieve(self, request, pk=None):
@@ -1015,6 +1054,66 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             message="Inspirational Picture deleted successfully",
             status_code=204,
         )
+
+
+class ShowAllInspirationalPicturesStatus(APIView):
+    """Get all inspirational pictures status."""
+
+    def get(self, request):
+        upload_choices = []
+        for choice in UPLOAD_STATUS.choices:
+            upload_choices.append(
+                choice[0]
+            )
+        return CustomResponse.success(
+            message="All Inspirational Pictures Status",
+            data=upload_choices,
+            status_code=200
+        )
+
+
+class DownloadedInspirationalPictureCountView(APIView):
+    """Get the count of downloaded inspirational pictures."""
+
+    def post(self, request, id):
+        try:
+            picture = InspirationalPictures.objects.get(id=id)
+            picture.downloads_count += 1
+            picture.save()
+            return CustomResponse.success(
+                message="Download count updated successfully",
+                data={"downloads_count": picture.downloads_count},
+                status_code=200,
+            )
+        except InspirationalPictures.DoesNotExist:
+            return CustomResponse.error(
+                message="Inspirational Picture not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class InpirationalPicturesSharesCount(APIView):
+    """Get the count of shares for an inspirational picture."""
+
+    def post(self, request, id):
+        try:
+            picture = InspirationalPictures.objects.get(id=id)
+            picture.shares_count += 1
+            picture.save()
+            return CustomResponse.success(
+                message="Shares count updated successfully",
+                data={"shares_count": picture.shares_count},
+                status_code=200,
+            )
+        except InspirationalPictures.DoesNotExist:
+            return CustomResponse.error(
+                message="Inspirational Picture not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        
+
 
 
 # class TestimonySettingsView(APIView):
