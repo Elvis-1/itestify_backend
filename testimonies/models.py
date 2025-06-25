@@ -118,8 +118,6 @@ class Share(SocialInteraction):
 class InspirationalPictures(TouchDatesMixim):
     thumbnail = models.ImageField(
         upload_to="inspirational_picture/", null=True, blank=True)
-    thumbnail_url = models.URLField(
-        null=True, blank=True, help_text="URL of the thumbnail image")
     source = models.CharField(
         max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
     status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True)

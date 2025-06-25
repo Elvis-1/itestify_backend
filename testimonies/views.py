@@ -898,18 +898,17 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def create_pic(self, request):
         images = request.data.getlist("images")
+        # print(images)
         if images:
             # If images are provided, create multiple InspirationalPictures
             total_response_data = []
             for image in images:
+                print(image)
                 serializer = InspirationalPicturesSerializer(
-                    data={"image": image}, context={"request": request}
+                    data={"thumbnail": image}, context={"request": request}
                 )
                 serializer.is_valid(raise_exception=True)
                 testimony = serializer.save()
-                if not testimony.data["thumbnail"]:
-                    testimony.thumbnail = None
-                    testimony.save()
 
                 return_serializer = ReturnInspirationalPicturesSerializer(
                     testimony, context={"request": request}
@@ -926,9 +925,6 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         )
         serializer.is_valid(raise_exception=True)
         testimony = serializer.save()
-        if not testimony.data["thumbnail"]:
-            testimony.thumbnail = None
-            testimony.save()
 
         return_serializer = ReturnInspirationalPicturesSerializer(
             testimony, context={"request": request}
@@ -1058,6 +1054,7 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
 
 class ShowAllInspirationalPicturesStatus(APIView):
     """Get all inspirational pictures status."""
+    
 
     def get(self, request):
         upload_choices = []
@@ -1074,6 +1071,7 @@ class ShowAllInspirationalPicturesStatus(APIView):
 
 class DownloadedInspirationalPictureCountView(APIView):
     """Get the count of downloaded inspirational pictures."""
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, id):
         try:
@@ -1095,6 +1093,7 @@ class DownloadedInspirationalPictureCountView(APIView):
 
 class InpirationalPicturesSharesCount(APIView):
     """Get the count of shares for an inspirational picture."""
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, id):
         try:
@@ -1112,8 +1111,6 @@ class InpirationalPicturesSharesCount(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-        
-
 
 
 # class TestimonySettingsView(APIView):
