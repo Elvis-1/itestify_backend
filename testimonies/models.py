@@ -41,7 +41,7 @@ class Testimony(TouchDatesMixim):
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment")
     shares = GenericRelation("Share")
-    views = models.PositiveIntegerField(default=0, null=True, blank=True) 
+    views = models.PositiveIntegerField(default=0, null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -105,7 +105,6 @@ class SocialInteraction(TouchDatesMixim):
 
 class Comment(SocialInteraction):
     text = models.TextField()
-    
 
 
 class Like(SocialInteraction):
@@ -117,9 +116,12 @@ class Share(SocialInteraction):
 
 
 class InspirationalPictures(TouchDatesMixim):
-    thumbnail = models.ImageField(upload_to="inspirational_picture/")
-    status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices)
-    shares = GenericRelation("Share")
+    thumbnail = models.ImageField(
+        upload_to="inspirational_picture/", null=True, blank=True)
+    source = models.CharField(
+        max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
+    status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True)
+    shares_count = models.PositiveIntegerField(default=0)
     downloads_count = models.PositiveIntegerField(default=0)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
     scheduled_datetime = models.DateTimeField(

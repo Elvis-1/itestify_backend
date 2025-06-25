@@ -347,7 +347,7 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
 class InspirationalPicturesSerializer(serializers.ModelSerializer):
     class Meta:
         model = InspirationalPictures
-        fields = ["thumbnail", "status",
+        fields = ["thumbnail", "status", "source", "shares_count",
                   "downloads_count", "scheduled_datetime"]
 
     def validate(self, data):
@@ -381,8 +381,10 @@ class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "thumbnail",
+            "source",
             "status",
             "downloads_count",
+            "shares_count",
             "uploaded_by",
             "scheduled_datetime",
             "created_at",

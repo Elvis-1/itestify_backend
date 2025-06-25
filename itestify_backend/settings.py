@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "donations",
-    'inspirational',
     "common",
     "django_celery_beat",
     "django_celery_results",
@@ -63,6 +62,8 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'channels',
+    'cloudinary',
+    'cloudinary_storage',
 ]
 
 
@@ -313,6 +314,15 @@ if not DEBUG:
     # and renames the files with unique names for each version to support long-term caching
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+ # Cloudinary Setup
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+)
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
@@ -351,14 +361,11 @@ CELERY_BEAT_SCHEDULE = {
     "ping_render_server": {
         "task": "common.tasks.ping_server",
         "schedule": timedelta(minutes=5),  # 5 mins
+    },
+    "schdule_Inspirational_pictures": {
+        "task": "testimonies.tasks.schdule_Inspirational_pictures",
+        "schedule": timedelta(seconds=20),  # 30 mins
     }
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
-
-# Cloudinary Setup
-cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
-)

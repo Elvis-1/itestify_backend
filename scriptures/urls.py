@@ -19,5 +19,6 @@ urlpatterns = [
          ),
     path('filter-scriptures/', FilterScripture.as_view(),
          ),
+         
 
 ]

@@ -1,8 +1,8 @@
 from django.urls import include, path
-from .views import (InspirationalPicturesViewSet, TextTestimonyApprovalView,
+from .views import (InspirationalPicturesViewSet, ShowAllInspirationalPicturesStatus, TextTestimonyApprovalView,
                     TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet,
                     TextTestimonyByCategoryView, TextTestimonyCommentsView, TextTestimonyLikesView,
-                    VideoTestimonyByCategoryView, VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView)
+                    VideoTestimonyByCategoryView, VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView, InpirationalPicturesSharesCount, DownloadedInspirationalPictureCountView)
 from rest_framework.routers import DefaultRouter
 
 
@@ -20,7 +20,7 @@ urlpatterns = [
          name='text-testimonies'),
     path('text-testimonies-detail/<id>/', TextTestimonyDetailView.as_view(),
          name='text-testimonies-detail'),
-     path('video-testimonies-detail/<id>/', VideoTestimonyDetailView.as_view(),
+    path('video-testimonies-detail/<id>/', VideoTestimonyDetailView.as_view(),
          name='text-testimonies-detail'),
     path('text-testimonies/<str:pk>/review/',
          TextTestimonyApprovalView.as_view(), name='text-testimony-review'),
@@ -46,4 +46,10 @@ urlpatterns = [
          VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
     path('testimonies/all-liked-video/<id>/',
          VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
+    path('get-all-inspirational-status/',
+         ShowAllInspirationalPicturesStatus.as_view()),
+    path('inspirational-pictures-shares-count/<id>/',
+         InpirationalPicturesSharesCount.as_view(), name='inspirational-pictures-shares-count'),
+    path('inspirational-pictures-download-count/<id>/',
+         DownloadedInspirationalPictureCountView.as_view(), name='inspirational-pictures-download-count'),
 ]

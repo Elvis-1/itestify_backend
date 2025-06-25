@@ -26,6 +26,7 @@ dj-rest-auth==7.0.1
 Django==5.1.4
 django-allauth==65.8.1
 django-celery-beat==2.8.0
+django-cloudinary-storage==0.3.0
 django-cors-headers==4.7.0
 django-filter==25.1
 django-timezone-field==7.1
@@ -42,7 +43,7 @@ oauthlib==3.2.2
 packaging==24.2
 pillow==11.1.0
 prompt_toolkit==3.0.50
-psycopg
+psycopg==3.2.9
 psycopg2==2.9.10
 psycopg2-binary==2.9.10
 pyasn1==0.6.1
