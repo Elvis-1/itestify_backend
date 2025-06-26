@@ -708,7 +708,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         # Return validation errors if the data is invalid
         return CustomResponse.error(
             message=serializer.errors,
-            err_code=ErrorCode.VALIDATION_ERROR,
+            err_code=ErrorCode.INVALID_ENTRY,
             status_code=400,
         )
 
@@ -859,7 +859,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         # Return validation errors if the data is invalid
         return CustomResponse.error(
             message=serializer.errors,
-            err_code=ErrorCode.VALIDATION_ERROR,
+            err_code=ErrorCode.INVALID_ENTRY,
             status_code=400,
         )
 
@@ -924,6 +924,12 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
+        if serializer.validated_data.get("status") is None:
+            return CustomResponse.error(
+                message="Status is required",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
         testimony = serializer.save()
 
         return_serializer = ReturnInspirationalPicturesSerializer(
@@ -1029,7 +1035,7 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         # Return validation errors if the data is invalid
         return CustomResponse.error(
             message=serializer.errors,
-            err_code=ErrorCode.VALIDATION_ERROR,
+            err_code=ErrorCode.INVALID_ENTRY,
             status_code=400,
         )
 
@@ -1052,9 +1058,53 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         )
 
 
+class ShowAllUplaodedInspirationalPictures(APIView):
+    """Get all uploaded inspirational pictures."""
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request):
+        user = request.user
+        user_id = User.objects.get(id=user.id)
+        try:
+            if user_id.Roles.VIEWER or user_id.Roles.ADMIN or user_id.Roles.SUPER_ADMIN:
+                inspirational_pictures = InspirationalPictures.objects.filter(
+                    status=UPLOAD_STATUS.UPLOAD_NOW)
+                if not inspirational_pictures:
+                    return CustomResponse.error(
+                        message="No Inspirational Pictures found",
+                        err_code=ErrorCode.NOT_FOUND,
+                        status_code=404,
+                    )
+                paginator = self.pagination_class()
+                paginated_queryset = paginator.paginate_queryset(
+                    inspirational_pictures, request)
+                serializer = ReturnInspirationalPicturesSerializer(
+                    paginated_queryset, many=True, context={"request": request}
+                )
+                if not serializer:
+                    return CustomResponse.error(
+                        message="No inspirational pictures found",
+                        err_code=ErrorCode.NOT_FOUND,
+                        status_code=404,
+                    )
+                return paginator.get_paginated_response(serializer.data)
+            else:
+                return CustomResponse.error(
+                    message="You are not allowed to view this resource.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
 class ShowAllInspirationalPicturesStatus(APIView):
     """Get all inspirational pictures status."""
-    
 
     def get(self, request):
         upload_choices = []
