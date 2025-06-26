@@ -2,7 +2,7 @@ from django.urls import include, path
 from .views import (InspirationalPicturesViewSet, ShowAllInspirationalPicturesStatus, TextTestimonyApprovalView,
                     TextTestimonyListView, TestimonySettingsView, TextTestimonyViewSet, VideoTestimonyViewSet,
                     TextTestimonyByCategoryView, TextTestimonyCommentsView, TextTestimonyLikesView,
-                    VideoTestimonyByCategoryView, VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView, InpirationalPicturesSharesCount, DownloadedInspirationalPictureCountView)
+                    VideoTestimonyByCategoryView, ShowAllUplaodedInspirationalPictures, VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView, InpirationalPicturesSharesCount, DownloadedInspirationalPictureCountView)
 from rest_framework.routers import DefaultRouter
 
 
@@ -52,4 +52,6 @@ urlpatterns = [
          InpirationalPicturesSharesCount.as_view(), name='inspirational-pictures-shares-count'),
     path('inspirational-pictures-download-count/<id>/',
          DownloadedInspirationalPictureCountView.as_view(), name='inspirational-pictures-download-count'),
+    path('get-all-uplaoded-inspirational-pictures/',
+         ShowAllUplaodedInspirationalPictures.as_view(), name='inspirational-pictures-download-count'),
 ]
