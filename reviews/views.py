@@ -5,6 +5,7 @@ from .models import Review
 from .serializers import ReviewSerializer
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework.views import APIView
 
 class ReviewCreateAPIView(generics.CreateAPIView):
     queryset = Review.objects.all()
@@ -55,11 +56,25 @@ class UserSearchReviewAPIView(generics.ListAPIView):
             
         return queryset
 
-class AdminDeleteReviewAPIView(generics.DestroyAPIView):
+class AdminDeleteReviewAPIView(APIView):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAdminUser]
-    lookup_field = 'id'
+
+    def delete(self, request, id, *args, **kwargs):
+        try:
+            review = self.queryset.get(id=id)
+            review.delete()
+            return Response(
+                {"message": "Review deleted successfully."},
+                status=status.HTTP_204_NO_CONTENT
+            )
+        except Review.DoesNotExist:
+            return Response(
+                {"error": "Review not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    #lookup_field = 'id'
 
 class AdminReviewsDeleteallAPIView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAdminUser]

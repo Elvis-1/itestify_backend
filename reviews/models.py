@@ -3,8 +3,11 @@ from django.conf import settings
 from django.utils import timezone
 import uuid
 
+
 def generate_temp_review_id():
-    return f"RE-TEMP-{str(uuid.uuid4())[:8].upper()}"
+    #return f"RE-TEMP-{str(uuid.uuid4())[:8].upper()}"
+    return f"{str(uuid.uuid4())[:8]}"
+
 
 class Review(models.Model):
     RATING_CHOICES = [
@@ -14,7 +17,7 @@ class Review(models.Model):
         (4, '4 - Very Good'),
         (5, '5 - Excellent'),
     ]
-    
+
     id = models.CharField(
         max_length=20,
         primary_key=True,
@@ -40,18 +43,22 @@ class Review(models.Model):
         default=timezone.now,
         editable=False
     )
-    
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = "Review"
         verbose_name_plural = "Reviews"
-    
+
     def __str__(self):
         return f"Review by {self.user.email} - {self.get_rating_display()}"
-    
-    def save(self, *args, **kwargs):
+
+    '''def save(self, *args, **kwargs):
         if self.id.startswith('RE-TEMP-'):
             # Get the count of existing reviews to generate the next ID
             count = Review.objects.count() + 1
             self.id = f"RE-{count:03d}"
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs)'''
+
+
+
+
