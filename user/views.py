@@ -5,6 +5,7 @@ from django.conf import settings
 import validate_email
 from rest_framework_simplejwt.tokens import RefreshToken
 import requests
+from django.shortcuts import get_object_or_404
 
 from rest_framework.response import Response
 from rest_framework import viewsets
@@ -15,7 +16,8 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from .serializers import CreateMemberSerializer, UserInvitationSerializer, SetPasswordWithInvitationSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import EntryCode, User, Otp, UserInvitation, SendOtp
+from .models import EntryCode, User, Otp, UserInvitation, SendOtp, Role, Permission
+from .permissions import IsAdmin, IsSuperAdmin, IsViewer, HasPermission
 
 from .utils import Util
 from .serializers import (
@@ -29,6 +31,11 @@ from .serializers import (
     VerifyOtpSerializer,
     UserRegisterSerializer,
     ChangePasswordSerializer,
+    RoleSerializer,
+    PermissionSerializer,
+    RoleAssignmentSerializer,
+    SuperAdminTransferSerializer,
+    AdminManagementSerializer
 )
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
@@ -801,7 +808,10 @@ class MemberManagementViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.filter(role=User.Roles.ADMIN).exclude(status=User.STATUS.DELETED)
+        admin_role = Role.objects.filter(name='Admin').first()
+        if not admin_role:
+            return User.objects.none()
+        return User.objects.filter(role=admin_role).exclude(status=User.STATUS.DELETED)
 
     @action(detail=False, methods=['post'], url_path='create-member')
     def create_member(self, request):
@@ -930,10 +940,8 @@ class MemberManagementViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="list-members")
     def list_members(self, request):
-        if (
-            not request.user.is_super_admin
-            and not request.user.role == User.Roles.ADMIN
-        ):
+        is_admin = request.user.role and request.user.role.name == 'Admin'
+        if not request.user.is_super_admin and not is_admin:
             return CustomResponse.error(
                 message="You don't have permission to view members",
                 err_code=ErrorCode.FORBIDDEN,
@@ -1063,3 +1071,176 @@ class AcceptInvitationView(GenericAPIView):
 
             status_code=200,
         )
+
+
+class PermissionViewSet(viewsets.ModelViewSet):
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAuthenticated & IsSuperAdmin]
+        return [permission() for permission in permission_classes]
+
+class RoleViewSet(viewsets.ModelViewSet):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [IsAuthenticated]
+        else:
+            permission_classes = [IsAuthenticated & IsSuperAdmin]
+        return [permission() for permission in permission_classes]
+
+    @action(detail=False, methods=['post'])
+    def assign_role(self, request):
+        serializer = RoleAssignmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = get_object_or_404(User, id=serializer.validated_data['user_id'])
+        role = get_object_or_404(Role, id=serializer.validated_data['role_id'])
+        
+        user.role = role
+        user.save()
+        
+        return Response(
+            {"message": "Role assigned successfully"},
+            status=status.HTTP_200_OK
+        )
+
+class SuperAdminManagementViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated & IsSuperAdmin]
+
+    @action(detail=False, methods=['post'], url_path='transfer-super-admin')
+    def transfer_super_admin(self, request):
+        """
+        Transfer super admin role to another user
+        """
+        serializer = SuperAdminTransferSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        current_user = request.user
+        new_super_admin = get_object_or_404(
+            User, 
+            id=serializer.validated_data['new_super_admin_id']
+        )
+        
+        super_admin_role = Role.objects.get(name='Super Admin')
+        
+        # Check if the new user is already a super admin
+        if new_super_admin.role == super_admin_role:
+            return Response(
+                {"error": "User is already a super admin"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Transfer the role
+        new_super_admin.role = super_admin_role
+        new_super_admin.save()
+        
+        # Handle current admin's action
+        action = serializer.validated_data['current_admin_action']
+        if action == 'demote':
+            new_role = get_object_or_404(
+                Role, 
+                id=serializer.validated_data['new_role_id']
+            )
+            current_user.role = new_role
+            message = "Super admin role transferred and you have been demoted"
+        else:
+            current_user.status = User.STATUS.DELETED
+            message = "Super admin role transferred and your account has been deleted"
+        
+        current_user.save()
+        
+        return Response(
+            {"message": message},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=['get'], url_path='eligible-users')
+    def get_eligible_users(self, request):
+        """
+        Get list of users eligible to become super admin
+        """
+        users = User.objects.exclude(
+            id=request.user.id
+        ).exclude(
+            status=User.STATUS.DELETED
+        ).select_related('role')
+        
+        eligible_users = []
+        for user in users:
+            eligible_users.append({
+                'id': user.id,
+                'email': user.email,
+                'full_name': user.full_name,
+                'current_role': user.role.name if user.role else None
+            })
+        
+        return Response(eligible_users, status=status.HTTP_200_OK)
+
+class AdminManagementViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated & (IsSuperAdmin | IsAdmin)]
+
+    @action(detail=False, methods=['post'], url_path='manage-admin')
+    def manage_admin(self, request):
+        """
+        Add or remove users from admin role
+        """
+        serializer = AdminManagementSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = get_object_or_404(User, id=serializer.validated_data['user_id'])
+        action = serializer.validated_data['action']
+        admin_role = Role.objects.get(name='Admin')
+        
+        if action == 'add':
+            user.role = admin_role
+            user.save()
+            message = "User added to admin role"
+        else:
+            if user.role == admin_role:
+                user.role = None
+                user.save()
+                message = "User removed from admin role"
+            else:
+                return Response(
+                    {"error": "User is not an admin"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        return Response(
+            {"message": message},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=['get'], url_path='eligible-admins')
+    def get_eligible_admins(self, request):
+        """
+        Get list of users eligible to become admins
+        """
+        admin_role = Role.objects.get(name='Admin')
+        current_admins = User.objects.filter(role=admin_role)
+        
+        eligible_users = User.objects.exclude(
+            role=admin_role
+        ).exclude(
+            status=User.STATUS.DELETED
+        ).select_related('role')
+        
+        eligible_list = []
+        for user in eligible_users:
+            eligible_list.append({
+                'id': user.id,
+                'email': user.email,
+                'full_name': user.full_name,
+                'current_role': user.role.name if user.role else None
+            })
+        
+        return Response(eligible_list, status=status.HTTP_200_OK)

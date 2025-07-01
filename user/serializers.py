@@ -1,9 +1,8 @@
-
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
-from user.models import User
+from user.models import User, Permission, Role
 
 
 class UserRegisterSerializer(serializers.Serializer):
@@ -87,18 +86,28 @@ class SetNewPasswordSerializer(ResendEntryCodeSerializer):
     password = serializers.CharField()
     password2 = serializers.CharField()
 
+class RoleNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['id', 'name']
 
 class UserInvitationSerializer(serializers.ModelSerializer):
+    role = RoleNameSerializer(read_only=True)  # Show role details
+    
     class Meta:
         model = User
         fields = ['id', 'email', 'full_name', 'role', 'status']
 
-
 class CreateMemberSerializer(serializers.Serializer):
     email = serializers.EmailField()
     full_name = serializers.CharField()
-    role = serializers.ChoiceField(choices=User.Roles.choices)
-
+    role = serializers.PrimaryKeyRelatedField(
+        queryset=Role.objects.all(),
+        error_messages={
+            'does_not_exist': 'Invalid role ID',
+            'incorrect_type': 'Role ID must be an integer'
+        }
+    )
 
 class InvitationResponseSerializer(serializers.Serializer):
     user = UserInvitationSerializer()
@@ -133,3 +142,53 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(list(e.messages))
 
         return data
+
+
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = ['id', 'name', 'codename', 'description']
+
+class RoleSerializer(serializers.ModelSerializer):
+    permissions = PermissionSerializer(many=True, read_only=True)
+    permission_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Permission.objects.all(),
+        source='permissions',
+        write_only=True
+    )
+
+    class Meta:
+        model = Role
+        fields = ['id', 'name', 'permissions', 'permission_ids', 'is_default']
+
+class RoleAssignmentSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True)
+    role_id = serializers.IntegerField(required=True)
+
+class SuperAdminTransferSerializer(serializers.Serializer):
+    new_super_admin_id = serializers.IntegerField(required=True)
+    current_admin_action = serializers.ChoiceField(
+        choices=[
+            ('demote', 'Demote to another role'),
+            ('delete', 'Delete my account')
+        ],
+        required=True
+    )
+    new_role_id = serializers.IntegerField(required=False)
+
+    def validate(self, data):
+        if data['current_admin_action'] == 'demote' and 'new_role_id' not in data:
+            raise serializers.ValidationError("New role ID is required when demoting")
+        return data
+
+class AdminManagementSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField(required=True)
+    action = serializers.ChoiceField(
+        choices=[
+            ('add', 'Add to admin role'),
+            ('remove', 'Remove from admin role')
+        ],
+        required=True
+    )
+
