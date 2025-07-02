@@ -16,7 +16,10 @@ from .models import (
     TextTestimony,
     VideoTestimony,
     TestimonySettings,
+    Comment
 )
+from django.contrib.contenttypes.models import ContentType
+
 from .serializers import (
     InspirationalPicturesSerializer,
     ReturnInspirationalPicturesSerializer,
@@ -24,7 +27,9 @@ from .serializers import (
     ReturnVideoTestimonyCommentSerializer,
     ReturnVideoTestimonyLikeSerializer,
     ReturnVideoTestimonySerializer,
+    TextTestimonyCommentSerializer,
     TextTestimonySerializer,
+    VideoTestimonyCommentSerializer,
     VideoTestimonySerializer,
     TestimonySettingsSerializer,
     ReturnTextTestimonyCommentSerializer,
@@ -239,6 +244,92 @@ class VideoTestimonyCommentsView(APIView):
             status_code=200
         )
 
+class VideoTestimonyReplyComment(APIView):
+    # permission_classes = [IsAuthenticated]
+    serializer_class = VideoTestimonyCommentSerializer
+
+    def post(self, request, id):
+        user = request.user
+        comment = request.data.get("comment")
+        get_query_param = request.query_params.get("get_testimony")
+        get_testimony = VideoTestimony.objects.filter(
+            id=get_query_param).first()
+        if not comment:
+            return CustomResponse.error(
+                message="Comment cannot be empty",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+        try:
+            user_id = User.objects.get(id=user.id)  # Ensure user exists
+            if not user_id.Roles.VIEWER:
+                return CustomResponse.error(
+                    message="You are not allowed to comment on this testimony.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        # Create the comment
+        try:
+            content_type = ContentType.objects.get_for_model(VideoTestimony)
+            reply = Comment.objects.create(
+                text=comment,
+                user=user_id,
+                content_type=content_type,
+                object_id=get_testimony.id
+            )
+            get_comment = Comment.objects.get(id=id)
+            get_comment.reply_to = reply
+            get_comment.save()
+            return CustomResponse.success(
+                message="Comment added successfully",
+                status_code=201
+            )
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="Comment not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, id):
+        try:
+            get_testimony = VideoTestimony.objects.get(id=id)
+        except VideoTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        user_comments = get_testimony.comments.filter(reply_to__isnull=False)
+        serializer = self.serializer_class(user_comments, many=True)
+
+        if not serializer:
+            return CustomResponse.error(
+                message="No comments count found for this testimony",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        payload = {
+            "comments": serializer.data,
+        }
+        return CustomResponse.success(
+            message="Comments retrieved successfully",
+            data=payload,
+            status_code=200
+        )
+
 
 class VideoTestimonyLikesView(APIView):
     # permission_classes = [IsAuthenticated]
@@ -345,11 +436,18 @@ class TextTestimonyByCategoryView(APIView):
 class TextTestimonyCommentsView(APIView):
     # permission_classes = [IsAuthenticated]
 
-    serializer_class = ReturnTextTestimonyCommentSerializer
+    serializer_class = TextTestimonyCommentSerializer
 
     def post(self, request, id):
         user = request.user
-        get_testimony = TextTestimony.objects.get(id=id)
+        try:
+            get_testimony = TextTestimony.objects.get(id=id)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
         print(get_testimony)
         if not get_testimony:
             return CustomResponse.error(
@@ -389,7 +487,15 @@ class TextTestimonyCommentsView(APIView):
             )
 
     def get(self, request, id):
-        get_testimony = TextTestimony.objects.get(id=id)
+        # get_testimony = TextTestimony.objects.get(id=id)
+        try:
+            get_testimony = TextTestimony.objects.get(id=id)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
         print(get_testimony.category)
         if not get_testimony:
             return CustomResponse.error(
@@ -397,7 +503,8 @@ class TextTestimonyCommentsView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-        serializer = self.serializer_class(get_testimony, many=False)
+        user_comments = get_testimony.comments
+        serializer = self.serializer_class(user_comments, many=True)
 
         if not serializer:
             return CustomResponse.error(
@@ -406,7 +513,94 @@ class TextTestimonyCommentsView(APIView):
                 status_code=404,
             )
         payload = {
-            "testimony": serializer.data,
+            "comments": serializer.data,
+        }
+        return CustomResponse.success(
+            message="Comments retrieved successfully",
+            data=payload,
+            status_code=200
+        )
+
+
+class TextTestimonyReplyComment(APIView):
+    # permission_classes = [IsAuthenticated]
+    serializer_class = TextTestimonyCommentSerializer
+
+    def post(self, request, id):
+        user = request.user
+        comment = request.data.get("comment")
+        get_query_param = request.query_params.get("get_testimony")
+        get_testimony = TextTestimony.objects.filter(
+            id=get_query_param).first()
+        if not comment:
+            return CustomResponse.error(
+                message="Comment cannot be empty",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+        try:
+            user_id = User.objects.get(id=user.id)  # Ensure user exists
+            if not user_id.Roles.VIEWER:
+                return CustomResponse.error(
+                    message="You are not allowed to comment on this testimony.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        # Create the comment
+        try:
+            content_type = ContentType.objects.get_for_model(TextTestimony)
+            reply = Comment.objects.create(
+                text=comment,
+                user=user_id,
+                content_type=content_type,
+                object_id=get_testimony.id
+            )
+            get_comment = Comment.objects.get(id=id)
+            get_comment.reply_to = reply
+            get_comment.save()
+            return CustomResponse.success(
+                message="Comment added successfully",
+                status_code=201
+            )
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="Comment not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, id):
+        try:
+            get_testimony = TextTestimony.objects.get(id=id)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        if not get_testimony:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        user_comments = get_testimony.comments.filter(reply_to__isnull=False)
+        serializer = self.serializer_class(user_comments, many=True)
+
+        if not serializer:
+            return CustomResponse.error(
+                message="No comments count found for this testimony",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        payload = {
+            "comments": serializer.data,
         }
         return CustomResponse.success(
             message="Comments retrieved successfully",

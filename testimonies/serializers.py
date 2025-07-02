@@ -32,7 +32,7 @@ class TextTestimonyCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ["text", "user", "created_at", "updated_at"]
+        fields = ["id", "text", "user", "created_at", "updated_at"]
 
 
 class TextTestimonyLikeSerializer(serializers.ModelSerializer):
@@ -40,7 +40,7 @@ class TextTestimonyLikeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Like
-        fields = ["user", "created_at", "updated_at"]
+        fields = ["id", "user", "created_at", "updated_at"]
 
 
 class VideoTestimonyCommentSerializer(serializers.ModelSerializer):
