@@ -330,6 +330,34 @@ class VideoTestimonyReplyComment(APIView):
             status_code=200
         )
 
+class VideoTestimonyLikeUserComment(APIView):
+
+    def post(self, request, id):
+        user = request.user
+        try:
+            user_id = User.objects.get(id = user.id)
+        try:
+            comment_id = Comment.objects.get(id = id)
+            if comment_id.user_like_comment.filter(id = user_id.id).exists():
+                comment_id.user_like_comment.remove(user)
+                return CustomResponse.error(
+                    message="user unliked Comment successfully",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404
+                )
+            else:
+                comment_id.user_like_comment.add(user)
+                return CustomResponse.success(
+                    message="user liked Comment successfully",
+                    status_code=201
+                )
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="Comment not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
 
 class VideoTestimonyLikesView(APIView):
     # permission_classes = [IsAuthenticated]

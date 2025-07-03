@@ -107,6 +107,7 @@ class Comment(SocialInteraction):
     text = models.TextField()
     reply_to = models.ForeignKey(
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    user_like_comment = models.ManyToManyField(User, blank=True, related_name="user_like_comment")
     
 
 
