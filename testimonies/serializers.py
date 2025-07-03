@@ -32,7 +32,7 @@ class TextTestimonyCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ["text", "user", "created_at", "updated_at"]
+        fields = ["id", "text", "user", "created_at", "updated_at"]
 
 
 class TextTestimonyLikeSerializer(serializers.ModelSerializer):
@@ -40,7 +40,7 @@ class TextTestimonyLikeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Like
-        fields = ["user", "created_at", "updated_at"]
+        fields = ["id", "user", "created_at", "updated_at"]
 
 
 class VideoTestimonyCommentSerializer(serializers.ModelSerializer):
@@ -48,7 +48,7 @@ class VideoTestimonyCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Comment
-        fields = ["text", "user", "created_at", "updated_at"]
+        fields = ["id", "text", "user", "created_at", "updated_at"]
 
 
 class VideoTestimonyLikeSerializer(serializers.ModelSerializer):
@@ -56,7 +56,7 @@ class VideoTestimonyLikeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Like
-        fields = ["user", "created_at", "updated_at"]
+        fields = ["id", "user", "created_at", "updated_at"]
 
 
 class TextTestimonySerializer(serializers.ModelSerializer):
@@ -255,6 +255,7 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
     class Meta:
         model = VideoTestimony
         fields = [
+            "id",
             "title",
             "category",
             "source",
@@ -347,7 +348,7 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
 class InspirationalPicturesSerializer(serializers.ModelSerializer):
     class Meta:
         model = InspirationalPictures
-        fields = ["thumbnail", "status", "source", "shares_count",
+        fields = ["id", "thumbnail", "status", "source", "shares_count",
                   "downloads_count", "scheduled_datetime"]
 
     def validate(self, data):

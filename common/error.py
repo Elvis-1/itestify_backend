@@ -21,3 +21,4 @@ class ErrorCode:
     NOT_FOUND = "not_found"
     BAD_REQUEST = "bad_request"
     FORBIDDEN = "forbidden"
+    INTERNAL_SERVER_ERROR = "internal_server_error"
