@@ -1,3 +1,4 @@
+import uuid
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
@@ -95,30 +96,6 @@ class TextTestimonyListView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 
-class TextTestimonyDetailView(APIView):
-    """Fetch a specific testimony by ID."""
-
-    def get(self, request, id):
-        try:
-            testimony = TextTestimony.objects.get(id=id)
-            testimony.views += 1
-            testimony.save()
-
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-        serializer = ReturnTextTestimonySerializer(testimony)
-        return CustomResponse.success(
-            message="Testimony retrieved successfully",
-            data=serializer.data,
-            status_code=200
-        )
-
-
 class VideoTestimonyDetailView(APIView):
     """Fetch a specific testimony by ID."""
 
@@ -171,6 +148,35 @@ class VideoTestimonyByCategoryView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
+
+
+class VideoTestimonyDeleteSelected(APIView):
+    def post(self, request):
+        ids = request.data.get("ids", [])
+        print(ids)
+        print("Hello world")
+        if not ids:
+            return CustomResponse.error(
+                message="No IDs provided",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+        for id in ids:
+            print(f"Processing ID: {id}")
+            try:
+                video = VideoTestimony.objects.get(id=id)
+                print(video.id)
+                video.delete()
+            except VideoTestimony.DoesNotExist:
+                return CustomResponse.error(
+                    message=f"Video with ID {id} not found",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404
+                )
+        return CustomResponse.success(
+            message="Testimonies Deleted successfully",
+            status_code=200
+        )
 
 
 class VideoTestimonyCommentsView(APIView):
@@ -243,6 +249,7 @@ class VideoTestimonyCommentsView(APIView):
             data=payload,
             status_code=200
         )
+
 
 class VideoTestimonyReplyComment(APIView):
     # permission_classes = [IsAuthenticated]
@@ -330,26 +337,61 @@ class VideoTestimonyReplyComment(APIView):
             status_code=200
         )
 
+
 class VideoTestimonyLikeUserComment(APIView):
+    #permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
         user = request.user
         try:
-            user_id = User.objects.get(id = user.id)
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
         try:
-            comment_id = Comment.objects.get(id = id)
-            if comment_id.user_like_comment.filter(id = user_id.id).exists():
+            comment_id = Comment.objects.get(id=id)
+            print(comment_id)
+            if comment_id.user_like_comment.filter(id=user_id.id).exists():
                 comment_id.user_like_comment.remove(user)
-                return CustomResponse.error(
+                return CustomResponse.success(
                     message="user unliked Comment successfully",
-                    err_code=ErrorCode.NOT_FOUND,
-                    status_code=404
+                    
+                    status_code=200
                 )
             else:
                 comment_id.user_like_comment.add(user)
                 return CustomResponse.success(
                     message="user liked Comment successfully",
                     status_code=201
+                )
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="Comment not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, id):
+        try:
+            comment = Comment.objects.get(id=id)
+            if comment.user_like_comment.all().exists():
+                comment_likes = comment.user_like_comment.all().count()
+                serializeer = {
+                    "likes_count": comment_likes
+                }
+                return CustomResponse.success(
+                    message="Likes retrieved successfully",
+                    data=serializeer,
+                    status_code=200
+                )
+            else:
+                return CustomResponse.error(
+                    message="No likes found for this comment",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
                 )
         except Comment.DoesNotExist:
             return CustomResponse.error(
@@ -459,6 +501,59 @@ class TextTestimonyByCategoryView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
+
+
+class TextTestimonyDeleteSelected(APIView):
+    def post(self, request):
+        ids = request.data.get("ids", [])
+        print(ids)
+        print("Hello world")
+        if not ids:
+            return CustomResponse.error(
+                message="No IDs provided",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+        for id in ids:
+            print(f"Processing ID: {id}")
+            try:
+                video = TextTestimony.objects.get(id=id)
+                print(video.id)
+                video.delete()
+            except TextTestimony.DoesNotExist:
+                return CustomResponse.error(
+                    message=f"Video with ID {id} not found",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404
+                )
+        return CustomResponse.success(
+            message="Testimonies Deleted successfully",
+            status_code=200
+        )
+
+
+class TextTestimonyDetailView(APIView):
+    """Fetch a specific testimony by ID."""
+
+    def get(self, request, id):
+        try:
+            testimony = TextTestimony.objects.get(id=id)
+            testimony.views += 1
+            testimony.save()
+
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        serializer = ReturnTextTestimonySerializer(testimony)
+        return CustomResponse.success(
+            message="Testimony retrieved successfully",
+            data=serializer.data,
+            status_code=200
+        )
 
 
 class TextTestimonyCommentsView(APIView):
@@ -635,6 +730,67 @@ class TextTestimonyReplyComment(APIView):
             data=payload,
             status_code=200
         )
+
+
+class TextTestimonyLikeUserComment(APIView):
+
+    def post(self, request, id):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            comment_id = Comment.objects.get(id=id)
+            if comment_id.user_like_comment.filter(id=user_id.id).exists():
+                comment_id.user_like_comment.remove(user)
+                return CustomResponse.error(
+                    message="user unliked Comment successfully",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404
+                )
+            else:
+                comment_id.user_like_comment.add(user)
+                return CustomResponse.success(
+                    message="user liked Comment successfully",
+                    status_code=201
+                )
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="Comment not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, id):
+        try:
+            comment = Comment.objects.get(id=id)
+            if comment.user_like_comment.all().exists():
+                comment_likes = comment.user_like_comment.all().count()
+                serializeer = {
+                    "likes_count": comment_likes
+                }
+                return CustomResponse.success(
+                    message="Likes retrieved successfully",
+                    data=serializeer,
+                    status_code=200
+                )
+            else:
+                return CustomResponse.error(
+                    message="No likes found for this comment",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
+                )
+        except Comment.DoesNotExist:
+            return CustomResponse.error(
+                message="Comment not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
 
 
 class TextTestimonyLikesView(APIView):
@@ -1377,6 +1533,68 @@ class InpirationalPicturesSharesCount(APIView):
                 data={"shares_count": picture.shares_count},
                 status_code=200,
             )
+        except InspirationalPictures.DoesNotExist:
+            return CustomResponse.error(
+                message="Inspirational Picture not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class UserLikeInspirationalPicture(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, id):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            picture = InspirationalPictures.objects.get(id=id)
+            if picture.like_inspirational_pic.filter(id=user_id.id).exists():
+                picture.like_inspirational_pic.remove(user)
+                return CustomResponse.success(
+                    message="User unliked the inspirational picture successfully",
+
+                    status_code=200
+                )
+            else:
+                picture.like_inspirational_pic.add(user)
+                return CustomResponse.success(
+                    message="User liked the inspirational picture successfully",
+                    status_code=201
+                )
+        except InspirationalPictures.DoesNotExist:
+            return CustomResponse.error(
+                message="Inspirational Picture not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request, id):
+        try:
+            picture = InspirationalPictures.objects.get(id=id)
+            if picture.like_inspirational_pic.all().exists():
+                picture_likes = picture.like_inspirational_pic.all().count()
+                serializer = {
+                    "likes_count": picture_likes
+                }
+                return CustomResponse.success(
+                    message="Likes retrieved successfully",
+                    data=serializer,
+                    status_code=200
+                )
+            else:
+                return CustomResponse.error(
+                    message="No likes found for this inspirational picture",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
+                )
         except InspirationalPictures.DoesNotExist:
             return CustomResponse.error(
                 message="Inspirational Picture not found",
