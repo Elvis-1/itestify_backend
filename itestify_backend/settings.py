@@ -22,7 +22,7 @@ AUTH_USER_MODEL = 'user.User'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-DEBUG = True if os.getenv("DEBUG") == "True" else False
+DEBUG = True  # if os.getenv("DEBUG") == "True" else False
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'admin_accounts',
     'testimonies',
     'scriptures',
-    'notification',
+    'notifications',
     'rest_framework',
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
@@ -70,6 +70,8 @@ INSTALLED_APPS = [
 # django.contrib.sites
 SITE_ID = 1
 FRONT_END_BASE_URL = os.getenv("FRONT_END_BASE_URL")
+# BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL")
+BASE_URL = "http://127.0.0.1:8000/"
 
 
 ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
@@ -314,17 +316,17 @@ if not DEBUG:
     # and renames the files with unique names for each version to support long-term caching
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
- # Cloudinary Setup
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# Cloudinary Setup
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
 
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+# MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -335,6 +337,7 @@ CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 
 # Email
 EMAIL_OTP_EXPIRE_SECONDS = 300
+
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

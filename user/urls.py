@@ -14,6 +14,7 @@ from .views import (
     RegisterViewSet,
     LogOutApiView,
     SendOtpCodeView,
+    google_auth
 )
 
 router = DefaultRouter()
@@ -45,6 +46,7 @@ urlpatterns = [
         "accept-invitation/", AcceptInvitationView.as_view(), name="accept-invitation"
     ),
     path("send-otp/", SendOtpCodeView.as_view(), name="send-otp"),
+    path("google-auth/", google_auth, name="google-auth"),
 ]
 
 urlpatterns += router.urls
