@@ -5,6 +5,7 @@ from django.contrib.contenttypes.fields import GenericRelation
 from itestify_backend.mixims import TouchDatesMixim
 from user.models import User
 from notifications.models import Notification
+from cloudinary.models import CloudinaryField
 
 
 class CATEGORY(models.TextChoices):
@@ -122,8 +123,7 @@ class Share(SocialInteraction):
 
 
 class InspirationalPictures(TouchDatesMixim):
-    thumbnail = models.ImageField(
-        upload_to="inspirational_picture/", null=True, blank=True)
+    thumbnail = CloudinaryField('images', blank=True, null = True)
     source = models.CharField(
         max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
     like_inspirational_pic = models.ManyToManyField(

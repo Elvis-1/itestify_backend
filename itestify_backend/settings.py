@@ -62,8 +62,9 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'channels',
-    'cloudinary',
     'cloudinary_storage',
+    'cloudinary',
+
 ]
 
 
@@ -316,6 +317,7 @@ if not DEBUG:
     # and renames the files with unique names for each version to support long-term caching
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+MEDIA_URL = "/media/"
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 # Cloudinary Setup
 cloudinary.config(
@@ -325,7 +327,6 @@ cloudinary.config(
 )
 
 
-MEDIA_URL = "/media/"
 # MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
