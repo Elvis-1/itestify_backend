@@ -4,7 +4,9 @@ from .views import (InspirationalPicturesViewSet, ShowAllInspirationalPicturesSt
                     TextTestimonyByCategoryView, TextTestimonyCommentsView, TextTestimonyLikesView,
                     VideoTestimonyByCategoryView, ShowAllUplaodedInspirationalPictures, TextTestimonyReplyComment,
                     VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView,
-                    InpirationalPicturesSharesCount, UserLikeInspirationalPicture, VideoTestimonyLikeUserComment, TextTestimonyDeleteSelected, TextTestimonyLikeUserComment, DownloadedInspirationalPictureCountView, VideoTestimonyReplyComment)
+                    InpirationalPicturesSharesCount, UnreadNotificationsView, GetAllNotificationsView, UserLikeInspirationalPicture, 
+                    VideoTestimonyLikeUserComment, TextTestimonyDeleteSelected, TextTestimonyLikeUserComment, 
+                    DownloadedInspirationalPictureCountView, VideoTestimonyReplyComment)
 from rest_framework.routers import DefaultRouter
 
 
@@ -44,8 +46,6 @@ urlpatterns = [
          TextTestimonyLikeUserComment.as_view(), name='testimony-by-category-comment'),
      path('testimonies/get-text-testimony-like-user-comment-count/<id>/',
          TextTestimonyLikeUserComment.as_view(), name='testimony-by-category-comment'),
-    path('testimonies/get-text-testimony-like-user-comment-count/<id>/',
-         VideoTestimonyLikeUserComment.as_view(), name='testimony-by-category-comment'),
     path('testimonies/like/<id>/',
          TextTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
     path('testimonies/all-like/<id>/',
@@ -66,6 +66,12 @@ urlpatterns = [
          VideoTestimonyLikeUserComment.as_view(), name='testimony-by-category-comment'),
     path('testimonies/all-liked-video/<id>/',
          VideoTestimonyLikesView.as_view(), name='testimony-by-category-comment'),
+     path('get-unread-notifications/',
+         UnreadNotificationsView.as_view(), name=''),
+     path('read-notifications/<id>/',
+         UnreadNotificationsView.as_view(), name=''),
+     path('getall-notifications/',
+         GetAllNotificationsView.as_view(), name=''),
     path('get-all-inspirational-status/',
          ShowAllInspirationalPicturesStatus.as_view()),
     path('inspirational-pictures-shares-count/<id>/',

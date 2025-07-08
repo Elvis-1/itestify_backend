@@ -14,10 +14,12 @@ from .views import (
     RegisterViewSet,
     LogOutApiView,
     SendOtpCodeView,
+
     PermissionViewSet,
     RoleViewSet,
     SuperAdminManagementViewSet,
     AdminManagementViewSet,
+
 )
 
 router = DefaultRouter()
@@ -52,6 +54,7 @@ urlpatterns = [
     ),
     path("send-otp/", SendOtpCodeView.as_view(), name="send-otp"),
 
+
     path('super-admin/', SuperAdminManagementViewSet.as_view({
         'post': 'transfer_super_admin',
         'get': 'get_eligible_users'
@@ -61,6 +64,7 @@ urlpatterns = [
         'post': 'manage_admin',
         'get': 'get_eligible_admins'
     }), name='admin-management'),
+
 ]
 
 urlpatterns += router.urls

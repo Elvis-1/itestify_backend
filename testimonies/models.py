@@ -4,6 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericRelation
 from itestify_backend.mixims import TouchDatesMixim
 from user.models import User
+from notifications.models import Notification
+from cloudinary.models import CloudinaryField
 
 
 class CATEGORY(models.TextChoices):
@@ -41,6 +43,7 @@ class Testimony(TouchDatesMixim):
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment")
     shares = GenericRelation("Share")
+    notification = GenericRelation(Notification)
     views = models.PositiveIntegerField(default=0, null=True, blank=True)
 
     class Meta:
@@ -105,11 +108,10 @@ class SocialInteraction(TouchDatesMixim):
 
 class Comment(SocialInteraction):
     text = models.TextField()
-    reply_to = models.ForeignKey(
-        'self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
-    user_like_comment = models.ManyToManyField(User, blank=True, related_name="user_like_comment")
-    
-
+    reply_to = models.ManyToManyField(
+        'self', blank=True)
+    user_like_comment = models.ManyToManyField(
+        User, blank=True, related_name="user_like_comment")
 
 
 class Like(SocialInteraction):
@@ -121,12 +123,13 @@ class Share(SocialInteraction):
 
 
 class InspirationalPictures(TouchDatesMixim):
-    thumbnail = models.ImageField(
-        upload_to="inspirational_picture/", null=True, blank=True)
+    thumbnail = CloudinaryField('images', blank=True, null = True)
     source = models.CharField(
         max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
-    like_inspirational_pic = models.ManyToManyField(User, blank=True, related_name="like_inspirational_pic")
-    status = models.CharField(max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True)
+    like_inspirational_pic = models.ManyToManyField(
+        User, blank=True, related_name="like_inspirational_pic")
+    status = models.CharField(
+        max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True)
     shares_count = models.PositiveIntegerField(default=0)
     downloads_count = models.PositiveIntegerField(default=0)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -146,7 +146,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     def __str__(self):
         return self.email
 
-    def has_perm(self, perm, obj=None):
+    '''def has_perm(self, perm, obj=None):
         if self.is_super_admin:
             return True
         if not self.role:
@@ -154,7 +154,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         return self.role.permissions.filter(codename=perm).exists()
 
     def has_perms(self, perm_list, obj=None):
-        return all(self.has_perm(perm, obj) for perm in perm_list)
+        return all(self.has_perm(perm, obj) for perm in perm_list)'''
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)
