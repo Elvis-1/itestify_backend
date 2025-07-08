@@ -266,11 +266,11 @@ class RegisterViewSet(viewsets.ViewSet):
                         )
                     #permission = Permission.objects.create(
                         #name="name", codename="codename")
-                    user_role = Role.objects.create(name="VIEWER")
+                    #user_role = Role.objects.create(name="VIEWER")
                     #user_role.add(permission)
                     User.objects.create_user(serializer.validated_data["email"],
                                              full_name=serializer.validated_data["full_name"],
-                                             role=user_role,
+                                             role=User.Roles.VIEWER,
                                              status=User.STATUS.REGISTERED,
                                              password=serializer.validated_data["password"],
                                              is_verified=True,
@@ -417,7 +417,7 @@ class LoginViewSet(viewsets.ViewSet):
 
             user.last_login = datetime.now()
             user.save()
-
+            #print(user.role)
             data = {
                 "id": user.id,
                 "email": user.email,

@@ -13,6 +13,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from itestify_backend.mixims import TouchDatesMixim
 
+
 class Permission(models.Model):
     """
     Model to represent permissions in the system.
@@ -29,6 +30,7 @@ class Permission(models.Model):
     def __str__(self):
         return self.name
 
+
 class Role(models.Model):
     """
     Model to represent roles in the system.
@@ -44,6 +46,7 @@ class Role(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -66,10 +69,10 @@ class UserManager(BaseUserManager):
         user.save()
 
         # Assign super admin role if it exists
-        super_admin_role = Role.objects.filter(name='Super Admin').first()
+        '''super_admin_role = Role.objects.filter(name='Super Admin').first()
         if super_admin_role:
             user.role = super_admin_role
-            user.save()
+            user.save()'''
 
         return user
 
@@ -94,21 +97,29 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
+
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     class STATUS(models.TextChoices):
         DELETED = "deleted", "deleted"
         REGISTERED = "registered", "registered"
         INVITED = "invited", "Invited"
 
+    class Roles(models.TextChoices):
+        SUPER_ADMIN = "super_admin", "super_admin"
+        ADMIN = "admin", "admin"
+        VIEWER = "viewer", "viewer"
+
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.ForeignKey(
+    '''role = models.ForeignKey(
         Role,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="users"
-    )
+    )'''
+    role = models.CharField(
+        max_length=20, choices=Roles.choices, default=Roles.VIEWER)
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
@@ -159,9 +170,6 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     def tokens(self):
         refresh = RefreshToken.for_user(self)
         return {"refresh": str(refresh), "access": str(refresh.access_token)}
-
-
-
 
 
 # from django.db import models
@@ -331,7 +339,8 @@ class SendOtp(TouchDatesMixim):
 
 class UserInvitation(TouchDatesMixim):
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="invitations")
     token = models.CharField(max_length=64, unique=True, blank=True, null=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
