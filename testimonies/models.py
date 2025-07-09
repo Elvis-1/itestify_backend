@@ -41,7 +41,7 @@ class Testimony(TouchDatesMixim):
         User, on_delete=models.CASCADE)
     rejection_reason = models.TextField(blank=True, null=True)
     likes = GenericRelation("Like")
-    comments = GenericRelation("Comment")
+    comments = GenericRelation("Comment", related_query_name="comments")
     shares = GenericRelation("Share")
     notification = GenericRelation(Notification)
     views = models.PositiveIntegerField(default=0, null=True, blank=True)
@@ -123,7 +123,8 @@ class Share(SocialInteraction):
 
 
 class InspirationalPictures(TouchDatesMixim):
-    thumbnail = CloudinaryField('images', blank=True, null = True)
+    thumbnail = CloudinaryField(
+        'images/inspirational_pic/', blank=True, null=True)
     source = models.CharField(
         max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
     like_inspirational_pic = models.ManyToManyField(

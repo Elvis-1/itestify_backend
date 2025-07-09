@@ -25,6 +25,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from .serializers import (
     InspirationalPicturesSerializer,
+    ReturnATextTestimonyCommentSerializer,
     ReturnInspirationalPicturesSerializer,
     ReturnTextTestimonySerializer,
     ReturnVideoTestimonyCommentSerializer,
@@ -531,7 +532,7 @@ class VideoTestimonyLikeUserComment(APIView):
 
 
 class VideoTestimonyLikesView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     serializer_class = ReturnVideoTestimonyLikeSerializer
 
@@ -661,8 +662,26 @@ class TextTestimonyDeleteSelected(APIView):
         )
 
 
+class editTextTestimonyComment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, id):
+        comment = request.data["comment"]
+        try:
+
+            comment_id = Comment.objects.get(id=id)
+            comment_id.text = comment
+            comment_id.save()
+            return CustomResponse.success(message="Comment Updated Successfully", status_code=200)
+        except Comment.DoesNotExist:
+            return CustomResponse.error(message="Comment not found",
+                                        err_code=ErrorCode.NOT_FOUND,
+                                        status_code=404)
+
+
 class TextTestimonyDetailView(APIView):
     """Fetch a specific testimony by ID."""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
         try:
@@ -684,9 +703,41 @@ class TextTestimonyDetailView(APIView):
             status_code=200
         )
 
+    def put(self, request, id):
+        testimony = request.data["testimony"]
+        try:
+            testimony_id = TextTestimony.objects.get(id=id)
+            testimony_id.content = testimony
+            testimony_id.save()
+            return CustomResponse.success(
+                message="Testimony Updated successfully",
+                status_code=200
+            )
+        except TextTestimony.DoesNotExist:
+            CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class GetCommentFromATextTestimony(APIView):
+    serializer_class = ReturnATextTestimonyCommentSerializer
+
+    def get(self, request, id):
+        comment_id = request.query_params.get("comment_id")
+        try:
+            testimony = TextTestimony.objects.get(id=id)
+            # comment = testimony.comments.get(id=comment_id)
+            serializer = ReturnATextTestimonyCommentSerializer(
+                testimony, many=False, context={'request': request, 'comment_id': comment_id})
+            return CustomResponse.success(message="Comment Retrieve", data=serializer.data, status_code=200)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(message="Testimony Not found", status_code=401)
+
 
 class TextTestimonyCommentsView(APIView):
-    # permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     serializer_class = TextTestimonyCommentSerializer
 
@@ -723,9 +774,18 @@ class TextTestimonyCommentsView(APIView):
                     status_code=403,
                 )
             # Create the comment
-            get_testimony.comments.create(
+            comment_id = get_testimony.comments.create(
                 text=comment,
                 user=user_id
+            )
+            content_type = ContentType.objects.get_for_model(TextTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                redirect_url=f"{settings.FRONT_END_BASE_URL}get-a-commenttexttestimony/{get_testimony}/?comment_id={comment_id}",
+                verb=f"{user_id.email} commented on your testimony",
+                content_type=content_type,
+                object_id=get_testimony.id
             )
             return CustomResponse.success(
                 message="Comment added successfully",
@@ -814,7 +874,7 @@ class TextTestimonyReplyComment(APIView):
                 object_id=get_testimony.id
             )
             get_comment = Comment.objects.get(id=id)
-            get_comment.reply_to = reply
+            get_comment.reply_to.add(reply)
             get_comment.save()
             return CustomResponse.success(
                 message="Comment added successfully",

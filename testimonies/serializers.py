@@ -132,6 +132,45 @@ class ReturnTextTestimonyCommentSerializer(serializers.ModelSerializer):
         if user and user["role"] == "viewer":
             self.fields.pop("uploaded_by", None)
 
+class ReturnATextTestimonyCommentSerializer(serializers.ModelSerializer):
+    comment = serializers.SerializerMethodField()
+    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
+
+    class Meta:
+        model = TextTestimony
+        fields = [
+            "id",
+            "title",
+            "category",
+            "content",
+            "status",
+            "rejection_reason",
+            "uploaded_by",
+            "created_at",
+            "updated_at",
+            "comment",
+        ]
+
+
+    def get_comment(self, obj):
+        comment_id = self.context.get('comment_id')
+        if comment_id:
+            try:
+                return TextTestimonyCommentSerializer(obj.comments.get(id=comment_id)).data
+            except Comment.DoesNotExist:
+                return None
+        return None
+    
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        user = self.context.get("user")
+
+        # conditionally remove 'uploaded_by' field based on user's role
+        if user and user["role"] == "viewer":
+            self.fields.pop("uploaded_by", None)
+
 
 class ReturnVideoTestimonyCommentSerializer(serializers.ModelSerializer):
     comments = TextTestimonyCommentSerializer(
@@ -377,11 +416,13 @@ class InspirationalPicturesSerializer(serializers.ModelSerializer):
 
 
 class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
+    thumbnail_url = serializers.SerializerMethodField()
     class Meta:
         model = InspirationalPictures
         fields = [
             "id",
             "thumbnail",
+            "thumbnail_url",
             "source",
             "status",
             "downloads_count",
@@ -392,7 +433,7 @@ class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_thumbnail(self, obj):
+    def get_thumbnail_url(self, obj):
         request = self.context.get("request")
         if request is not None:
             return request.build_absolute_uri(obj.thumbnail.url)
