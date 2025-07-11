@@ -264,6 +264,10 @@ class RegisterViewSet(viewsets.ViewSet):
                             err_code=ErrorCode.INVALID_ENTRY,
                             status_code=400
                         )
+                    #permission = Permission.objects.create(
+                        #name="name", codename="codename")
+                    #user_role = Role.objects.create(name="VIEWER")
+                    #user_role.add(permission)
                     User.objects.create_user(serializer.validated_data["email"],
                                              full_name=serializer.validated_data["full_name"],
                                              role=User.Roles.VIEWER,
@@ -413,7 +417,7 @@ class LoginViewSet(viewsets.ViewSet):
 
             user.last_login = datetime.now()
             user.save()
-
+            #print(user.role)
             data = {
                 "id": user.id,
                 "email": user.email,
@@ -1125,6 +1129,7 @@ class PermissionViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAuthenticated & IsSuperAdmin]
         return [permission() for permission in permission_classes]
 
+
 class RoleViewSet(viewsets.ModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
@@ -1141,17 +1146,18 @@ class RoleViewSet(viewsets.ModelViewSet):
     def assign_role(self, request):
         serializer = RoleAssignmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         user = get_object_or_404(User, id=serializer.validated_data['user_id'])
         role = get_object_or_404(Role, id=serializer.validated_data['role_id'])
-        
+
         user.role = role
         user.save()
-        
+
         return Response(
             {"message": "Role assigned successfully"},
             status=status.HTTP_200_OK
         )
+
 
 class SuperAdminManagementViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated & IsSuperAdmin]
@@ -1163,31 +1169,31 @@ class SuperAdminManagementViewSet(viewsets.ViewSet):
         """
         serializer = SuperAdminTransferSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         current_user = request.user
         new_super_admin = get_object_or_404(
-            User, 
+            User,
             id=serializer.validated_data['new_super_admin_id']
         )
-        
+
         super_admin_role = Role.objects.get(name='Super Admin')
-        
+
         # Check if the new user is already a super admin
         if new_super_admin.role == super_admin_role:
             return Response(
                 {"error": "User is already a super admin"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Transfer the role
         new_super_admin.role = super_admin_role
         new_super_admin.save()
-        
+
         # Handle current admin's action
         action = serializer.validated_data['current_admin_action']
         if action == 'demote':
             new_role = get_object_or_404(
-                Role, 
+                Role,
                 id=serializer.validated_data['new_role_id']
             )
             current_user.role = new_role
@@ -1195,9 +1201,9 @@ class SuperAdminManagementViewSet(viewsets.ViewSet):
         else:
             current_user.status = User.STATUS.DELETED
             message = "Super admin role transferred and your account has been deleted"
-        
+
         current_user.save()
-        
+
         return Response(
             {"message": message},
             status=status.HTTP_200_OK
@@ -1213,7 +1219,7 @@ class SuperAdminManagementViewSet(viewsets.ViewSet):
         ).exclude(
             status=User.STATUS.DELETED
         ).select_related('role')
-        
+
         eligible_users = []
         for user in users:
             eligible_users.append({
@@ -1222,8 +1228,9 @@ class SuperAdminManagementViewSet(viewsets.ViewSet):
                 'full_name': user.full_name,
                 'current_role': user.role.name if user.role else None
             })
-        
+
         return Response(eligible_users, status=status.HTTP_200_OK)
+
 
 class AdminManagementViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated & (IsSuperAdmin | IsAdmin)]
@@ -1235,11 +1242,11 @@ class AdminManagementViewSet(viewsets.ViewSet):
         """
         serializer = AdminManagementSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         user = get_object_or_404(User, id=serializer.validated_data['user_id'])
         action = serializer.validated_data['action']
         admin_role = Role.objects.get(name='Admin')
-        
+
         if action == 'add':
             user.role = admin_role
             user.save()
@@ -1254,7 +1261,7 @@ class AdminManagementViewSet(viewsets.ViewSet):
                     {"error": "User is not an admin"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
+
         return Response(
             {"message": message},
             status=status.HTTP_200_OK
@@ -1267,13 +1274,13 @@ class AdminManagementViewSet(viewsets.ViewSet):
         """
         admin_role = Role.objects.get(name='Admin')
         current_admins = User.objects.filter(role=admin_role)
-        
+
         eligible_users = User.objects.exclude(
             role=admin_role
         ).exclude(
             status=User.STATUS.DELETED
         ).select_related('role')
-        
+
         eligible_list = []
         for user in eligible_users:
             eligible_list.append({
@@ -1282,5 +1289,5 @@ class AdminManagementViewSet(viewsets.ViewSet):
                 'full_name': user.full_name,
                 'current_role': user.role.name if user.role else None
             })
-        
+
         return Response(eligible_list, status=status.HTTP_200_OK)
