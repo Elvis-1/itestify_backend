@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
-from user.models import Otp, Permission, Role, SendOtp, User, EntryCode, UserInvitation#, Otp
+from user.models import Otp, SendOtp, User, EntryCode, UserInvitation#, Otp
 
 # Register your models here.
 
@@ -34,8 +34,6 @@ class UserAdmin(BaseUserAdmin):
 
 # Register all models you want visible in the admin
 admin.site.register(User, UserAdmin)
-admin.site.register(Role)
-admin.site.register(Permission)
 admin.site.register(EntryCode)
 admin.site.register(Otp)
 admin.site.register(SendOtp)
