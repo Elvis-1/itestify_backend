@@ -43,6 +43,7 @@ from .permissions import IsAuthenticated, IsLoggedInUser
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
+from .utils import extract_video_testimonies, transform_testimony_files
 
 from django.db.models import Q
 
@@ -963,33 +964,25 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     # @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        video_testimonies = request.data.getlist("video_testimonies") if isinstance(request.data, QueryDict) else request.data.get("video_testimonies", [])
+        video_testimonies = extract_video_testimonies(request.data, request.FILES)
 
         total_response_data = []
-        print(video_testimonies)
+      
         for video in video_testimonies:
+            transformed_video_data = transform_testimony_files(video)
+        
             serializer = VideoTestimonySerializer(
-                data=video, context={"request": request}
-            )
-            serializer.is_valid(raise_exception=True)
-
-        for i, video_data in enumerate(video_testimonies):
-            # Build keys for files
-            prefix = f"video_testimonies[{i}]"
-            video_data["video_file"] = request.FILES.get(f"{prefix}[video_file]")
-            video_data["thumbnail"] = request.FILES.get(f"{prefix}[thumbnail]")
-
-            serializer = VideoTestimonySerializer(
-                data=video_data,
+                data=transformed_video_data,
                 context={"request": request}
             )
 
-            serializer.is_valid(raise_exception=True)
+            serializer.is_valid(raise_exception=True)   
             testimony = serializer.save()
 
             return_serializer = ReturnVideoTestimonySerializer(
                 testimony, context={"request": request}
             )
+
             total_response_data.append(return_serializer.data)
 
         return CustomResponse.success(message="Success.", data=total_response_data, status_code=201)

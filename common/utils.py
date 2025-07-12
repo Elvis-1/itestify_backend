@@ -16,12 +16,6 @@ MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
 def upload_file(files):
-    # files = request.FILES.getlist("files")
-
-    # if not files:
-    #     return CustomResponse.error(
-    #         err_code=ErrorCode.BAD_REQUEST, message="At least one file is required."
-    #     )
 
     uploaded_files = []
 
@@ -59,4 +53,4 @@ def upload_file(files):
             }
         )
 
-    return upload_files
+    return uploaded_files
