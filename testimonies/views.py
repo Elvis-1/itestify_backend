@@ -961,7 +961,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
-    # @handle_custom_exceptions
+    @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
         video_testimonies = extract_video_testimonies(request.data, request.FILES)
