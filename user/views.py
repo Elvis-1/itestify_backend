@@ -50,6 +50,10 @@ from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 from allauth.socialaccount.models import SocialToken
 
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from rest_framework.decorators import api_view
+
 
 # Create your views here.
 
@@ -72,6 +76,42 @@ def has_special_character(s):
 
 
 # -------------- GOOGLE SOCIAL LOGIN ----------------
+
+
+@api_view(['POST'])
+def google_auth(request):
+    token = request.data.get('id_token')
+    if not token:
+        return Response({'error': 'ID token missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Replace with your actual CLIENT_ID
+        print(token)
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(
+        ), "744141540606-tu73k7qmio0d73kdm55mstekeq81au9m.apps.googleusercontent.com")
+        print(idinfo)
+        email = idinfo['email']
+        first_name = idinfo.get('given_name', '')
+        last_name = idinfo.get('family_name', '')
+
+        # Create or get user
+        user, created = User.objects.get_or_create(username=email, defaults={
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name
+        })
+
+        # Optionally generate JWT token
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        })
+
+    except ValueError:
+        return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class GoogleLoginCallback(APIView):
 
     def get(self, request, *args, **kwargs):
@@ -91,7 +131,7 @@ class GoogleLoginCallback(APIView):
             "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
             "grant_type": "authorization_code",
         }
-       
+
         # Make a request to the Google token endpoint
         try:
             response = requests.post(
@@ -218,6 +258,10 @@ class RegisterViewSet(viewsets.ViewSet):
                             err_code=ErrorCode.INVALID_ENTRY,
                             status_code=400
                         )
+                    #permission = Permission.objects.create(
+                        #name="name", codename="codename")
+                    #user_role = Role.objects.create(name="VIEWER")
+                    #user_role.add(permission)
                     User.objects.create_user(serializer.validated_data["email"],
                                              full_name=serializer.validated_data["full_name"],
                                              role=User.Roles.VIEWER,
@@ -367,7 +411,7 @@ class LoginViewSet(viewsets.ViewSet):
 
             user.last_login = datetime.now()
             user.save()
-
+            #print(user.role)
             data = {
                 "id": user.id,
                 "email": user.email,
