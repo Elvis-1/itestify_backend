@@ -1,4 +1,4 @@
-import uuid
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
@@ -9,6 +9,8 @@ from rest_framework import status
 from django.utils.dateparse import parse_date
 from django.http import QueryDict
 from common.responses import CustomResponse
+from notifications.models import Notification
+from notifications.serializers import NotificationSerializer
 from support import http
 from support.helpers import StandardResultsSetPagination
 from user.models import User
@@ -25,6 +27,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from .serializers import (
     InspirationalPicturesSerializer,
+    ReturnATextTestimonyCommentSerializer,
     ReturnInspirationalPicturesSerializer,
     ReturnTextTestimonySerializer,
     ReturnVideoTestimonyCommentSerializer,
@@ -156,8 +159,7 @@ class VideoTestimonyByCategoryView(APIView):
 class VideoTestimonyDeleteSelected(APIView):
     def post(self, request):
         ids = request.data.get("ids", [])
-        print(ids)
-        print("Hello world")
+        # print(ids)
         if not ids:
             return CustomResponse.error(
                 message="No IDs provided",
@@ -189,9 +191,20 @@ class VideoTestimonyCommentsView(APIView):
 
     def post(self, request, id):
         user = request.user
-        get_testimony = VideoTestimony.objects.get(id=id)
-        print(get_testimony)
-        if not get_testimony:
+        # owner_id = request.query_params.get("owner_id")
+        # print(owner_id)
+        '''try:
+            testimony_owner = User.objects.get(id=owner_id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="Owner not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )'''
+        try:
+            get_testimony = VideoTestimony.objects.get(
+                id=id)
+        except VideoTestimony.DoesNotExist:
             return CustomResponse.error(
                 message="Testimony not found",
                 err_code=ErrorCode.NOT_FOUND,
@@ -216,6 +229,15 @@ class VideoTestimonyCommentsView(APIView):
             get_testimony.comments.create(
                 text=comment,
                 user=user_id
+            )
+            content_type = ContentType.objects.get_for_model(VideoTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                verb=f"{user_id.email} commented on your testimony",
+                redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{get_testimony.id}/",
+                content_type=content_type,
+                object_id=get_testimony.id
             )
             return CustomResponse.success(
                 message="Comment added successfully",
@@ -286,16 +308,25 @@ class VideoTestimonyReplyComment(APIView):
             )
         # Create the comment
         try:
-            content_type = ContentType.objects.get_for_model(VideoTestimony)
+            content_type = ContentType.objects.get_for_model(Comment)
             reply = Comment.objects.create(
                 text=comment,
                 user=user_id,
                 content_type=content_type,
-                object_id=get_testimony.id
+                object_id=id
             )
             get_comment = Comment.objects.get(id=id)
-            get_comment.reply_to = reply
+            get_comment.reply_to.add(reply)
             get_comment.save()
+            content_type = ContentType.objects.get_for_model(VideoTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                verb=f"{user_id.email} commented on your testimony",
+                redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{get_testimony.id}/",
+                content_type=content_type,
+                object_id=get_testimony.id
+            )
             return CustomResponse.success(
                 message="Comment added successfully",
                 status_code=201
@@ -341,8 +372,41 @@ class VideoTestimonyReplyComment(APIView):
         )
 
 
-class VideoTestimonyLikeUserComment(APIView):
-    #permission_classes = [IsAuthenticated]
+class GetAllNotificationsView(APIView):
+    # permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def get(self, request):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        notifications = Notification.objects.filter(
+            target=user_id).order_by('-timestamp')
+        if not notifications:
+            return CustomResponse.error(
+                message="No notifications found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        serializer = self.serializer_class(notifications, many=True)
+
+        return CustomResponse.success(
+            message="Notifications retrieved successfully",
+            data=serializer.data,
+            status_code=200
+        )
+
+
+class UnreadNotificationsView(APIView):
+
+    # permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
 
     def post(self, request, id):
         user = request.user
@@ -355,17 +419,83 @@ class VideoTestimonyLikeUserComment(APIView):
                 status_code=404,
             )
         try:
+            notification = Notification.objects.get(id=id, target=user_id)
+            notification.read = True
+            notification.save()
+            return CustomResponse.success(
+                message="Notification marked as read successfully",
+                status_code=200
+            )
+        except Notification.DoesNotExist:
+            return CustomResponse.error(
+                message="Notification not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+    def get(self, request):
+        print("Hello world")
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        notification = Notification.objects.filter(
+            target=user_id, read=False).order_by('-timestamp')
+        if not notification:
+            return CustomResponse.error(
+                message="No notifications found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        serializer = self.serializer_class(notification, many=True)
+
+        return CustomResponse.success(
+            message="Notifications retrieved successfully",
+            data=serializer.data,
+            status_code=200
+        )
+
+
+class VideoTestimonyLikeUserComment(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, request, id):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+            print(user_id.email)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
             comment_id = Comment.objects.get(id=id)
             print(comment_id)
+            comment_owner = comment_id.user
             if comment_id.user_like_comment.filter(id=user_id.id).exists():
                 comment_id.user_like_comment.remove(user)
+                content_type = ContentType.objects.get_for_model(Comment)
+                Notification.objects.create(
+                    target=comment_owner, owner=user_id, redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{id}/", verb=f"{user_id.email} Unlike your testimony", content_type=content_type,
+                    object_id=id)
                 return CustomResponse.success(
                     message="user unliked Comment successfully",
-                    
+
                     status_code=200
                 )
             else:
                 comment_id.user_like_comment.add(user)
+                content_type = ContentType.objects.get_for_model(Comment)
+                Notification.objects.create(
+                    target=comment_owner, owner=user_id, redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{id}/", verb=f"{user_id.email} Like your testimony", content_type=content_type,
+                    object_id=id)
                 return CustomResponse.success(
                     message="user liked Comment successfully",
                     status_code=201
@@ -405,7 +535,7 @@ class VideoTestimonyLikeUserComment(APIView):
 
 
 class VideoTestimonyLikesView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     serializer_class = ReturnVideoTestimonyLikeSerializer
 
@@ -525,7 +655,7 @@ class TextTestimonyDeleteSelected(APIView):
                 video.delete()
             except TextTestimony.DoesNotExist:
                 return CustomResponse.error(
-                    message=f"Video with ID {id} not found",
+                    message=f"Text with ID {id} not found",
                     err_code=ErrorCode.NOT_FOUND,
                     status_code=404
                 )
@@ -535,8 +665,26 @@ class TextTestimonyDeleteSelected(APIView):
         )
 
 
+class editTextTestimonyComment(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, id):
+        comment = request.data["comment"]
+        try:
+
+            comment_id = Comment.objects.get(id=id)
+            comment_id.text = comment
+            comment_id.save()
+            return CustomResponse.success(message="Comment Updated Successfully", status_code=200)
+        except Comment.DoesNotExist:
+            return CustomResponse.error(message="Comment not found",
+                                        err_code=ErrorCode.NOT_FOUND,
+                                        status_code=404)
+
+
 class TextTestimonyDetailView(APIView):
     """Fetch a specific testimony by ID."""
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, id):
         try:
@@ -558,9 +706,41 @@ class TextTestimonyDetailView(APIView):
             status_code=200
         )
 
+    def put(self, request, id):
+        testimony = request.data["testimony"]
+        try:
+            testimony_id = TextTestimony.objects.get(id=id)
+            testimony_id.content = testimony
+            testimony_id.save()
+            return CustomResponse.success(
+                message="Testimony Updated successfully",
+                status_code=200
+            )
+        except TextTestimony.DoesNotExist:
+            CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+
+class GetCommentFromATextTestimony(APIView):
+    serializer_class = ReturnATextTestimonyCommentSerializer
+
+    def get(self, request, id):
+        comment_id = request.query_params.get("comment_id")
+        try:
+            testimony = TextTestimony.objects.get(id=id)
+            # comment = testimony.comments.get(id=comment_id)
+            serializer = ReturnATextTestimonyCommentSerializer(
+                testimony, many=False, context={'request': request, 'comment_id': comment_id})
+            return CustomResponse.success(message="Comment Retrieve", data=serializer.data, status_code=200)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(message="Testimony Not found", status_code=401)
+
 
 class TextTestimonyCommentsView(APIView):
-    # permission_classes = [IsAuthenticated]
+    #permission_classes = [IsAuthenticated]
 
     serializer_class = TextTestimonyCommentSerializer
 
@@ -597,9 +777,18 @@ class TextTestimonyCommentsView(APIView):
                     status_code=403,
                 )
             # Create the comment
-            get_testimony.comments.create(
+            comment_id = get_testimony.comments.create(
                 text=comment,
                 user=user_id
+            )
+            content_type = ContentType.objects.get_for_model(TextTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                redirect_url=f"{settings.FRONT_END_BASE_URL}get-a-commenttexttestimony/{get_testimony}/?comment_id={comment_id}",
+                verb=f"{user_id.email} commented on your testimony",
+                content_type=content_type,
+                object_id=get_testimony.id
             )
             return CustomResponse.success(
                 message="Comment added successfully",
@@ -688,7 +877,7 @@ class TextTestimonyReplyComment(APIView):
                 object_id=get_testimony.id
             )
             get_comment = Comment.objects.get(id=id)
-            get_comment.reply_to = reply
+            get_comment.reply_to.add(reply)
             get_comment.save()
             return CustomResponse.success(
                 message="Comment added successfully",

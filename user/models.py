@@ -78,6 +78,11 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         REGISTERED = "registered", "registered"
         INVITED = "invited", "Invited"
 
+    class Roles(models.TextChoices):
+        SUPER_ADMIN = "super_admin", "super_admin"
+        ADMIN = "admin", "admin"
+        VIEWER = "viewer", "viewer"
+
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
     role = models.CharField(
@@ -164,7 +169,8 @@ class SendOtp(TouchDatesMixim):
 
 class UserInvitation(TouchDatesMixim):
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="invitations")
     token = models.CharField(max_length=64, unique=True, blank=True, null=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
