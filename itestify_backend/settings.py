@@ -4,7 +4,6 @@ from pathlib import Path
 from datetime import timedelta
 from decouple import config
 from celery.schedules import crontab
-# import psycopg
 import cloudinary
 from datetime import timedelta
 
@@ -51,7 +50,6 @@ INSTALLED_APPS = [
     "common",
     "django_celery_beat",
     "django_celery_results",
-    # "rest_framework.authtoken",
     'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
     'reviews',
     'django_filters',
@@ -145,7 +143,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if not DEPLOY:
+if DEPLOY == False:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

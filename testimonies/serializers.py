@@ -16,6 +16,8 @@ from .models import (
 from datetime import datetime, timezone
 from django.utils.timezone import now, timedelta, is_naive, is_aware, get_current_timezone
 
+from common.utils import upload_file
+
 DEBUG = True if os.getenv("DEBUG") == "True" else False
 
 
@@ -297,9 +299,20 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Add the currently authenticated user to the validated data
         user = self.context["request"].user
-        validated_data["uploaded_by"] = user
-        return super().create(validated_data)
 
+        # Upload actual files from self.context["request"].FILES
+        video_file = self.context["request"].FILES.get("video_file")
+        thumbnail = self.context["request"].FILES.get("thumbnail")
+
+        uploaded_files = upload_file([video_file, thumbnail])  # Assuming this returns objects with `.url`
+
+        validated_data["video_file"] = uploaded_files[0].url
+        validated_data["thumbnail"] = uploaded_files[1].url
+        validated_data["uploaded_by"] = user
+
+        print(validated_data["video_file"])
+
+        return super().create(validated_data)
 
 class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
 

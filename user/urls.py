@@ -2,7 +2,6 @@ from rest_framework.routers import DefaultRouter
 from django.urls import path
 from .views import (
     DashboardViewSet,
-    MemberManagementViewSet,
     AcceptInvitationView,
     LoginViewSet,
     UsersViewSet,
@@ -14,19 +13,12 @@ from .views import (
     RegisterViewSet,
     LogOutApiView,
     SendOtpCodeView,
-    PermissionViewSet,
-    RoleViewSet,
-    SuperAdminManagementViewSet,
-    AdminManagementViewSet,
 )
 
 router = DefaultRouter()
 router.register(r"login", LoginViewSet, basename="login")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"users", UsersViewSet, basename="users")
-router.register(r"members", MemberManagementViewSet, basename="members")
-router.register(r"permissions", PermissionViewSet, basename="permission")
-router.register(r"roles", RoleViewSet, basename="role")
 
 urlpatterns = [
     path("register", RegisterViewSet.as_view({"post": "register"}), name="register"),
@@ -51,16 +43,6 @@ urlpatterns = [
         "accept-invitation/", AcceptInvitationView.as_view(), name="accept-invitation"
     ),
     path("send-otp/", SendOtpCodeView.as_view(), name="send-otp"),
-
-    path('super-admin/', SuperAdminManagementViewSet.as_view({
-        'post': 'transfer_super_admin',
-        'get': 'get_eligible_users'
-    }), name='super-admin-management'),
-    
-    path('admin-management/', AdminManagementViewSet.as_view({
-        'post': 'manage_admin',
-        'get': 'get_eligible_admins'
-    }), name='admin-management'),
 ]
 
 urlpatterns += router.urls

@@ -7,10 +7,12 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import status
 from django.utils.dateparse import parse_date
+from django.http import QueryDict
 from common.responses import CustomResponse
 from support import http
 from support.helpers import StandardResultsSetPagination
 from user.models import User
+
 from .models import (
     UPLOAD_STATUS,
     InspirationalPictures,
@@ -958,22 +960,28 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
-    @handle_custom_exceptions
+    # @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        video_testimonies = request.data["video_testimonies"]
-        total_response_data = []
+        video_testimonies = request.data.getlist("video_testimonies") if isinstance(request.data, QueryDict) else request.data.get("video_testimonies", [])
 
+        total_response_data = []
+        print(video_testimonies)
         for video in video_testimonies:
             serializer = VideoTestimonySerializer(
                 data=video, context={"request": request}
             )
             serializer.is_valid(raise_exception=True)
-            serializer = ""
 
-        for video in video_testimonies:
+        for i, video_data in enumerate(video_testimonies):
+            # Build keys for files
+            prefix = f"video_testimonies[{i}]"
+            video_data["video_file"] = request.FILES.get(f"{prefix}[video_file]")
+            video_data["thumbnail"] = request.FILES.get(f"{prefix}[thumbnail]")
+
             serializer = VideoTestimonySerializer(
-                data=video, context={"request": request}
+                data=video_data,
+                context={"request": request}
             )
 
             serializer.is_valid(raise_exception=True)
@@ -982,9 +990,9 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             return_serializer = ReturnVideoTestimonySerializer(
                 testimony, context={"request": request}
             )
-
             total_response_data.append(return_serializer.data)
-        return CustomResponse.success(data=total_response_data, status_code=201)
+
+        return CustomResponse.success(message="Success.", data=total_response_data, status_code=201)
 
     def list(self, request):
         """Get all testimonies"""
