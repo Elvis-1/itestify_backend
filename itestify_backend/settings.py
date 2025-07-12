@@ -146,14 +146,14 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if DEPLOY == False:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+#if DEPLOY == False:
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
+}
+'''else:
     DATABASES = {
         'default': {
             "ENGINE": "django.db.backends.postgresql",
@@ -163,7 +163,7 @@ else:
             "PORT": os.getenv("DB_PORT"),
             "NAME": os.getenv("DB_NAME"),
         }
-    }
+    }'''
 
 
 # REDIS SETTINGS

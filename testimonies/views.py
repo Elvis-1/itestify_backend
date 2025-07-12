@@ -740,7 +740,7 @@ class GetCommentFromATextTestimony(APIView):
 
 
 class TextTestimonyCommentsView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     serializer_class = TextTestimonyCommentSerializer
 
@@ -838,7 +838,7 @@ class TextTestimonyCommentsView(APIView):
 
 
 class TextTestimonyReplyComment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = TextTestimonyCommentSerializer
 
     def post(self, request, id):
@@ -925,6 +925,7 @@ class TextTestimonyReplyComment(APIView):
 
 
 class TextTestimonyLikeUserComment(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
         user = request.user
@@ -961,6 +962,7 @@ class TextTestimonyLikeUserComment(APIView):
     def get(self, request, id):
         try:
             comment = Comment.objects.get(id=id)
+            print(comment)
             if comment.user_like_comment.all().exists():
                 comment_likes = comment.user_like_comment.all().count()
                 serializeer = {
