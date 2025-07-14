@@ -670,9 +670,15 @@ class editTextTestimonyComment(APIView):
 
     def put(self, request, id):
         comment = request.data["comment"]
+        user = request.user
         try:
-
-            comment_id = Comment.objects.get(id=id)
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(message="User not found",
+                                        err_code=ErrorCode.NOT_FOUND,
+                                        status_code=404)
+        try:
+            comment_id = Comment.objects.get(id=id, user=user_id)
             comment_id.text = comment
             comment_id.save()
             return CustomResponse.success(message="Comment Updated Successfully", status_code=200)
@@ -708,8 +714,18 @@ class TextTestimonyDetailView(APIView):
 
     def put(self, request, id):
         testimony = request.data["testimony"]
+        user = request.user
         try:
-            testimony_id = TextTestimony.objects.get(id=id)
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            testimony_id = TextTestimony.objects.get(
+                id=id, uploaded_by=user_id)
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -740,7 +756,7 @@ class GetCommentFromATextTestimony(APIView):
 
 
 class TextTestimonyCommentsView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     serializer_class = TextTestimonyCommentSerializer
 
@@ -838,7 +854,7 @@ class TextTestimonyCommentsView(APIView):
 
 
 class TextTestimonyReplyComment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = TextTestimonyCommentSerializer
 
     def post(self, request, id):
@@ -870,15 +886,27 @@ class TextTestimonyReplyComment(APIView):
         # Create the comment
         try:
             content_type = ContentType.objects.get_for_model(TextTestimony)
+
             reply = Comment.objects.create(
                 text=comment,
                 user=user_id,
                 content_type=content_type,
                 object_id=get_testimony.id
             )
+            print(reply)
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
+
+            content_type = ContentType.objects.get_for_model(TextTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                redirect_url=f"{settings.FRONT_END_BASE_URL}get-a-commenttexttestimony/{get_testimony}/?comment_id={reply.id}",
+                verb=f"{user_id.email} Replied commented",
+                content_type=content_type,
+                object_id=get_testimony.id
+            )
             return CustomResponse.success(
                 message="Comment added successfully",
                 status_code=201
@@ -925,6 +953,7 @@ class TextTestimonyReplyComment(APIView):
 
 
 class TextTestimonyLikeUserComment(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
         user = request.user
@@ -961,6 +990,7 @@ class TextTestimonyLikeUserComment(APIView):
     def get(self, request, id):
         try:
             comment = Comment.objects.get(id=id)
+            print(comment)
             if comment.user_like_comment.all().exists():
                 comment_likes = comment.user_like_comment.all().count()
                 serializeer = {
@@ -1153,19 +1183,20 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        video_testimonies = extract_video_testimonies(request.data, request.FILES)
+        video_testimonies = extract_video_testimonies(
+            request.data, request.FILES)
 
         total_response_data = []
-      
+
         for video in video_testimonies:
             transformed_video_data = transform_testimony_files(video)
-        
+
             serializer = VideoTestimonySerializer(
                 data=transformed_video_data,
                 context={"request": request}
             )
 
-            serializer.is_valid(raise_exception=True)   
+            serializer.is_valid(raise_exception=True)
             testimony = serializer.save()
 
             return_serializer = ReturnVideoTestimonySerializer(
@@ -1385,7 +1416,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_text(self, request):
-
+        print("Hello")
         serializer = TextTestimonySerializer(
             data=request.data, context={"request": request}
         )
@@ -1465,12 +1496,12 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"])
     def create_pic(self, request):
-        images = request.data.getlist("images")
+        thumbnail = request.data.getlist("thumbnail")
         # print(images)
-        if images:
+        if len(thumbnail) > 1:
             # If images are provided, create multiple InspirationalPictures
             total_response_data = []
-            for image in images:
+            for image in thumbnail:
                 print(image)
                 serializer = InspirationalPicturesSerializer(
                     data={"thumbnail": image}, context={"request": request}
