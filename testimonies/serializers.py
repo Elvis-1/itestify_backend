@@ -339,7 +339,7 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
         # Add the currently authenticated user to the validated data
         user = self.context["request"].user
         validated_data["uploaded_by"] = user
-
+        
         return super().create(validated_data)
 
 class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
