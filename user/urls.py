@@ -16,7 +16,8 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r"login", LoginViewSet, basename="login")
+router.register(r"mobile-login", LoginViewSet, basename="mobile-login")
+router.register(r"admin-login", LoginViewSet, basename="admin-login")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"users", UsersViewSet, basename="users")
 

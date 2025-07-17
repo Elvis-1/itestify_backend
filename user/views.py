@@ -226,12 +226,13 @@ class RegisterViewSet(viewsets.ViewSet):
                     #user_role = Role.objects.create(name="VIEWER")
                     #user_role.add(permission)
                     User.objects.create_user(serializer.validated_data["email"],
-                                             full_name=serializer.validated_data["full_name"],
-                                             role=User.Roles.VIEWER,
-                                             status=User.STATUS.REGISTERED,
-                                             password=serializer.validated_data["password"],
-                                             is_verified=True,
-                                             is_email_verified=True)
+                        full_name=serializer.validated_data["full_name"],
+                        role=User.Roles.VIEWER,
+                        status=User.STATUS.REGISTERED,
+                        password=serializer.validated_data["password"],
+                        is_verified=True,
+                        is_email_verified=True
+                    )
 
                     return CustomResponse.success(
                         message="Account created successfully", status_code=201
@@ -339,6 +340,7 @@ class LoginViewSet(viewsets.ViewSet):
             status_code=400,
         )
 
+    @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def password(self, request):
         serializer = LoginPasswordSerializer(data=request.data)
@@ -354,6 +356,23 @@ class LoginViewSet(viewsets.ViewSet):
             # Retrieve user by email
             user = User.objects.get(email=email)
             token = user.tokens()
+        
+            route = request.resolver_match.view_name
+            
+            if route == "admin-login-password" and user.role not in ["admin", "super_admin"]:
+                return CustomResponse.error(
+                    message="Sorry, you are not authorized to login.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403
+                )
+
+            if route == "mobile-login-password" and user.role != "viewer":
+                return CustomResponse.error(
+                    message="Sorry, you are not authorized to login.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403
+                )
+
         except User.DoesNotExist:
             return CustomResponse.error(
                 message="User not found",
