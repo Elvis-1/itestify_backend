@@ -437,6 +437,9 @@ class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
 
     def get_thumbnail_url(self, obj):
         request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.thumbnail.url)
-        return obj.thumbnail.url
+        if obj.thumbnail and hasattr(obj.thumbnail, 'url'):
+            url = obj.thumbnail.url
+            if request is not None:
+                return request.build_absolute_uri(url)
+            return url
+        return None
