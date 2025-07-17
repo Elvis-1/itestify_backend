@@ -34,7 +34,6 @@ from .serializers import (
     VideoTestimonyCommentSerializer,
     VideoTestimonySerializer,
     TestimonySettingsSerializer,
-    ReturnTextTestimonyCommentSerializer,
     ReturnTextTestimonyLikeSerializer
 )
 
@@ -1177,12 +1176,10 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
+        data = request.data
 
-        video_testimonies = extract_video_testimonies(
-            request.data, request.FILES)
+        video_testimonies = [data]
         
-
-
         total_response_data = []
 
         for video in video_testimonies:
