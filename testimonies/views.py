@@ -2,16 +2,12 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from rest_framework import status
 from django.utils.dateparse import parse_date
-from django.http import QueryDict
 from common.responses import CustomResponse
 from notifications.models import Notification
 from notifications.serializers import NotificationSerializer
-from support import http
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
@@ -38,15 +34,12 @@ from .serializers import (
     VideoTestimonyCommentSerializer,
     VideoTestimonySerializer,
     TestimonySettingsSerializer,
-    ReturnTextTestimonyCommentSerializer,
     ReturnTextTestimonyLikeSerializer
 )
 
-from .permissions import IsAuthenticated, IsLoggedInUser
 from common.exceptions import handle_custom_exceptions
-from common.responses import CustomResponse
 from common.error import ErrorCode
-from .utils import extract_video_testimonies, transform_testimony_files
+from .utils import transform_testimony_files
 
 from django.db.models import Q
 
@@ -670,9 +663,15 @@ class editTextTestimonyComment(APIView):
 
     def put(self, request, id):
         comment = request.data["comment"]
+        user = request.user
         try:
-
-            comment_id = Comment.objects.get(id=id)
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(message="User not found",
+                                        err_code=ErrorCode.NOT_FOUND,
+                                        status_code=404)
+        try:
+            comment_id = Comment.objects.get(id=id, user=user_id)
             comment_id.text = comment
             comment_id.save()
             return CustomResponse.success(message="Comment Updated Successfully", status_code=200)
@@ -708,8 +707,18 @@ class TextTestimonyDetailView(APIView):
 
     def put(self, request, id):
         testimony = request.data["testimony"]
+        user = request.user
         try:
-            testimony_id = TextTestimony.objects.get(id=id)
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            testimony_id = TextTestimony.objects.get(
+                id=id, uploaded_by=user_id)
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -740,7 +749,7 @@ class GetCommentFromATextTestimony(APIView):
 
 
 class TextTestimonyCommentsView(APIView):
-    #permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     serializer_class = TextTestimonyCommentSerializer
 
@@ -838,7 +847,7 @@ class TextTestimonyCommentsView(APIView):
 
 
 class TextTestimonyReplyComment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = TextTestimonyCommentSerializer
 
     def post(self, request, id):
@@ -870,15 +879,27 @@ class TextTestimonyReplyComment(APIView):
         # Create the comment
         try:
             content_type = ContentType.objects.get_for_model(TextTestimony)
+
             reply = Comment.objects.create(
                 text=comment,
                 user=user_id,
                 content_type=content_type,
                 object_id=get_testimony.id
             )
+            print(reply)
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
+
+            content_type = ContentType.objects.get_for_model(TextTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                redirect_url=f"{settings.FRONT_END_BASE_URL}get-a-commenttexttestimony/{get_testimony}/?comment_id={reply.id}",
+                verb=f"{user_id.email} Replied commented",
+                content_type=content_type,
+                object_id=get_testimony.id
+            )
             return CustomResponse.success(
                 message="Comment added successfully",
                 status_code=201
@@ -925,6 +946,7 @@ class TextTestimonyReplyComment(APIView):
 
 
 class TextTestimonyLikeUserComment(APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
         user = request.user
@@ -961,6 +983,7 @@ class TextTestimonyLikeUserComment(APIView):
     def get(self, request, id):
         try:
             comment = Comment.objects.get(id=id)
+            print(comment)
             if comment.user_like_comment.all().exists():
                 comment_likes = comment.user_like_comment.all().count()
                 serializeer = {
@@ -1153,19 +1176,21 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        video_testimonies = extract_video_testimonies(request.data, request.FILES)
+        data = request.data
 
+        video_testimonies = [data]
+        
         total_response_data = []
-      
+
         for video in video_testimonies:
             transformed_video_data = transform_testimony_files(video)
-        
+            
             serializer = VideoTestimonySerializer(
                 data=transformed_video_data,
                 context={"request": request}
             )
 
-            serializer.is_valid(raise_exception=True)   
+            serializer.is_valid(raise_exception=True)
             testimony = serializer.save()
 
             return_serializer = ReturnVideoTestimonySerializer(
@@ -1385,7 +1410,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_text(self, request):
-
+        print("Hello")
         serializer = TextTestimonySerializer(
             data=request.data, context={"request": request}
         )
@@ -1465,12 +1490,12 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"])
     def create_pic(self, request):
-        images = request.data.getlist("images")
+        thumbnail = request.data.getlist("thumbnail")
         # print(images)
-        if images:
+        if len(thumbnail) > 1:
             # If images are provided, create multiple InspirationalPictures
             total_response_data = []
-            for image in images:
+            for image in thumbnail:
                 print(image)
                 serializer = InspirationalPicturesSerializer(
                     data={"thumbnail": image}, context={"request": request}
@@ -1509,36 +1534,8 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         )
 
     def list(self, request):
-        # Get filter parameter
-        status = request.query_params.get("type", "").lower()
-        from_date = request.query_params.get("from")
-        to_date = request.query_params.get("to")
 
-        # get all inspiration pics
         testimony_qs = InspirationalPictures.objects.all()
-
-        if status:
-            testimony_qs = testimony_qs.filter(upload_status=status)
-
-        # Apply date filtering
-        if from_date:
-            day, month, year = from_date.split("/")
-            formatted_from_date = f"{year}-{month}-{day}"
-            parsed_from_date = parse_date(formatted_from_date)
-
-            if parsed_from_date:
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__gte=parsed_from_date
-                )
-
-        if to_date:
-            day, month, year = to_date.split("/")
-            formatted_from_date = f"{year}-{month}-{day}"
-            parsed_to_date = parse_date(formatted_from_date)
-            if parsed_to_date:
-                # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
@@ -1624,6 +1621,66 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             message="Inspirational Picture deleted successfully",
             status_code=204,
         )
+
+
+class ShowAllUplaodInspirationalPicturesByStatus(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        status = request.query_params.get("status", "").lower()
+        if not status:
+            return CustomResponse.error(
+                message="Status is required",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
+        try:
+            if user_id.Roles.VIEWER or user_id.Roles.ADMIN or user_id.Roles.SUPER_ADMIN:
+                inspirational_pictures = None
+                if status:
+                    inspirational_pictures = InspirationalPictures.objects.filter(
+                        status=status)
+                if not inspirational_pictures:
+                    return CustomResponse.error(
+                        message="No Inspirational Pictures found",
+                        err_code=ErrorCode.NOT_FOUND,
+                        status_code=404,
+                    )
+                paginator = self.pagination_class()
+                paginated_queryset = paginator.paginate_queryset(
+                    inspirational_pictures, request)
+                serializer = ReturnInspirationalPicturesSerializer(
+                    paginated_queryset, many=True, context={"request": request}
+                )
+                if not serializer:
+                    return CustomResponse.error(
+                        message="No inspirational pictures found",
+                        err_code=ErrorCode.NOT_FOUND,
+                        status_code=404,
+                    )
+                return paginator.get_paginated_response(serializer.data)
+            else:
+                return CustomResponse.error(
+                    message="You are not allowed to view this resource.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
 
 
 class ShowAllUplaodedInspirationalPictures(APIView):

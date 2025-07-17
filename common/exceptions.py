@@ -57,6 +57,7 @@ def custom_exception_handler(exc, context):
                 err_code=ErrorCode.INVALID_ENTRY,
             )
         else:
+            print("error:", exc)
             return CustomResponse.error(
                 message="Something went wrong!",
                 status_code=(

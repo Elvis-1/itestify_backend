@@ -49,9 +49,6 @@ from allauth.socialaccount.models import SocialLogin  # SocialAccount
 from allauth.socialaccount.adapter import get_adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Error
 from allauth.socialaccount.models import SocialToken
-
-from google.oauth2 import id_token
-from google.auth.transport import requests
 from rest_framework.decorators import api_view
 
 
@@ -76,40 +73,6 @@ def has_special_character(s):
 
 
 # -------------- GOOGLE SOCIAL LOGIN ----------------
-
-
-@api_view(['POST'])
-def google_auth(request):
-    token = request.data.get('id_token')
-    if not token:
-        return Response({'error': 'ID token missing'}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        # Replace with your actual CLIENT_ID
-        print(token)
-        idinfo = id_token.verify_oauth2_token(token, requests.Request(
-        ), "744141540606-tu73k7qmio0d73kdm55mstekeq81au9m.apps.googleusercontent.com")
-        print(idinfo)
-        email = idinfo['email']
-        first_name = idinfo.get('given_name', '')
-        last_name = idinfo.get('family_name', '')
-
-        # Create or get user
-        user, created = User.objects.get_or_create(username=email, defaults={
-            'email': email,
-            'first_name': first_name,
-            'last_name': last_name
-        })
-
-        # Optionally generate JWT token
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-        })
-
-    except ValueError:
-        return Response({'error': 'Invalid token'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GoogleLoginCallback(APIView):
@@ -263,12 +226,13 @@ class RegisterViewSet(viewsets.ViewSet):
                     #user_role = Role.objects.create(name="VIEWER")
                     #user_role.add(permission)
                     User.objects.create_user(serializer.validated_data["email"],
-                                             full_name=serializer.validated_data["full_name"],
-                                             role=User.Roles.VIEWER,
-                                             status=User.STATUS.REGISTERED,
-                                             password=serializer.validated_data["password"],
-                                             is_verified=True,
-                                             is_email_verified=True)
+                        full_name=serializer.validated_data["full_name"],
+                        role=User.Roles.VIEWER,
+                        status=User.STATUS.REGISTERED,
+                        password=serializer.validated_data["password"],
+                        is_verified=True,
+                        is_email_verified=True
+                    )
 
                     return CustomResponse.success(
                         message="Account created successfully", status_code=201
@@ -376,6 +340,7 @@ class LoginViewSet(viewsets.ViewSet):
             status_code=400,
         )
 
+    @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def password(self, request):
         serializer = LoginPasswordSerializer(data=request.data)
@@ -391,6 +356,23 @@ class LoginViewSet(viewsets.ViewSet):
             # Retrieve user by email
             user = User.objects.get(email=email)
             token = user.tokens()
+        
+            route = request.resolver_match.view_name
+            
+            if route == "admin-login-password" and user.role not in ["admin", "super_admin"]:
+                return CustomResponse.error(
+                    message="Sorry, you are not authorized to login.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403
+                )
+
+            if route == "mobile-login-password" and user.role != "viewer":
+                return CustomResponse.error(
+                    message="Sorry, you are not authorized to login.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403
+                )
+
         except User.DoesNotExist:
             return CustomResponse.error(
                 message="User not found",

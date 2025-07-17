@@ -16,7 +16,6 @@ MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
 def upload_file(files):
-
     uploaded_files = []
 
     for file in files:

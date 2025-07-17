@@ -13,11 +13,11 @@ from django.utils.crypto import get_random_string
 
 from itestify_backend.mixims import TouchDatesMixim
 
+from django.contrib.postgres.fields import ArrayField
+
 
 class UserManager(BaseUserManager):
-
     def create_user(self, email, password=None, **extra_fields):
-
         if email is None:
             raise TypeError("User should have an Email")
 
@@ -28,7 +28,6 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None):
-
         if password is None:
             raise TypeError("Password should not be none")
 
@@ -48,7 +47,6 @@ class UserManager(BaseUserManager):
 
     def create_invited_user(self, email, full_name=None, role=None, invited_by=None):
         if email is None:
-
             raise TypeError("User should have an Email")
 
         if role == self.model.Roles.SUPER_ADMIN:
@@ -66,13 +64,12 @@ class UserManager(BaseUserManager):
         return user
 
 
+class Role(TouchDatesMixim):
+    name = models.CharField(max_length=255)
+    permissions = ArrayField(models.CharField(max_length=255))
+
+
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
-
-    class Roles(models.TextChoices):
-        SUPER_ADMIN = "super_admin", "super_admin"
-        ADMIN = "admin", "admin"
-        VIEWER = "viewer", "viewer"
-
     class STATUS(models.TextChoices):
         DELETED = "deleted", "deleted"
         REGISTERED = "registered", "registered"
@@ -80,8 +77,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.CharField(
-        max_length=20, choices=Roles.choices, default=Roles.VIEWER)
+    role = models.CharField(max_length=20, default="viewer")
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
@@ -125,9 +121,9 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
         return {"refresh": str(refresh), "access": str(refresh.access_token)}
 
+
 class EntryCode(TouchDatesMixim):
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="entry_code")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="entry_code")
 
     code = models.CharField(max_length=4, unique=True)
     is_used = models.BooleanField(default=False)
@@ -163,9 +159,7 @@ class SendOtp(TouchDatesMixim):
 
 
 class UserInvitation(TouchDatesMixim):
-
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="invitations")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="invitations")
     token = models.CharField(max_length=64, unique=True, blank=True, null=True)
     is_used = models.BooleanField(default=False)
     expires_at = models.DateTimeField()
@@ -183,6 +177,7 @@ class UserInvitation(TouchDatesMixim):
 
         # Create invitation
         return cls.objects.create(
-            user=user, token=token, expires_at=timezone.now() + timezone.timedelta(days=7)
-
+            user=user,
+            token=token,
+            expires_at=timezone.now() + timezone.timedelta(days=7),
         )
