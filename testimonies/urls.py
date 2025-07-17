@@ -5,7 +5,7 @@ from .views import (InspirationalPicturesViewSet, ShowAllInspirationalPicturesSt
                     VideoTestimonyByCategoryView, ShowAllUplaodedInspirationalPictures, TextTestimonyReplyComment,
                     VideoTestimonyCommentsView, VideoTestimonyLikesView, TextTestimonyDetailView, VideoTestimonyDetailView,
                     InpirationalPicturesSharesCount, UnreadNotificationsView, GetAllNotificationsView, UserLikeInspirationalPicture,
-                    VideoTestimonyLikeUserComment, TextTestimonyDeleteSelected, TextTestimonyLikeUserComment,
+                    VideoTestimonyLikeUserComment, TextTestimonyDeleteSelected, TextTestimonyLikeUserComment, ShowAllUplaodInspirationalPicturesByStatus,
                     DownloadedInspirationalPictureCountView, GetCommentFromATextTestimony, VideoTestimonyReplyComment, editTextTestimonyComment)
 from rest_framework.routers import DefaultRouter
 
@@ -81,6 +81,8 @@ urlpatterns = [
          GetAllNotificationsView.as_view(), name=''),
     path('get-all-inspirational-status/',
          ShowAllInspirationalPicturesStatus.as_view()),
+     path('get-inspirational-by-status/',
+         ShowAllUplaodInspirationalPicturesByStatus.as_view()),
     path('inspirational-pictures-shares-count/<id>/',
          InpirationalPicturesSharesCount.as_view(), name='inspirational-pictures-shares-count'),
     path('inspirational-pictures-download-count/<id>/',
