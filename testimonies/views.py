@@ -2,16 +2,12 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from rest_framework import status
 from django.utils.dateparse import parse_date
-from django.http import QueryDict
 from common.responses import CustomResponse
 from notifications.models import Notification
 from notifications.serializers import NotificationSerializer
-from support import http
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
@@ -38,15 +34,12 @@ from .serializers import (
     VideoTestimonyCommentSerializer,
     VideoTestimonySerializer,
     TestimonySettingsSerializer,
-    ReturnTextTestimonyCommentSerializer,
     ReturnTextTestimonyLikeSerializer
 )
 
-from .permissions import IsAuthenticated, IsLoggedInUser
 from common.exceptions import handle_custom_exceptions
-from common.responses import CustomResponse
 from common.error import ErrorCode
-from .utils import extract_video_testimonies, transform_testimony_files
+from .utils import transform_testimony_files
 
 from django.db.models import Q
 
@@ -1183,10 +1176,10 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        video_testimonies = extract_video_testimonies(
-            request.data, request.FILES)
-        print(video_testimonies)
+        data = request.data
 
+        video_testimonies = [data]
+        
         total_response_data = []
 
         for video in video_testimonies:
