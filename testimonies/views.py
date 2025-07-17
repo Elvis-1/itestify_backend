@@ -1185,6 +1185,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     def create_video(self, request):
         video_testimonies = extract_video_testimonies(
             request.data, request.FILES)
+        print(video_testimonies)
 
         total_response_data = []
 
@@ -1540,36 +1541,8 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         )
 
     def list(self, request):
-        # Get filter parameter
-        status = request.query_params.get("type", "").lower()
-        from_date = request.query_params.get("from")
-        to_date = request.query_params.get("to")
 
-        # get all inspiration pics
         testimony_qs = InspirationalPictures.objects.all()
-
-        if status:
-            testimony_qs = testimony_qs.filter(upload_status=status)
-
-        # Apply date filtering
-        if from_date:
-            day, month, year = from_date.split("/")
-            formatted_from_date = f"{year}-{month}-{day}"
-            parsed_from_date = parse_date(formatted_from_date)
-
-            if parsed_from_date:
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__gte=parsed_from_date
-                )
-
-        if to_date:
-            day, month, year = to_date.split("/")
-            formatted_from_date = f"{year}-{month}-{day}"
-            parsed_to_date = parse_date(formatted_from_date)
-            if parsed_to_date:
-                # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
@@ -1655,6 +1628,66 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             message="Inspirational Picture deleted successfully",
             status_code=204,
         )
+
+
+class ShowAllUplaodInspirationalPicturesByStatus(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        status = request.query_params.get("status", "").lower()
+        if not status:
+            return CustomResponse.error(
+                message="Status is required",
+                err_code=ErrorCode.INVALID_ENTRY,
+                status_code=400,
+            )
+        try:
+            if user_id.Roles.VIEWER or user_id.Roles.ADMIN or user_id.Roles.SUPER_ADMIN:
+                inspirational_pictures = None
+                if status:
+                    inspirational_pictures = InspirationalPictures.objects.filter(
+                        status=status)
+                if not inspirational_pictures:
+                    return CustomResponse.error(
+                        message="No Inspirational Pictures found",
+                        err_code=ErrorCode.NOT_FOUND,
+                        status_code=404,
+                    )
+                paginator = self.pagination_class()
+                paginated_queryset = paginator.paginate_queryset(
+                    inspirational_pictures, request)
+                serializer = ReturnInspirationalPicturesSerializer(
+                    paginated_queryset, many=True, context={"request": request}
+                )
+                if not serializer:
+                    return CustomResponse.error(
+                        message="No inspirational pictures found",
+                        err_code=ErrorCode.NOT_FOUND,
+                        status_code=404,
+                    )
+                return paginator.get_paginated_response(serializer.data)
+            else:
+                return CustomResponse.error(
+                    message="You are not allowed to view this resource.",
+                    err_code=ErrorCode.FORBIDDEN,
+                    status_code=403,
+                )
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
 
 
 class ShowAllUplaodedInspirationalPictures(APIView):
