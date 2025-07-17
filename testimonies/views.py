@@ -2,16 +2,12 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from rest_framework import status
 from django.utils.dateparse import parse_date
-from django.http import QueryDict
 from common.responses import CustomResponse
 from notifications.models import Notification
 from notifications.serializers import NotificationSerializer
-from support import http
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
@@ -42,11 +38,9 @@ from .serializers import (
     ReturnTextTestimonyLikeSerializer
 )
 
-from .permissions import IsAuthenticated, IsLoggedInUser
 from common.exceptions import handle_custom_exceptions
-from common.responses import CustomResponse
 from common.error import ErrorCode
-from .utils import extract_video_testimonies, transform_testimony_files
+from .utils import transform_testimony_files
 
 from django.db.models import Q
 
