@@ -70,6 +70,12 @@ class Role(TouchDatesMixim):
 
 
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
+    class Roles(models.TextChoices):
+        SUPER_ADMIN = "super_admin", "super_admin"
+        ADMIN = "admin", "admin"
+        VIEWER = "viewer", "viewer"
+
+
     class STATUS(models.TextChoices):
         DELETED = "deleted", "deleted"
         REGISTERED = "registered", "registered"
