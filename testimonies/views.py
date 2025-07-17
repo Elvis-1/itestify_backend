@@ -1183,8 +1183,9 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["post"])
     def create_video(self, request):
-        video_testimonies = extract_video_testimonies(
-            request.data, request.FILES)
+        data = request.data
+
+        video_testimonies = [data]
 
         total_response_data = []
 
