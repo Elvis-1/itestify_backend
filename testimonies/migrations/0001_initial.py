@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
                 ('object_id', models.UUIDField()),
                 ('text', models.TextField()),
                 ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.contenttype')),
-                ('reply_to', models.ManyToManyField(blank=True, to='testimonies.comment')),
+                
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('user_like_comment', models.ManyToManyField(blank=True, related_name='user_like_comment', to=settings.AUTH_USER_MODEL)),
             ],

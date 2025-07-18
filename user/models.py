@@ -70,6 +70,12 @@ class Role(TouchDatesMixim):
 
 
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
+    class Roles(models.TextChoices):
+        SUPER_ADMIN = "super_admin", "super_admin"
+        ADMIN = "admin", "admin"
+        VIEWER = "viewer", "viewer"
+
+
     class STATUS(models.TextChoices):
         DELETED = "deleted", "deleted"
         REGISTERED = "registered", "registered"
@@ -77,7 +83,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     email = models.EmailField(max_length=255, unique=True)
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.CharField(max_length=20, default="viewer")
+    role = models.CharField(max_length=20, default="viewer", choices=Roles.choices)
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
