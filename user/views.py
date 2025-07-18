@@ -4,14 +4,12 @@ from tokenize import TokenError
 from django.conf import settings
 import validate_email
 from rest_framework_simplejwt.tokens import RefreshToken
-import requests
-from django.shortcuts import get_object_or_404
 
 from rest_framework.response import Response
 from rest_framework import viewsets
 from rest_framework import status, permissions
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -42,17 +40,13 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-# from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-from allauth.socialaccount.helpers import complete_social_login
-from allauth.socialaccount.models import SocialLogin  # SocialAccount
-from allauth.socialaccount.adapter import get_adapter
-from allauth.socialaccount.providers.oauth2.client import OAuth2Error
-from allauth.socialaccount.models import SocialToken
-from rest_framework.decorators import api_view
+from google.oauth2 import id_token
 
-
-# Create your views here.
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 
 def has_uppercase(s):
@@ -74,84 +68,43 @@ def has_special_character(s):
 
 # -------------- GOOGLE SOCIAL LOGIN ----------------
 
+class GoogleLoginAPIView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []  # Disable DRF session auth
 
-class GoogleLoginCallback(APIView):
+    def post(self, request):
+        token = request.data.get("id_token")
+        if not token:
+            return Response({"detail": "Missing id_token"}, status=400)
 
-    def get(self, request, *args, **kwargs):
-        code = request.GET.get("code")
-        if code is None:
-
-            return Response(
-                {"error": "Missing authorization code"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Define the payload for Google's token exchange
-        payload = {
-            "code": code,
-            "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
-            "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_OAUTH_REDIRECT_URI,
-            "grant_type": "authorization_code",
-        }
-
-        # Make a request to the Google token endpoint
         try:
-            response = requests.post(
-                "https://oauth2.googleapis.com/token", data=payload
-            )
-            response.raise_for_status()  # Check for HTTP errors
-            token_data = response.json()
-        except requests.exceptions.RequestException as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        access_token = token_data.get("access_token")
-        if not access_token:
-            return Response({"error": "No access token received from Google"}, status=400)
+            idinfo = id_token.verify_oauth2_token(
+                token, google_requests.Request())
 
-        # Fetch user info from Google
-        try:
-            user_info_response = requests.get(
-                "https://www.googleapis.com/oauth2/v3/userinfo",
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            user_info_response.raise_for_status()
-            user_info = user_info_response.json()
+            if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+                raise ValueError('Wrong issuer.')
 
-        except requests.RequestException:
-            return Response({"error": "Failed to fetch user info from Google"}, status=400)
+            email = idinfo.get('email')
+            name = idinfo.get('name')
 
-        # Social Login flow
-        adapter = GoogleOAuth2Adapter(request)
-        app = get_adapter().get_app(request, adapter.provider_id)
-        token = SocialToken(token=access_token, token_secret=None, app=app)
-        try:
-            # Use Google profile response in complete_login
-            login = adapter.complete_login(request, app, token, user_info)
-            login.token = token
-            login.state = SocialLogin.state_from_request(request)
+            user, created = User.objects.get_or_create(email=email)
+            if created:
+                user.full_name = name
+                user.set_unusable_password()
+                user.save()
 
-            # This creates User + SocialAccount
-            complete_social_login(request, login)
-
-            if not login.is_existing:
-                # Saves the user & socialaccount
-                login.save(request, connect=True)
-
-            user = login.user
-
-            # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             return Response({
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-                "user": {
-                    "id": user.id,
-                    "email": user.email,
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': {
+                    'email': user.email,
+                    'name': user.full_name,
                 }
             })
 
-        except OAuth2Error as e:
-            return Response({"error": str(e)}, status=400)
+        except ValueError as e:
+            return Response({"detail": "Invalid token", "error": str(e)}, status=400)
 
 
 class RegisterViewSet(viewsets.ViewSet):
@@ -221,18 +174,18 @@ class RegisterViewSet(viewsets.ViewSet):
                             err_code=ErrorCode.INVALID_ENTRY,
                             status_code=400
                         )
-                    #permission = Permission.objects.create(
-                        #name="name", codename="codename")
-                    #user_role = Role.objects.create(name="VIEWER")
-                    #user_role.add(permission)
+                    # permission = Permission.objects.create(
+                        # name="name", codename="codename")
+                    # user_role = Role.objects.create(name="VIEWER")
+                    # user_role.add(permission)
                     User.objects.create_user(serializer.validated_data["email"],
-                        full_name=serializer.validated_data["full_name"],
-                        role=User.Roles.VIEWER,
-                        status=User.STATUS.REGISTERED,
-                        password=serializer.validated_data["password"],
-                        is_verified=True,
-                        is_email_verified=True
-                    )
+                                             full_name=serializer.validated_data["full_name"],
+                                             role=User.Roles.VIEWER,
+                                             status=User.STATUS.REGISTERED,
+                                             password=serializer.validated_data["password"],
+                                             is_verified=True,
+                                             is_email_verified=True
+                                             )
 
                     return CustomResponse.success(
                         message="Account created successfully", status_code=201
@@ -356,9 +309,9 @@ class LoginViewSet(viewsets.ViewSet):
             # Retrieve user by email
             user = User.objects.get(email=email)
             token = user.tokens()
-        
+
             route = request.resolver_match.view_name
-            
+
             if route == "admin-login-password" and user.role not in ["admin", "super_admin"]:
                 return CustomResponse.error(
                     message="Sorry, you are not authorized to login.",
@@ -393,7 +346,7 @@ class LoginViewSet(viewsets.ViewSet):
 
             user.last_login = datetime.now()
             user.save()
-            #print(user.role)
+            # print(user.role)
             data = {
                 "id": user.id,
                 "email": user.email,
@@ -822,6 +775,7 @@ class ResetPasswordView(APIView):
                 )
             except User.DoesNotExist:
                 return Response({"msg": "User Does not exist"})
+
 
 class AcceptInvitationView(GenericAPIView):
     serializer_class = SetPasswordWithInvitationSerializer

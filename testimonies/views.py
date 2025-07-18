@@ -179,16 +179,6 @@ class VideoTestimonyCommentsView(APIView):
 
     def post(self, request, id):
         user = request.user
-        # owner_id = request.query_params.get("owner_id")
-        # print(owner_id)
-        """try:
-            testimony_owner = User.objects.get(id=owner_id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="Owner not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )"""
         try:
             get_testimony = VideoTestimony.objects.get(id=id)
         except VideoTestimony.DoesNotExist:

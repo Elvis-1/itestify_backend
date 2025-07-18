@@ -134,6 +134,7 @@ class ReturnTextTestimonyCommentSerializer(serializers.ModelSerializer):
         if user and user["role"] == "viewer":
             self.fields.pop("uploaded_by", None)
 
+
 class ReturnATextTestimonyCommentSerializer(serializers.ModelSerializer):
     comment = serializers.SerializerMethodField()
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
@@ -153,7 +154,6 @@ class ReturnATextTestimonyCommentSerializer(serializers.ModelSerializer):
             "comment",
         ]
 
-
     def get_comment(self, obj):
         comment_id = self.context.get('comment_id')
         if comment_id:
@@ -162,7 +162,6 @@ class ReturnATextTestimonyCommentSerializer(serializers.ModelSerializer):
             except Comment.DoesNotExist:
                 return None
         return None
-    
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -339,8 +338,9 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
         # Add the currently authenticated user to the validated data
         user = self.context["request"].user
         validated_data["uploaded_by"] = user
-        
+
         return super().create(validated_data)
+
 
 class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
 
@@ -419,11 +419,11 @@ class InspirationalPicturesSerializer(serializers.ModelSerializer):
 
 class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
+
     class Meta:
         model = InspirationalPictures
         fields = [
             "id",
-            "thumbnail",
             "thumbnail_url",
             "source",
             "status",
