@@ -78,7 +78,8 @@ class TextTestimonyListView(APIView):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -89,7 +90,8 @@ class TextTestimonyListView(APIView):
         # Pagination
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(
+            paginated_queryset, many=True)
 
         return paginator.get_paginated_response(serializer.data)
 
@@ -134,7 +136,8 @@ class VideoTestimonyByCategoryView(APIView):
 
         paginate = self.pagination_class()
         if testimonies:
-            paginated_queryset = paginate.paginate_queryset(testimonies, request)
+            paginated_queryset = paginate.paginate_queryset(
+                testimonies, request)
             serializer = self.serializer_class(paginated_queryset, many=True)
             return paginate.get_paginated_response(serializer.data)
         else:
@@ -255,7 +258,8 @@ class VideoTestimonyReplyComment(APIView):
         user = request.user
         comment = request.data.get("comment")
         get_query_param = request.query_params.get("get_testimony")
-        get_testimony = VideoTestimony.objects.filter(id=get_query_param).first()
+        get_testimony = VideoTestimony.objects.filter(
+            id=get_query_param).first()
         if not comment:
             return CustomResponse.error(
                 message="Comment cannot be empty",
@@ -336,93 +340,6 @@ class VideoTestimonyReplyComment(APIView):
         )
 
 
-class GetAllNotificationsView(APIView):
-    # permission_classes = [IsAuthenticated]
-    serializer_class = NotificationSerializer
-
-    def get(self, request):
-        user = request.user
-        try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        notifications = Notification.objects.filter(target=user_id).order_by(
-            "-timestamp"
-        )
-        if not notifications:
-            return CustomResponse.error(
-                message="No notifications found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        serializer = self.serializer_class(notifications, many=True)
-
-        return CustomResponse.success(
-            message="Notifications retrieved successfully",
-            data=serializer.data,
-            status_code=200,
-        )
-
-
-class UnreadNotificationsView(APIView):
-    # permission_classes = [IsAuthenticated]
-    serializer_class = NotificationSerializer
-
-    def post(self, request, id):
-        user = request.user
-        try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        try:
-            notification = Notification.objects.get(id=id, target=user_id)
-            notification.read = True
-            notification.save()
-            return CustomResponse.success(
-                message="Notification marked as read successfully", status_code=200
-            )
-        except Notification.DoesNotExist:
-            return CustomResponse.error(
-                message="Notification not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-    def get(self, request):
-        print("Hello world")
-        user = request.user
-        try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        notification = Notification.objects.filter(target=user_id, read=False).order_by(
-            "-timestamp"
-        )
-        if not notification:
-            return CustomResponse.error(
-                message="No notifications found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        serializer = self.serializer_class(notification, many=True)
-
-        return CustomResponse.success(
-            message="Notifications retrieved successfully",
-            data=serializer.data,
-            status_code=200,
-        )
 
 
 class VideoTestimonyLikeUserComment(APIView):
@@ -586,7 +503,8 @@ class TextTestimonyByCategoryView(APIView):
 
         paginate = self.pagination_class()
         if testimonies:
-            paginated_queryset = paginate.paginate_queryset(testimonies, request)
+            paginated_queryset = paginate.paginate_queryset(
+                testimonies, request)
             serializer = self.serializer_class(paginated_queryset, many=True)
             return paginate.get_paginated_response(serializer.data)
         else:
@@ -689,7 +607,8 @@ class TextTestimonyDetailView(APIView):
                 status_code=404,
             )
         try:
-            testimony_id = TextTestimony.objects.get(id=id, uploaded_by=user_id)
+            testimony_id = TextTestimony.objects.get(
+                id=id, uploaded_by=user_id)
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -761,7 +680,8 @@ class TextTestimonyCommentsView(APIView):
                     status_code=403,
                 )
             # Create the comment
-            comment_id = get_testimony.comments.create(text=comment, user=user_id)
+            comment_id = get_testimony.comments.create(
+                text=comment, user=user_id)
             content_type = ContentType.objects.get_for_model(TextTestimony)
             get_testimony.notification.create(
                 target=get_testimony.uploaded_by,
@@ -823,7 +743,8 @@ class TextTestimonyReplyComment(APIView):
         user = request.user
         comment = request.data.get("comment")
         get_query_param = request.query_params.get("get_testimony")
-        get_testimony = TextTestimony.objects.filter(id=get_query_param).first()
+        get_testimony = TextTestimony.objects.filter(
+            id=get_query_param).first()
         if not comment:
             return CustomResponse.error(
                 message="Comment cannot be empty",
@@ -1190,7 +1111,8 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
@@ -1321,7 +1243,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(
+                    created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -1393,10 +1316,12 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             )
 
         # Use the appropriate serializer to validate and update the data
-        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
+        serializer = TextTestimonySerializer(
+            testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
+            return_serializer = ReturnTextTestimonySerializer(
+                serializer.instance)
 
             return CustomResponse.success(
                 data=return_serializer.data,
