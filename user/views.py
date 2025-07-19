@@ -86,6 +86,7 @@ class GoogleLoginAPIView(APIView):
 
             email = idinfo.get('email')
             name = idinfo.get('name')
+            print(name)
 
             user, created = User.objects.get_or_create(email=email)
             if created:

@@ -22,13 +22,14 @@ urlpatterns = [
     path('admin/', admin.site.urls),  # Django admin
     path("", home),  # Home page
     path('', include('testimonies.urls')),
+    path('notifications/', include('notifications.urls')),
     path('auths/', include('user.urls')),
     path('', include('donations.urls')),
     path('', include("scriptures.urls")),
     path('review/', include('reviews.urls')),
-    path("api/v1/auth/", include("dj_rest_auth.urls")),
-    path('api/v1/auth/accounts/', include('allauth.urls')),
-    path("api/v1/auth/google/", GoogleLoginAPIView.as_view(), name="google_login"),
+    path("auths/auth/", include("dj_rest_auth.urls")),
+    path('auths/accounts/', include('allauth.urls')),
+    path("auths/google-login/", GoogleLoginAPIView.as_view(), name="google_login"),
     #path("api/v1/auth/registration/", include("dj_rest_auth.registration.urls")),
     path("common/", include("common.urls")),
 ]
