@@ -418,13 +418,14 @@ class InspirationalPicturesSerializer(serializers.ModelSerializer):
 
 
 class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
-    thumbnail_url = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
+    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
 
     class Meta:
         model = InspirationalPictures
         fields = [
             "id",
-            "thumbnail_url",
+            "thumbnail",
             "source",
             "status",
             "downloads_count",
@@ -435,7 +436,7 @@ class ReturnInspirationalPicturesSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def get_thumbnail_url(self, obj):
+    def get_thumbnail(self, obj):
         request = self.context.get("request")
         if obj.thumbnail and hasattr(obj.thumbnail, 'url'):
             url = obj.thumbnail.url

@@ -19,8 +19,6 @@ from .views import (
     TextTestimonyDetailView,
     VideoTestimonyDetailView,
     InpirationalPicturesSharesCount,
-    UnreadNotificationsView,
-    GetAllNotificationsView,
     UserLikeInspirationalPicture,
     VideoTestimonyLikeUserComment,
     TextTestimonyDeleteSelected,
@@ -172,9 +170,6 @@ urlpatterns = [
         VideoTestimonyLikesView.as_view(),
         name="testimony-by-category-comment",
     ),
-    path("get-unread-notifications/", UnreadNotificationsView.as_view(), name=""),
-    path("read-notifications/<id>/", UnreadNotificationsView.as_view(), name=""),
-    path("getall-notifications/", GetAllNotificationsView.as_view(), name=""),
     path("get-all-inspirational-status/", ShowAllInspirationalPicturesStatus.as_view()),
     path(
         "get-inspirational-by-status/",
