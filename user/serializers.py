@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
-from .models import User
+from django.core.exceptions import ValidationError 
+# from rest_framework.exceptions import ValidationError
+
+from .models import User, Role
+from .utils import Util
 
 
 class UserRegisterSerializer(serializers.Serializer):
@@ -25,7 +28,6 @@ class LoginPasswordSerializer(serializers.Serializer):
 
 
 class ReturnUserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = [
@@ -107,8 +109,99 @@ class ChangePasswordSerializer(serializers.Serializer):
 
         return data
 
-class SetPasswordWithInvitationSerializer(serializers.Serializer):
-    invitation_code = serializers.CharField()
-    password = serializers.CharField()
-    password2 = serializers.CharField()
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ["id", "name", "permissions", "created_at"]
 
+    def validate_permissions(self, obj):
+        if not isinstance(obj, list):
+            raise serializers.ValidationError("Permissions must be a list of strings.")
+        
+        for i in obj:
+            if i not in ["User Management", "Testimony Management", "Review Management", "Privacy and Security Management"]:
+                raise serializers.ValidationError(f"{i} is an invalid permission.")
+
+        return obj
+
+    def create(self, validated_data):
+        permissions = validated_data.pop("permissions", [])
+        return Role.objects.create(name=validated_data["name"], permissions=permissions)
+
+class InvitationSerializer(ResendOtpSerializer):
+    full_name = serializers.CharField(max_length=200)
+    role = serializers.CharField(max_length=200)
+    invitation_status = serializers.CharField(read_only=True)
+
+    # returns the list of roles in as an array
+    def get_roles(self):
+        return Role.objects.values_list("name", flat=True)
+
+    def validate_role(self, obj):
+        available_roles = self.get_roles()
+
+        if obj not in available_roles:
+            raise serializers.ValidationError(f"{obj} is not a valid role.")
+
+        return obj
+
+    def create(self, validated_data):
+        if User.objects.filter(email=validated_data["email"]).exists():
+            raise serializers.ValidationError("An account with this email already exists.")
+
+        generated_password = Util.generate_password(8)
+        
+        role = Role.objects.get(name=validated_data["role"]) # fetch the role queryset using the name
+        
+        user = User.objects.create_user(
+            email=validated_data["email"],
+            password=generated_password,
+            full_name=validated_data["full_name"],
+            status=User.STATUS.INVITED,
+            role=role
+        )
+
+        return user 
+
+class ResendInvitationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate(self, obj):
+        user = User.objects.filter(email=obj["email"])
+
+        if not user.exists():
+            raise serializers.ValidationError("Account not found.")
+
+        if user.first().invitation_status == User.INVITATION_STATUS.USED:
+            raise serializers.ValidationError("This user has accepted the invitation, please use the forgot password option.")
+
+        return obj
+
+    
+
+class SetInvitedPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.CharField(max_length=255, write_only=True)
+    password = serializers.CharField(write_only=True)
+    password2 = serializers.CharField(write_only=True)
+
+    def  validate(self, attrs):
+        if attrs["password"] != attrs["password2"]:
+            raise ValidationError("Passwords do not match.")
+
+        return attrs
+
+    def validate_token(self, token):
+        if not token.startswith("ey"):
+            raise ValidationError("Incorrect token.")
+
+        return token
+
+    def update(self, instance, validated_data):
+        validated_data.pop("password2", None)
+    
+        instance.set_password(validated_data["password"])
+        instance.invitation_status=User.INVITATION_STATUS.USED
+        instance.save()
+
+        return instance 

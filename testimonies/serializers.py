@@ -13,10 +13,9 @@ from .models import (
     Comment
 )
 
-from datetime import datetime, timezone
-from django.utils.timezone import now, timedelta, is_naive, is_aware, get_current_timezone
+# from datetime import datetime, timezone
+# from django.utils.timezone import now, timedelta, is_naive, is_aware, get_current_timezone
 
-from common.utils import upload_file
 
 DEBUG = True if os.getenv("DEBUG") == "True" else False
 

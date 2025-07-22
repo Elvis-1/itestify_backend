@@ -2,10 +2,7 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from datetime import timedelta
-from decouple import config
-from celery.schedules import crontab
 import cloudinary
-from datetime import timedelta
 
 
 load_dotenv()
@@ -146,7 +143,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if DEPLOY == False:
+if not DEPLOY:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -234,10 +231,10 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'SEARCH_PARAM': 'search',
     'DEFAULT_FILTER_BACKENDS': [
         'rest_framework.filters.SearchFilter',
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
 }
 
@@ -252,7 +249,7 @@ AUTHENTICATION_BACKENDS = [
 APPEND_SLASH = False
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=365),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
