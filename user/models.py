@@ -104,15 +104,10 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         default=STATUS.REGISTERED,
     )
     invitation_status = models.CharField(default=INVITATION_STATUS.ACTIVE, choices=INVITATION_STATUS.choices, null=True, blank=True)
+    invite_count = models.IntegerField(default=0, null=True, blank=True)
+    alternative_role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, related_name="alternative_role")
     is_email_verified = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False, null=True, blank=True)
-    invited_by = models.ForeignKey(
-        "self",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="invited_users",
-    )
 
     USERNAME_FIELD = "email"
 
@@ -121,15 +116,11 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     objects = UserManager()
 
     @property
-    def is_super_admin(self):
-        return self.role == self.Roles.SUPER_ADMIN
-
-    @property
     def is_active(self):
         return self.status != self.STATUS.DELETED
 
     def __str__(self):
-        return self.email
+        return self.email 
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)

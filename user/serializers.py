@@ -129,19 +129,34 @@ class RoleSerializer(serializers.ModelSerializer):
         return Role.objects.create(name=validated_data["name"], permissions=permissions)
 
 class InvitationSerializer(ResendOtpSerializer):
+    id = serializers.UUIDField(read_only=True)
     full_name = serializers.CharField(max_length=200)
     role = serializers.CharField(max_length=200)
     invitation_status = serializers.CharField(read_only=True)
+    invite_count = serializers.IntegerField(read_only=True)
+    alternative_role = serializers.CharField(max_length=200, write_only=True)
 
     # returns the list of roles in as an array
-    def get_roles(self):
+    def get_roles(self, name=None):
+        if name is not None:
+            return Role.objects.filter(name=name).first()
+
         return Role.objects.values_list("name", flat=True)
 
-    def validate_role(self, obj):
+    
+    def get_super_admin(self):
+        user = User.objects.filter(role__name="super_admin").order_by("created_at")
+
+        if user.exists():
+            return user.first()
+
+        return None
+
+    def validate(self, obj):
         available_roles = self.get_roles()
 
-        if obj not in available_roles:
-            raise serializers.ValidationError(f"{obj} is not a valid role.")
+        if obj["role"] not in available_roles or obj["alternative_role"] not in available_roles:
+            raise serializers.ValidationError("Invalid roles, please check again.")
 
         return obj
 
@@ -150,15 +165,23 @@ class InvitationSerializer(ResendOtpSerializer):
             raise serializers.ValidationError("An account with this email already exists.")
 
         generated_password = Util.generate_password(8)
+        alternative_role = validated_data.get("alternative_role", None)
         
-        role = Role.objects.get(name=validated_data["role"]) # fetch the role queryset using the name
+        role = self.get_roles(name=validated_data["role"]) # fetch the role queryset using the name
+
+        # set the alternative role of the current super_admin if it is to assign a new super_admin
+        if alternative_role:
+            alternative_role = self.get_roles(name=alternative_role)
+            super_admin = self.get_super_admin()
+            super_admin.alternative_role = alternative_role
+            super_admin.save()
         
         user = User.objects.create_user(
             email=validated_data["email"],
             password=generated_password,
             full_name=validated_data["full_name"],
             status=User.STATUS.INVITED,
-            role=role
+            role=role,
         )
 
         return user 
@@ -168,17 +191,22 @@ class ResendInvitationSerializer(serializers.Serializer):
 
     def validate(self, obj):
         user = User.objects.filter(email=obj["email"])
-
+    
         if not user.exists():
             raise serializers.ValidationError("Account not found.")
 
         if user.first().invitation_status == User.INVITATION_STATUS.USED:
             raise serializers.ValidationError("This user has accepted the invitation, please use the forgot password option.")
 
+        # increment invite count by 1 and set invitation_status to "ACTIVE"
+        user = user.first()
+        user.invitation_status = User.INVITATION_STATUS.ACTIVE
+        user.invite_count += 1
+        user.save()
+
         return obj
 
     
-
 class SetInvitedPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
     token = serializers.CharField(max_length=255, write_only=True)
@@ -203,5 +231,13 @@ class SetInvitedPasswordSerializer(serializers.Serializer):
         instance.set_password(validated_data["password"])
         instance.invitation_status=User.INVITATION_STATUS.USED
         instance.save()
+
+        super_admin = InvitationSerializer.get_super_admin(self)
+
+        if super_admin.alternative_role is not None:
+            role = InvitationSerializer.get_roles(self, name=super_admin.alternative_role.name)
+            super_admin.status = super_admin.STATUS.INVITED
+            super_admin.role = role
+            super_admin.save()
 
         return instance 

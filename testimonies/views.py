@@ -1202,6 +1202,12 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
                 # Set time to the end of the day for inclusivity
                 testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
+        if search:
+            testimony_qs = testimony_qs.filter(
+                Q(uploaded_by__full_name__icontains=search)
+                | Q(category__icontains=search)
+            )
+
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
 

@@ -269,7 +269,7 @@ class RegisterViewSet(viewsets.ViewSet):
         user = User.objects.get_or_none(email=email)
 
         if route_name == "resend-email-token":
-            if user.is_verified == True:
+            if user.is_verified:
                 return CustomResponse.error(
                     message="Email already verified",
                     err_code=ErrorCode.FORBIDDEN,
@@ -738,7 +738,7 @@ class LogOutApiView(GenericAPIView):
                 err_code=ErrorCode.UNAUTHORIZED,
                 status_code=401,
             )
-        except Exception as e:
+        except Exception:
             # Optional: log exception
             return CustomResponse.error(
                 message="Logout failed",
@@ -866,6 +866,7 @@ class RoleViewSet(viewsets.ViewSet):
 
 class InvitationViewSet(viewsets.ViewSet):
     serializer_class = InvitationSerializer
+    pagination_class = StandardResultsSetPagination
 
     @handle_custom_exceptions
     @action(detail=False, methods=["post"], url_path="add-member")
@@ -897,8 +898,8 @@ class InvitationViewSet(viewsets.ViewSet):
         except User.DoesNotExist:
             return CustomResponse.error(
                 message="User does not exist.",
-                err_code=ErrorCode.INVALID_ENTRY,
-                status_code=400
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
             )   
 
         serializer = SetInvitedPasswordSerializer(instance=user, data=data)
@@ -939,15 +940,52 @@ class InvitationViewSet(viewsets.ViewSet):
             message="Success.", data=serializer.data, status_code=200
         )
 
+
     @handle_custom_exceptions
     @action(detail=False, methods=["get"], url_path="members")
     def list_members(self, request):
+        role = request.query_params.get("role", None)
+
         members = User.objects.select_related("role").filter(
             Q(status=User.STATUS.INVITED) |
             Q(role__name="super_admin")
         )
-        serializer = self.serializer_class(members, many=True)
 
+        if role:
+            members = members.filter(role__name=role)
+
+        paginator = self.pagination_class()
+        paginated_queryset = paginator.paginate_queryset(members, request)
+
+        serializer = self.serializer_class(paginated_queryset, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
+
+    @handle_custom_exceptions
+    @action(detail=True, methods=["delete"], url_path="delete")
+    def delete_invite(self, request, pk=None):
+        user = User.objects.filter(id=pk)
+
+        if not user.exists():
+            return CustomResponse.error(
+                message="Account does not exist.",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+
+        user = user.first()
+
+        if user.invitation_status != User.INVITATION_STATUS.EXPIRED:
+            return CustomResponse.error(
+                message="This invitation has not expired.",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400
+            )
+
+        user.delete()
+        
         return CustomResponse.success(
-            message="Success.", data=serializer.data, status_code=200
+            message="Success.",
+            status_code=200
         )
