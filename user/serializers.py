@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError 
+from django.db import transaction
 # from rest_framework.exceptions import ValidationError
 
 from .models import User, Role
@@ -28,12 +29,14 @@ class LoginPasswordSerializer(serializers.Serializer):
 
 
 class ReturnUserSerializer(serializers.ModelSerializer):
+    role = serializers.StringRelatedField() 
     class Meta:
         model = User
         fields = [
             "id",
             "email",
             "full_name",
+            "role",
             "created_password",
             "last_login",
             "status",
@@ -109,10 +112,22 @@ class ChangePasswordSerializer(serializers.Serializer):
 
         return data
 
-class RoleSerializer(serializers.ModelSerializer):
+class ReturnMemberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "full_name",
+            "invitation_status",
+            "invite_count"
+        ]
+
+class RoleSerializer(serializers.ModelSerializer):  
+    members = ReturnMemberSerializer(source="role", many=True)
     class Meta:
         model = Role
-        fields = ["id", "name", "permissions", "created_at"]
+        fields = ["id", "name", "permissions", "created_at", "members"]
 
     def validate_permissions(self, obj):
         if not isinstance(obj, list):
@@ -155,9 +170,13 @@ class InvitationSerializer(ResendOtpSerializer):
     def validate(self, obj):
         available_roles = self.get_roles()
 
-        if obj["role"] not in available_roles or obj["alternative_role"] not in available_roles:
-            raise serializers.ValidationError("Invalid roles, please check again.")
+        if obj["role"] not in available_roles:
+            raise serializers.ValidationError(f"{obj["role"]} is not a valid role, please check again.")
 
+        if "alternative_role" in obj:
+            if obj["alternative_role"] and obj["alternative_role"] not in available_roles:
+                raise serializers.ValidationError(f"{obj["alternative_role"]} is not a valid role, please check again.")
+        
         return obj
 
     def create(self, validated_data):
@@ -170,7 +189,7 @@ class InvitationSerializer(ResendOtpSerializer):
         role = self.get_roles(name=validated_data["role"]) # fetch the role queryset using the name
 
         # set the alternative role of the current super_admin if it is to assign a new super_admin
-        if alternative_role:
+        if alternative_role is not None:
             alternative_role = self.get_roles(name=alternative_role)
             super_admin = self.get_super_admin()
             super_admin.alternative_role = alternative_role
@@ -208,10 +227,16 @@ class ResendInvitationSerializer(serializers.Serializer):
 
     
 class SetInvitedPasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField()
     token = serializers.CharField(max_length=255, write_only=True)
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
+
+    def validate_password(self, value):
+        try:
+            Util.validate_password(value)
+        except ValueError as e:
+            raise serializers.ValidationError(str(e))
+        return value
 
     def  validate(self, attrs):
         if attrs["password"] != attrs["password2"]:
@@ -219,25 +244,30 @@ class SetInvitedPasswordSerializer(serializers.Serializer):
 
         return attrs
 
-    def validate_token(self, token):
-        if not token.startswith("ey"):
-            raise ValidationError("Incorrect token.")
-
-        return token
-
     def update(self, instance, validated_data):
-        validated_data.pop("password2", None)
-    
-        instance.set_password(validated_data["password"])
-        instance.invitation_status=User.INVITATION_STATUS.USED
-        instance.save()
+        with transaction.atomic():
+            validated_data.pop("password2", None)
+        
+            instance.set_password(validated_data["password"])
+            instance.invitation_status=User.INVITATION_STATUS.USED
+            instance.invite_count = 0
+            instance.save()
 
-        super_admin = InvitationSerializer.get_super_admin(self)
+            super_admin = InvitationSerializer.get_super_admin(self)
 
-        if super_admin.alternative_role is not None:
-            role = InvitationSerializer.get_roles(self, name=super_admin.alternative_role.name)
-            super_admin.status = super_admin.STATUS.INVITED
-            super_admin.role = role
-            super_admin.save()
+            if super_admin.alternative_role is not None:
+                role = InvitationSerializer.get_roles(self, name=super_admin.alternative_role.name)
+                super_admin.status = super_admin.STATUS.INVITED
+                super_admin.role = role
+                super_admin.save()
 
-        return instance 
+            user = ReturnUserSerializer(instance)
+            user_data = dict(user.data)
+            token = instance.tokens()
+
+            user_data["token"] = {
+                "access": token["access"],
+                "refresh": token["refresh"],
+            }
+
+        return user_data

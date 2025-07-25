@@ -1,11 +1,14 @@
 import os
 from django.utils.crypto import get_random_string
+from rest_framework import serializers
+
 
 import random
 import string
 import jwt
 import datetime
 SECRET_KEY = os.getenv("SECRET_KEY")
+
 
 
 class Util:
@@ -26,15 +29,18 @@ class Util:
 
         return token
 
+
     @staticmethod
     def verify_token(token):
+        if not token.startswith("ey"):
+            raise ValueError("Incorrect token format, please check.")
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
             return payload  # valid token
         except jwt.ExpiredSignatureError:
-            return None # token expired
+            raise ValueError("Your link has expired, please request another.") # token expired
         except jwt.InvalidTokenError:
-            return None  # token invalid
+            raise ValueError("Invalid link, please check.")  # token invalid
 
     @staticmethod
     def generate_password(length=12):
@@ -63,3 +69,19 @@ class Util:
         random.shuffle(password)
 
         return ''.join(password)
+
+
+    @staticmethod
+    def validate_password(password):
+        if len(password) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        if not any(c.isupper() for c in password):
+            raise ValueError("Password must contain at least one uppercase letter.")
+        if not any(c.islower() for c in password):
+            raise ValueError("Password must contain at least one lowercase letter.")
+        if not any(c.isdigit() for c in password):
+            raise ValueError("Password must contain at least one number.")
+        special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        if not any(c in special_chars for c in password):
+            raise ValueError("Password must contain at least one special character.")
+        return password

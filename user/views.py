@@ -230,7 +230,7 @@ class RegisterViewSet(viewsets.ViewSet):
                             err_code=ErrorCode.INVALID_ENTRY,
                             status_code=400,
                         )
-        
+
                     User.objects.create_user(
                         serializer.validated_data["email"],
                         full_name=serializer.validated_data["full_name"],
@@ -872,7 +872,7 @@ class InvitationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"], url_path="add-member")
     def invite_member(self, request):
         data = request.data
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -893,33 +893,23 @@ class InvitationViewSet(viewsets.ViewSet):
         data = request.data
 
         try:
-            user = User.objects.get(email=data["email"])
-        
-        except User.DoesNotExist:
+            verified_token = Util.verify_token(data["token"])
+        except ValueError as e:
             return CustomResponse.error(
-                message="User does not exist.",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404
-            )   
+                message=str(e), err_code=ErrorCode.BAD_REQUEST, status_code=400
+            )
+
+        user = User.objects.filter(email=verified_token["email"]).first()
 
         serializer = SetInvitedPasswordSerializer(instance=user, data=data)
         serializer.is_valid(raise_exception=True)
 
-        verified_token = Util.verify_token(serializer.validated_data["token"])
+        user = serializer.save()
 
-        if not verified_token:
-            return CustomResponse.error(
-                message="Invalid or expired token.",
-                err_code=ErrorCode.INVALID_ENTRY,
-                status_code=422
-            )
-
-        serializer.save()
-
-        return CustomResponse.success(  
+        return CustomResponse.success(
             message="Account activated.",
-            data=serializer.data,
-            status_code=200
+            data=user,
+            status_code=200,
         )
 
     @handle_custom_exceptions
@@ -940,15 +930,13 @@ class InvitationViewSet(viewsets.ViewSet):
             message="Success.", data=serializer.data, status_code=200
         )
 
-
     @handle_custom_exceptions
     @action(detail=False, methods=["get"], url_path="members")
     def list_members(self, request):
         role = request.query_params.get("role", None)
 
         members = User.objects.select_related("role").filter(
-            Q(status=User.STATUS.INVITED) |
-            Q(role__name="super_admin")
+            Q(status=User.STATUS.INVITED) | Q(role__name="super_admin")
         )
 
         if role:
@@ -961,7 +949,6 @@ class InvitationViewSet(viewsets.ViewSet):
 
         return paginator.get_paginated_response(serializer.data)
 
-
     @handle_custom_exceptions
     @action(detail=True, methods=["delete"], url_path="delete")
     def delete_invite(self, request, pk=None):
@@ -971,7 +958,7 @@ class InvitationViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="Account does not exist.",
                 err_code=ErrorCode.NOT_FOUND,
-                status_code=404
+                status_code=404,
             )
 
         user = user.first()
@@ -980,12 +967,9 @@ class InvitationViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="This invitation has not expired.",
                 err_code=ErrorCode.BAD_REQUEST,
-                status_code=400
+                status_code=400,
             )
 
         user.delete()
-        
-        return CustomResponse.success(
-            message="Success.",
-            status_code=200
-        )
+
+        return CustomResponse.success(message="Success.", status_code=200)
