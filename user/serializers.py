@@ -124,7 +124,7 @@ class ReturnMemberSerializer(serializers.ModelSerializer):
         ]
 
 class RoleSerializer(serializers.ModelSerializer):  
-    members = ReturnMemberSerializer(source="role", many=True)
+    members = ReturnMemberSerializer(source="role", many=True, read_only=True)
     class Meta:
         model = Role
         fields = ["id", "name", "permissions", "created_at", "members"]
@@ -139,9 +139,17 @@ class RoleSerializer(serializers.ModelSerializer):
 
         return obj
 
+    def validate(self, attrs):
+        roles = InvitationSerializer.get_roles(self)
+
+        if attrs["name"].title() in roles: # convert to sentence case before checking
+            raise serializers.ValidationError("Role name is already taken, please try another.")
+
+        return attrs
+
     def create(self, validated_data):
         permissions = validated_data.pop("permissions", [])
-        return Role.objects.create(name=validated_data["name"], permissions=permissions)
+        return Role.objects.create(name=validated_data["name"].title(), permissions=permissions)
 
 class InvitationSerializer(ResendOtpSerializer):
     id = serializers.UUIDField(read_only=True)
@@ -157,10 +165,9 @@ class InvitationSerializer(ResendOtpSerializer):
             return Role.objects.filter(name=name).first()
 
         return Role.objects.values_list("name", flat=True)
-
     
     def get_super_admin(self):
-        user = User.objects.filter(role__name="super_admin").order_by("created_at")
+        user = User.objects.filter(role__name="Super Admin").order_by("created_at")
 
         if user.exists():
             return user.first()

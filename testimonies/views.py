@@ -1440,7 +1440,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 status_code=404,
             )
 
-        if user["role"] == "viewer" and user["id"] != testimony.uploaded_by.id:
+        if user["role"] == "User" and user["id"] != testimony.uploaded_by.id:
             return CustomResponse.error(
                 message="Sorry, you are not allowed to perform this operation.",
                 err_code=ErrorCode.FORBIDDEN,
@@ -1448,7 +1448,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             )
 
         if (
-            user["role"] == "admin" or user["role"] == "super_admin"
+            user["role"] == "Admin" or user["role"] == "Super Admin"
         ) and testimony.status == "pending":
             return CustomResponse.error(
                 message="You can't delete a pending testimony, please accept or reject it.",

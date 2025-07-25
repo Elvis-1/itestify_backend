@@ -1,6 +1,5 @@
 import os
 from django.utils.crypto import get_random_string
-from rest_framework import serializers
 
 
 import random
@@ -16,6 +15,11 @@ class Util:
     def generate_entry_code():
         """ generate 4 digit entry code for user"""
         return get_random_string(length=4, allowed_chars='0123456789')
+
+    @staticmethod
+    def format_role_name(role_str):
+        return role_str.replace('_', ' ').title()
+
 
     @staticmethod
     def generate_token(data, expiry_minutes=10):

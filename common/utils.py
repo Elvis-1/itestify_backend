@@ -1,19 +1,10 @@
 import os
 import cloudinary.uploader
 
-from .responses import CustomResponse
-from .serializers import MediaUploadSerializer
-from .error import ErrorCode
-
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-
-from django.utils.timezone import now
-from datetime import datetime, timedelta
-from testimonies.models import VideoTestimony
+from django.conf import settings
+import json
 
 MAX_FILE_SIZE = 50 * 1024 * 1024
-
 
 def upload_file(files):
     uploaded_files = []
@@ -21,22 +12,6 @@ def upload_file(files):
     for file in files:
         # # determine file type and validate
         is_video = file.content_type.startswith("video/")
-        is_image = file.content_type.startswith("image/")
-
-        # if not (is_video or is_image):
-        #     return CustomResponse.error(
-        #         message=f"Invalid file type for {file.name}",
-        #         err_code=ErrorCode.BAD_REQUEST,
-        #         status_code=400,
-        #     )
-
-        # # check if the file size exceed the max file size
-        # if file.size > MAX_FILE_SIZE:
-        #     return CustomResponse.error(
-        #         err_code=ErrorCode.INVALID_VALUE,
-        #         message=f"The file {file.name} exceeds the file limit of 50MB.",
-        #         status_code=400,
-        #     )
 
         resource_type = "video" if is_video else "image"
 
@@ -53,3 +28,21 @@ def upload_file(files):
         )
 
     return uploaded_files
+
+
+def load_email_template(template_name):
+    base_path = os.path.join(settings.BASE_DIR, 'common', 'templates/emails')
+    file_path = os.path.join(base_path, f"{template_name}.json")
+    
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Email template '{template_name}' not found.")
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+    
+def interpolate_template(template: str, params: dict):
+    for key, value in params.items():
+        template = template.replace(f"{{{{ {key} }}}}", str(value))
+    return template
+

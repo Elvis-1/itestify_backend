@@ -35,6 +35,7 @@ from .serializers import (
 from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
+from common.tasks import send_email
 from rest_framework.generics import GenericAPIView
 from datetime import datetime
 from .emails import EmailUtil
@@ -234,7 +235,7 @@ class RegisterViewSet(viewsets.ViewSet):
                     User.objects.create_user(
                         serializer.validated_data["email"],
                         full_name=serializer.validated_data["full_name"],
-                        role=Role.objects.get(name="viewer"),
+                        role=Role.objects.get(name="User"),
                         status=User.STATUS.REGISTERED,
                         password=serializer.validated_data["password"],
                         is_verified=True,
@@ -343,7 +344,7 @@ class LoginViewSet(viewsets.ViewSet):
         )
 
     @handle_custom_exceptions
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"]) 
     def password(self, request):
         serializer = LoginPasswordSerializer(data=request.data)
         if not serializer.is_valid(raise_exception=True):
@@ -360,18 +361,16 @@ class LoginViewSet(viewsets.ViewSet):
             token = user.tokens()
 
             route = request.resolver_match.view_name
+            roles = InvitationSerializer.get_roles(self)
 
-            if route == "admin-login-password" and user.role.name not in [
-                "admin",
-                "super_admin",
-            ]:
+            if route == "admin-login-password" and user.role.name not in roles:
                 return CustomResponse.error(
                     message="Sorry, you are not authorized to login.",
                     err_code=ErrorCode.FORBIDDEN,
                     status_code=403,
                 )
 
-            if route == "mobile-login-password" and user.role.name != "viewer":
+            if route == "mobile-login-password" and user.role.name != "User":
                 return CustomResponse.error(
                     message="Sorry, you are not authorized to login.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -681,7 +680,7 @@ class UsersViewSet(viewsets.ViewSet):
         current_user = request.user
         try:
             user = User.objects.get_or_none(email=current_user.email)
-            user.status = "deleted"
+            user.status = user.STATUS.DELETED
             user.save()
             return CustomResponse.success(
                 message="Account deleted successfully.", status_code=200
@@ -697,7 +696,7 @@ class UsersViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get_or_none(id=pk)
 
-            if user.status == "registered":
+            if user.status == user.STATUS.REGISTERED:   
                 return CustomResponse.error(
                     message="Cannot delete a registered user.",
                     err_code=ErrorCode.BAD_REQUEST,
@@ -925,6 +924,9 @@ class InvitationViewSet(viewsets.ViewSet):
 
         # ToDo send email functionality
         print(invitation_link)
+        send_email.delay(
+            "welcome", serializer.validated_data, serializer.validated_data
+        )
 
         return CustomResponse.success(
             message="Success.", data=serializer.data, status_code=200
@@ -936,7 +938,7 @@ class InvitationViewSet(viewsets.ViewSet):
         role = request.query_params.get("role", None)
 
         members = User.objects.select_related("role").filter(
-            Q(status=User.STATUS.INVITED) | Q(role__name="super_admin")
+            Q(status=User.STATUS.INVITED) | Q(role__name="Super Admin")
         )
 
         if role:

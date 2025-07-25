@@ -6,7 +6,7 @@ from .models import User, EntryCode, Role
 
 @receiver(post_save, sender=User)
 def create_entry_code(sender, instance, created, **kwargs):
-    if created and instance.role == "admin":
+    if created and instance.role == "Admin":
         while True:
             # Generate a unique 6-digit code
             code = Util.generate_entry_code()
@@ -18,5 +18,5 @@ def create_entry_code(sender, instance, created, **kwargs):
 
 @receiver(post_migrate)
 def create_default_roles(sender, **kwargs):
-    Role.objects.get_or_create(name='super_admin')
-    Role.objects.get_or_create(name='viewer')
+    Role.objects.get_or_create(name='Super Admin')
+    Role.objects.get_or_create(name='Viewer')

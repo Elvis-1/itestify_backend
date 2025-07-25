@@ -30,7 +30,7 @@ class UserManager(BaseUserManager):
         role = extra_fields.pop("role", None)
 
         if role is None:
-            role, _ = Role.objects.get_or_create(name="viewer")
+            role, _ = Role.objects.get_or_create(name="User")
 
         user = self.model(email=self.normalize_email(email), role=role, **extra_fields)
         user.set_password(password)
@@ -42,7 +42,7 @@ class UserManager(BaseUserManager):
         if password is None:
             raise TypeError("Password should not be none")
 
-        role, _ = Role.objects.get_or_create(name="super_admin")
+        role, _ = Role.objects.get_or_create(name="Super Admin")
 
         user = self.create_user(email, password)
         user.role = role
@@ -80,9 +80,9 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     class STATUS(models.TextChoices):
-        DELETED = "deleted", "deleted"
-        REGISTERED = "registered", "registered"
-        INVITED = "invited", "Invited"
+        DELETED = "DELETED", "DELETED"
+        REGISTERED = "REGISTERED", "REGISTERED"
+        INVITED = "INVITED", "INVITED"
 
     class INVITATION_STATUS(models.TextChoices):
         ACTIVE = "ACTIVE", "ACTIVE"
