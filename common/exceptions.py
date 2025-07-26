@@ -4,6 +4,8 @@ from rest_framework.exceptions import (
     AuthenticationFailed,
     ValidationError,
     APIException,
+    PermissionDenied, 
+    NotAuthenticated,
 )
 
 from .responses import CustomResponse
@@ -29,6 +31,7 @@ class RequestError(APIException):
 def custom_exception_handler(exc, context):
     try:
         response = exception_handler(exc, context)
+        
         if isinstance(exc, AuthenticationFailed):
             exc_list = str(exc).split("DETAIL: ")
             return CustomResponse.error(
@@ -55,6 +58,18 @@ def custom_exception_handler(exc, context):
                 message=err_val.capitalize(),
                 status_code=422,
                 err_code=ErrorCode.INVALID_ENTRY,
+            )
+        elif isinstance(exc, PermissionDenied):
+            return CustomResponse.error(
+                message="You don't have the permission to perform this operation.",
+                status_code=403,
+                err_code=ErrorCode.FORBIDDEN
+            )
+        elif isinstance(exc, NotAuthenticated):
+            return CustomResponse.error(
+                message="You are not logged in.",
+                status_code=401,
+                err_code=ErrorCode.UNAUTHORIZED_USER
             )
         else:
             print("error:", exc)

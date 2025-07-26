@@ -879,7 +879,15 @@ class InvitationViewSet(viewsets.ViewSet):
         token = Util.generate_token({"email": serializer.validated_data["email"]})
         invitation_link = os.getenv("FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
 
+        user_data = dict(serializer.validated_data)
+        user_data["invitation_link"] = invitation_link
+
         # ToDo send email functionality
+        send_email.delay(
+            "accept_invitation",
+            user_data,
+            user_data
+        )
         print(invitation_link)
 
         return CustomResponse.success(
@@ -921,11 +929,14 @@ class InvitationViewSet(viewsets.ViewSet):
         # create invitation link with token
         token = Util.generate_token({"email": serializer.validated_data["email"]})
         invitation_link = os.getenv("FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
+        
+        user_data = dict(serializer.validated_data)
+        user_data["invitation_link"] = invitation_link
 
         # ToDo send email functionality
         print(invitation_link)
         send_email.delay(
-            "welcome", serializer.validated_data, serializer.validated_data
+            "resend_invitation", user_data, user_data
         )
 
         return CustomResponse.success(

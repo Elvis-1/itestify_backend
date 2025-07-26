@@ -1,4 +1,0 @@
-{
-  "subject": "Welcome to Our Platform, {{ email }}!",
-  "body": "Hi {{ email }},\n\nThanks for signing up.\n\nRegards,\nTeam"
-}

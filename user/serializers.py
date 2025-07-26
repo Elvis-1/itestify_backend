@@ -134,7 +134,14 @@ class RoleSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Permissions must be a list of strings.")
         
         for i in obj:
-            if i not in ["User Management", "Testimony Management", "Review Management", "Privacy and Security Management"]:
+            if i not in [
+                "User Management", 
+                "Testimony Management", 
+                "Review Management", 
+                "Privacy and Security Management",
+                "Admin Management",
+                "Donation Management",
+            ]:
                 raise serializers.ValidationError(f"{i} is an invalid permission.")
 
         return obj
@@ -193,7 +200,7 @@ class InvitationSerializer(ResendOtpSerializer):
         generated_password = Util.generate_password(8)
         alternative_role = validated_data.get("alternative_role", None)
         
-        role = self.get_roles(name=validated_data["role"]) # fetch the role queryset using the name
+        role = self.get_roles(name=validated_data["role"].title()) # fetch the role queryset using the name
 
         # set the alternative role of the current super_admin if it is to assign a new super_admin
         if alternative_role is not None:

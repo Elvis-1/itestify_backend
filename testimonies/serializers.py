@@ -381,7 +381,7 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "User":
+        if user and user["role"].name == "User":
             self.fields.pop("uploaded_by", None)
 
 

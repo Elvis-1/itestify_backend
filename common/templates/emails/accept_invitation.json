@@ -1,0 +1,5 @@
+{
+  "subject": "You've Been Invited to itestify, {{ full_name }}!",
+  "body": "Hi {{ full_name }},\n\nYou've been invited to join itestify as a/an {{ role }}.\n\nTo get started, please click the link below:\n\n{{ invitation_link }} to accept the invitation and change your password.\n\nIf you were not expecting this invitation, feel free to ignore this email.\n\nBest regards,The Team."
+}
+

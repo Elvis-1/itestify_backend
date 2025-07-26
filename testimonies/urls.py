@@ -11,7 +11,7 @@ from .views import (
     TextTestimonyByCategoryView,
     TextTestimonyCommentsView,
     TextTestimonyLikesView,
-    VideoTestimonyByCategoryView,
+    # VideoTestimonyByCategoryView,
     ShowAllUplaodedInspirationalPictures,
     TextTestimonyReplyComment,
     VideoTestimonyCommentsView,
@@ -82,21 +82,21 @@ urlpatterns = [
         TestimonySettingsView.as_view(),
         name="testimony-settings",
     ),
-    path(
-        "testimonies/<str:category>/",
-        TextTestimonyByCategoryView.as_view(),
-        name="testimony-by-category",
-    ),
-    path(
-        "testimonies/comment/<id>/",
-        TextTestimonyCommentsView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/comment-reply/<id>/",
-        TextTestimonyReplyComment.as_view(),
-        name="testimony-text-reply",
-    ),
+    # path(
+    #     "testimonies/<str:category>/",
+    #     TextTestimonyByCategoryView.as_view(),
+    #     name="testimony-by-category",
+    # ),
+    # path(
+    #     "testimonies/comment/<id>/",
+    #     TextTestimonyCommentsView.as_view(),
+    #     name="testimony-by-category-comment",
+    # ),
+    # path(
+    #     "testimonies/comment-reply/<id>/",
+    #     TextTestimonyReplyComment.as_view(),
+    #     name="testimony-text-reply",
+    # ),
     path(
         "testimonies/get-comment-reply/<id>/",
         TextTestimonyReplyComment.as_view(),
@@ -132,11 +132,11 @@ urlpatterns = [
         TextTestimonyLikesView.as_view(),
         name="testimony-by-category-comment",
     ),
-    path(
-        "testimonies/video/<str:category>/",
-        VideoTestimonyByCategoryView.as_view(),
-        name="testimony-by-category",
-    ),
+    # path(
+    #     "testimonies/video/<str:category>/",
+    #     VideoTestimonyByCategoryView.as_view(),
+    #     name="testimony-by-category",
+    # ),
     path(
         "testimonies/video-comment/<id>/",
         VideoTestimonyCommentsView.as_view(),

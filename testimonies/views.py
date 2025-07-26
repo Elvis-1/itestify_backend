@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from django.utils.dateparse import parse_date
 from common.responses import CustomResponse
@@ -41,8 +41,9 @@ from common.exceptions import handle_custom_exceptions
 from common.error import ErrorCode
 from .utils import transform_testimony_files
 
-from django.db.models import Q
+from common.permissions import Perm
 
+from django.db.models import Q
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies in the db with filtering and search."""
@@ -118,31 +119,31 @@ class VideoTestimonyDetailView(APIView):
         )
 
 
-class VideoTestimonyByCategoryView(APIView):
-    serializer_class = ReturnVideoTestimonySerializer
-    pagination_class = StandardResultsSetPagination
+# class VideoTestimonyByCategoryView(APIView):
+#     serializer_class = ReturnVideoTestimonySerializer
+#     pagination_class = StandardResultsSetPagination
 
-    def get(self, request, category):
-        """Get testimonies by category."""
-        testimonies = VideoTestimony.objects.filter(category=category)
-        if not testimonies:
-            return CustomResponse.error(
-                message="No testimonies found for this category",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
+#     def get(self, request, category):
+#         """Get testimonies by category."""
+#         testimonies = VideoTestimony.objects.filter(category=category)
+#         if not testimonies:
+#             return CustomResponse.error(
+#                 message="No testimonies found for this category",
+#                 err_code=ErrorCode.NOT_FOUND,
+#                 status_code=404,
+#             )
 
-        paginate = self.pagination_class()
-        if testimonies:
-            paginated_queryset = paginate.paginate_queryset(testimonies, request)
-            serializer = self.serializer_class(paginated_queryset, many=True)
-            return paginate.get_paginated_response(serializer.data)
-        else:
-            return CustomResponse.error(
-                message="No testimonies found for this category",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
+#         paginate = self.pagination_class()
+#         if testimonies:
+#             paginated_queryset = paginate.paginate_queryset(testimonies, request)
+#             serializer = self.serializer_class(paginated_queryset, many=True)
+#             return paginate.get_paginated_response(serializer.data)
+#         else:
+#             return CustomResponse.error(
+#                 message="No testimonies found for this category",
+#                 err_code=ErrorCode.NOT_FOUND,
+#                 status_code=404,
+#             )
 
 
 class VideoTestimonyDeleteSelected(APIView):
@@ -1139,8 +1140,9 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
+
     @handle_custom_exceptions
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], permission_classes=[Perm.TESTIMONY_MANAGEMENT])
     def create_video(self, request):
         data = request.data
 
@@ -1168,7 +1170,9 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             message="Success.", data=total_response_data, status_code=201
         )
 
-    def list(self, request):
+    @handle_custom_exceptions
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny], url_path="read")
+    def read(self, request):
         """Get all testimonies"""
 
         # Get filter parameter
@@ -1205,7 +1209,8 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         if search:
             testimony_qs = testimony_qs.filter(
                 Q(uploaded_by__full_name__icontains=search)
-                | Q(category__icontains=search)
+                | Q(category__icontains=search) 
+                | Q(title__icontains=search)
             )
 
         paginator = self.pagination_class()
@@ -1218,7 +1223,8 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         return paginator.get_paginated_response(serializer.data)
 
     @handle_custom_exceptions
-    def retrieve(self, request, pk=None):
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated], url_path="view")
+    def read_single(self, request, pk=None): 
         """Retrieve a specific video testimony by ID"""
         try:
             # try fetching it from VideoTestimony
@@ -1242,7 +1248,8 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         )
 
     @handle_custom_exceptions
-    def update(self, request, pk=None):
+    @action(detail=True, methods=["put"], permission_classes=[Perm.TESTIMONY_MANAGEMENT], url_path="edit")
+    def edit(self, request, pk=None):
         """Update a specific video testimony by ID"""
         try:
             # try fetching it from VideoTestimony
@@ -1277,7 +1284,10 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=400,
         )
 
-    def destroy(self, request, pk=None):
+
+    @handle_custom_exceptions
+    @action(detail=True, methods=["delete"], permission_classes=[Perm.TESTIMONY_MANAGEMENT], url_path="delete")
+    def delete(self, request, pk=None):
         """Delete a specific video testimony by ID"""
         try:
             testimony = VideoTestimony.objects.get(id=pk)

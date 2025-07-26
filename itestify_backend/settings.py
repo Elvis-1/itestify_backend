@@ -222,6 +222,7 @@ REST_USE_JWT = True
 
 
 REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
