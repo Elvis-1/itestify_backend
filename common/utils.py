@@ -2,9 +2,28 @@ import os
 import cloudinary.uploader
 
 from django.conf import settings
+from django.core.cache import cache
 import json
+from user.models import Role
 
 MAX_FILE_SIZE = 50 * 1024 * 1024
+
+def get_roles(name=None):
+    if name:
+        cache_key = f"role_{name}"
+        role = cache.get(cache_key)
+        if role is None:
+            role = Role.objects.filter(name=name).first()
+            cache.set(cache_key, role, timeout=3600)  # Cache for 1 hour
+        return role
+
+    cache_key = "all_roles"
+    roles = cache.get(cache_key)
+    if roles is None:
+        roles = list(Role.objects.values_list("name", flat=True))
+        cache.set(cache_key, roles, timeout=3600) # Cache for 1 hour
+    return roles
+
 
 def upload_file(files):
     uploaded_files = []

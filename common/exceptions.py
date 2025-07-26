@@ -12,6 +12,10 @@ from .responses import CustomResponse
 from .error import ErrorCode
 from functools import wraps
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class RequestError(APIException):
     default_detail = "An error occured"
@@ -72,7 +76,8 @@ def custom_exception_handler(exc, context):
                 err_code=ErrorCode.UNAUTHORIZED_USER
             )
         else:
-            print("error:", exc)
+            # print("error:", exc)
+            logger.exception("Unexpected error occured.")
             return CustomResponse.error(
                 message="Something went wrong!",
                 status_code=(

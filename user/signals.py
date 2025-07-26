@@ -1,5 +1,6 @@
-from django.db.models.signals import post_save, post_migrate
+from django.db.models.signals import post_save, post_migrate, post_delete
 from django.dispatch import receiver
+from django.core.cache import cache
 from .utils import Util 
 from .models import User, EntryCode, Role
 
@@ -15,6 +16,12 @@ def create_entry_code(sender, instance, created, **kwargs):
 
             # Create the EntryCode object
         EntryCode.objects.create(user=instance, code=code)
+
+
+@receiver(post_save, sender=Role)
+@receiver(post_delete, sender=Role)
+def clear_roles_cache(sender, **kwargs):
+    cache.delete("all_roles")
 
 @receiver(post_migrate)
 def create_default_roles(sender, **kwargs):

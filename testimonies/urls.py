@@ -2,7 +2,6 @@ from django.urls import include, path
 from .views import (
     InspirationalPicturesViewSet,
     ShowAllInspirationalPicturesStatus,
-    TextTestimonyApprovalView,
     TextTestimonyListView,
     TestimonySettingsView,
     TextTestimonyViewSet,
@@ -72,11 +71,11 @@ urlpatterns = [
         VideoTestimonyDetailView.as_view(),
         name="text-testimonies-detail",
     ),
-    path(
-        "text-testimonies/<str:pk>/review/",
-        TextTestimonyApprovalView.as_view(),
-        name="text-testimony-review",
-    ),
+    # path(
+    #     "text-testimonies/<str:pk>/review/",
+    #     TextTestimonyApprovalView.as_view(),
+    #     name="text-testimony-review",
+    # ),
     path(
         "testimonies/settings/",
         TestimonySettingsView.as_view(),

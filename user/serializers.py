@@ -6,6 +6,7 @@ from django.db import transaction
 
 from .models import User, Role
 from .utils import Util
+from common.utils import get_roles
 
 
 class UserRegisterSerializer(serializers.Serializer):
@@ -147,7 +148,7 @@ class RoleSerializer(serializers.ModelSerializer):
         return obj
 
     def validate(self, attrs):
-        roles = InvitationSerializer.get_roles(self)
+        roles = get_roles()
 
         if attrs["name"].title() in roles: # convert to sentence case before checking
             raise serializers.ValidationError("Role name is already taken, please try another.")
@@ -165,13 +166,6 @@ class InvitationSerializer(ResendOtpSerializer):
     invitation_status = serializers.CharField(read_only=True)
     invite_count = serializers.IntegerField(read_only=True)
     alternative_role = serializers.CharField(max_length=200, write_only=True)
-
-    # returns the list of roles in as an array
-    def get_roles(self, name=None):
-        if name is not None:
-            return Role.objects.filter(name=name).first()
-
-        return Role.objects.values_list("name", flat=True)
     
     def get_super_admin(self):
         user = User.objects.filter(role__name="Super Admin").order_by("created_at")
@@ -182,7 +176,7 @@ class InvitationSerializer(ResendOtpSerializer):
         return None
 
     def validate(self, obj):
-        available_roles = self.get_roles()
+        available_roles = get_roles()
 
         if obj["role"] not in available_roles:
             raise serializers.ValidationError(f"{obj["role"]} is not a valid role, please check again.")
@@ -200,11 +194,11 @@ class InvitationSerializer(ResendOtpSerializer):
         generated_password = Util.generate_password(8)
         alternative_role = validated_data.get("alternative_role", None)
         
-        role = self.get_roles(name=validated_data["role"].title()) # fetch the role queryset using the name
+        role = get_roles(name=validated_data["role"].title()) # fetch the role queryset using the name
 
         # set the alternative role of the current super_admin if it is to assign a new super_admin
         if alternative_role is not None:
-            alternative_role = self.get_roles(name=alternative_role)
+            alternative_role = get_roles(name=alternative_role)
             super_admin = self.get_super_admin()
             super_admin.alternative_role = alternative_role
             super_admin.save()
@@ -270,7 +264,7 @@ class SetInvitedPasswordSerializer(serializers.Serializer):
             super_admin = InvitationSerializer.get_super_admin(self)
 
             if super_admin.alternative_role is not None:
-                role = InvitationSerializer.get_roles(self, name=super_admin.alternative_role.name)
+                role = get_roles(name=super_admin.alternative_role.name)
                 super_admin.status = super_admin.STATUS.INVITED
                 super_admin.role = role
                 super_admin.save()

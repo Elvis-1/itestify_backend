@@ -36,6 +36,7 @@ from common.exceptions import handle_custom_exceptions
 from common.responses import CustomResponse
 from common.error import ErrorCode
 from common.tasks import send_email
+from common.utils import get_roles
 from rest_framework.generics import GenericAPIView
 from datetime import datetime
 from .emails import EmailUtil
@@ -347,10 +348,7 @@ class LoginViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"]) 
     def password(self, request):
         serializer = LoginPasswordSerializer(data=request.data)
-        if not serializer.is_valid(raise_exception=True):
-            return Response(
-                {"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
@@ -361,7 +359,7 @@ class LoginViewSet(viewsets.ViewSet):
             token = user.tokens()
 
             route = request.resolver_match.view_name
-            roles = InvitationSerializer.get_roles(self)
+            roles = get_roles()
 
             if route == "admin-login-password" and user.role.name not in roles:
                 return CustomResponse.error(

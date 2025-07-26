@@ -39,7 +39,6 @@ class Testimony(TouchDatesMixim):
     #    max_length=50, choices=UPLOAD_STATUS.choices, null=True, blank=True)
     uploaded_by = models.ForeignKey(
         User, on_delete=models.CASCADE)
-    rejection_reason = models.TextField(blank=True, null=True)
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment", related_query_name="comments")
     shares = GenericRelation("Share")
@@ -63,11 +62,12 @@ class TestimonySettings(models.Model):
 class TextTestimony(Testimony):
 
     class STATUS(models.TextChoices):
-        PENDING = 'pending', 'pending'
-        APPROVED = 'approved', 'approved'
-        REJECTED = 'rejected', 'rejected'
+        PENDING = 'PENDING', 'PENDING'
+        APPROVED = 'APPROVED', 'APPROVED'
+        REJECTED = 'REJECTED', 'REJECTED'
 
     content = models.TextField()
+    rejection_reason = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS.choices, default=STATUS.PENDING, db_index=True)
 

@@ -40,6 +40,7 @@ from .serializers import (
 from common.exceptions import handle_custom_exceptions
 from common.error import ErrorCode
 from .utils import transform_testimony_files
+from common.utils import get_roles
 
 from common.permissions import Perm
 
@@ -1139,7 +1140,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
-        if self.action == "create_video" or self.action == "update" or self.action == "destroy":
+        if self.action in ["create_video", "update", "destroy"]:
             self.permission_classes = [Perm.TESTIMONY_MANAGEMENT]
         
         elif self.action == "list":
@@ -1307,13 +1308,25 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         testimony.delete()
         return CustomResponse.success(
             message="Testimony deleted successfully",
-            status_code=204,
+            status_code=200,
         )
+
 class TextTestimonyViewSet(viewsets.ViewSet):
-    permission_classes = [
-        permissions.IsAuthenticated,
-    ]
     pagination_class = StandardResultsSetPagination
+
+    def get_permissions(self):
+        if self.action == "review":
+            self.permission_classes = [Perm.TESTIMONY_MANAGEMENT]
+
+        elif self.action == "destroy":
+            if self.request.user.role.name == "User":
+                self.permission_classes = [IsAuthenticated]
+            else:
+                self.permission_classes = [Perm.TESTIMONY_MANAGEMENT]
+        elif self.action in ["retrieve", "create_text", "update", "list"]:
+            self.permission_classes = [IsAuthenticated]
+
+        return super().get_permissions()
 
     def list(self, request):
         """Get all Text testimonies for the logged in user."""
@@ -1362,14 +1375,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         serializer = ReturnTextTestimonySerializer(
             paginated_queryset, many=True, context={"user": user}
         )
-        if serializer:
-            return paginator.get_paginated_response(serializer.data)
-        else:
-            return CustomResponse.error(
-                message="No testimonies found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
+
+        return paginator.get_paginated_response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """Retrieve a specific text testimony by ID"""
@@ -1439,7 +1446,8 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         )
 
     def destroy(self, request, pk=None):
-        user = request.user_data
+        user = request.user
+        roles = get_roles()
 
         """Delete a specific text testimony by ID"""
         try:
@@ -1451,17 +1459,15 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-
-        if user["role"] == "User" and user["id"] != testimony.uploaded_by.id:
+    
+        if user.role.name == "User" and user.id != testimony.uploaded_by.id:
             return CustomResponse.error(
                 message="Sorry, you are not allowed to perform this operation.",
                 err_code=ErrorCode.FORBIDDEN,
                 status_code=403,
             )
 
-        if (
-            user["role"] == "Admin" or user["role"] == "Super Admin"
-        ) and testimony.status == "pending":
+        if (user.role.name in roles) and testimony.status == testimony.STATUS.PENDING:
             return CustomResponse.error(
                 message="You can't delete a pending testimony, please accept or reject it.",
                 err_code=ErrorCode.FORBIDDEN,
@@ -1475,6 +1481,44 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
+    @handle_custom_exceptions
+    @action(detail=True, methods=["post"], url_path="review")
+    def review(self, request, pk=None):
+        try:
+            testimony = TextTestimony.objects.get(pk=pk)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        action = request.data.get("action")  # 'approve' or 'reject'
+        rejection_reason = request.data.get("rejection_reason", None)
+
+        if action == "approve":
+            testimony.status = testimony.STATUS.APPROVED
+            testimony.rejection_reason = None
+        elif action == "reject":
+            if rejection_reason is None:
+                return CustomResponse.error(
+                    message="Please provide a rejection reason",
+                    err_code=ErrorCode.BAD_REQUEST,
+                    status_code=400,
+                )
+            testimony.status = testimony.STATUS.REGISTERED
+            testimony.rejection_reason = rejection_reason
+        else:
+            return CustomResponse.error(
+                message="Invalid action",
+                err_code=ErrorCode.INVALID_ACTION,
+                status_code=400,
+            )
+
+        testimony.save()
+        return CustomResponse.success(
+            message="Testimony updated successfully", status_code=200
+        )
 
 class InspirationalPicturesViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
