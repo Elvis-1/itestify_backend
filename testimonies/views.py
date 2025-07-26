@@ -1135,14 +1135,23 @@ class TestimonySettingsView(APIView):
             message="Testimony settings created successfully.", status_code=200
         )
 
-
 class VideoTestimonyViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
+    def get_permissions(self):
+        if self.action == "create_video" or self.action == "update" or self.action == "destroy":
+            self.permission_classes = [Perm.TESTIMONY_MANAGEMENT]
+        
+        elif self.action == "list":
+            self.permission_classes = [AllowAny]
+
+        elif self.action == "retrieve":
+            self.permission_classes = [IsAuthenticated]
+
+        return super().get_permissions()
 
     @handle_custom_exceptions
-    @action(detail=False, methods=["post"], permission_classes=[Perm.TESTIMONY_MANAGEMENT])
+    @action(detail=False, methods=["post"])
     def create_video(self, request):
         data = request.data
 
@@ -1171,8 +1180,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         )
 
     @handle_custom_exceptions
-    @action(detail=False, methods=["get"], permission_classes=[AllowAny], url_path="read")
-    def read(self, request):
+    def list(self, request):
         """Get all testimonies"""
 
         # Get filter parameter
@@ -1209,7 +1217,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         if search:
             testimony_qs = testimony_qs.filter(
                 Q(uploaded_by__full_name__icontains=search)
-                | Q(category__icontains=search) 
+                | Q(category__icontains=search)
                 | Q(title__icontains=search)
             )
 
@@ -1223,8 +1231,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         return paginator.get_paginated_response(serializer.data)
 
     @handle_custom_exceptions
-    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated], url_path="view")
-    def read_single(self, request, pk=None): 
+    def retrieve(self, request, pk=None):
         """Retrieve a specific video testimony by ID"""
         try:
             # try fetching it from VideoTestimony
@@ -1248,8 +1255,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
         )
 
     @handle_custom_exceptions
-    @action(detail=True, methods=["put"], permission_classes=[Perm.TESTIMONY_MANAGEMENT], url_path="edit")
-    def edit(self, request, pk=None):
+    def update(self, request, pk=None):
         """Update a specific video testimony by ID"""
         try:
             # try fetching it from VideoTestimony
@@ -1284,10 +1290,8 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=400,
         )
 
-
     @handle_custom_exceptions
-    @action(detail=True, methods=["delete"], permission_classes=[Perm.TESTIMONY_MANAGEMENT], url_path="delete")
-    def delete(self, request, pk=None):
+    def destroy(self, request, pk=None):
         """Delete a specific video testimony by ID"""
         try:
             testimony = VideoTestimony.objects.get(id=pk)
@@ -1305,8 +1309,6 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             message="Testimony deleted successfully",
             status_code=204,
         )
-
-
 class TextTestimonyViewSet(viewsets.ViewSet):
     permission_classes = [
         permissions.IsAuthenticated,
