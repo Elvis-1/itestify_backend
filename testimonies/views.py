@@ -96,57 +96,6 @@ class TextTestimonyListView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 
-class VideoTestimonyDetailView(APIView):
-    """Fetch a specific testimony by ID."""
-
-    def get(self, request, id):
-        try:
-            testimony = VideoTestimony.objects.get(id=id)
-            testimony.views += 1
-            testimony.save()
-
-        except VideoTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-        serializer = ReturnVideoTestimonySerializer(testimony)
-        return CustomResponse.success(
-            message="Testimony retrieved successfully",
-            data=serializer.data,
-            status_code=200,
-        )
-
-
-# class VideoTestimonyByCategoryView(APIView):
-#     serializer_class = ReturnVideoTestimonySerializer
-#     pagination_class = StandardResultsSetPagination
-
-#     def get(self, request, category):
-#         """Get testimonies by category."""
-#         testimonies = VideoTestimony.objects.filter(category=category)
-#         if not testimonies:
-#             return CustomResponse.error(
-#                 message="No testimonies found for this category",
-#                 err_code=ErrorCode.NOT_FOUND,
-#                 status_code=404,
-#             )
-
-#         paginate = self.pagination_class()
-#         if testimonies:
-#             paginated_queryset = paginate.paginate_queryset(testimonies, request)
-#             serializer = self.serializer_class(paginated_queryset, many=True)
-#             return paginate.get_paginated_response(serializer.data)
-#         else:
-#             return CustomResponse.error(
-#                 message="No testimonies found for this category",
-#                 err_code=ErrorCode.NOT_FOUND,
-#                 status_code=404,
-#             )
-
-
 class VideoTestimonyDeleteSelected(APIView):
     def post(self, request):
         ids = request.data.get("ids", [])

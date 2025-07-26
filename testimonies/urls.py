@@ -7,7 +7,6 @@ from .views import (
     TextTestimonyViewSet,
     VideoTestimonyDeleteSelected,
     VideoTestimonyViewSet,
-    TextTestimonyByCategoryView,
     TextTestimonyCommentsView,
     TextTestimonyLikesView,
     # VideoTestimonyByCategoryView,
@@ -16,7 +15,6 @@ from .views import (
     VideoTestimonyCommentsView,
     VideoTestimonyLikesView,
     TextTestimonyDetailView,
-    VideoTestimonyDetailView,
     InpirationalPicturesSharesCount,
     UnreadNotificationsView,
     GetAllNotificationsView,
@@ -66,11 +64,6 @@ urlpatterns = [
         name="text-testimonies-detail",
     ),
     path("edit-text-testimonies/<id>/", TextTestimonyDetailView.as_view(), name=""),
-    path(
-        "video-testimonies-detail/<id>/",
-        VideoTestimonyDetailView.as_view(),
-        name="text-testimonies-detail",
-    ),
     # path(
     #     "text-testimonies/<str:pk>/review/",
     #     TextTestimonyApprovalView.as_view(),
