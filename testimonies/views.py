@@ -7,7 +7,6 @@ from rest_framework.decorators import action
 from django.utils.dateparse import parse_date
 from common.responses import CustomResponse
 from notifications.models import Notification
-from notifications.serializers import NotificationSerializer
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
