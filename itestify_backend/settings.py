@@ -2,10 +2,7 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from datetime import timedelta
-from decouple import config
-from celery.schedules import crontab
 import cloudinary
-from datetime import timedelta
 
 
 load_dotenv()
@@ -22,6 +19,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 
 DEBUG = True if os.getenv("DEBUG") == "True" else False
+
+ENVIRONMENT = os.getenv("ENV")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -150,7 +149,7 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if DEPLOY == False:
+if not DEPLOY:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -229,6 +228,7 @@ REST_USE_JWT = True
 
 
 REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
@@ -238,10 +238,10 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'SEARCH_PARAM': 'search',
     'DEFAULT_FILTER_BACKENDS': [
         'rest_framework.filters.SearchFilter',
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
 }
 
@@ -256,7 +256,7 @@ AUTHENTICATION_BACKENDS = [
 APPEND_SLASH = False
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=365),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -328,9 +328,6 @@ cloudinary.config(
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
 
-
-# MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -353,7 +350,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
 # celery settings
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+CELERY_BROKER_URL = os.getenv("REDIS_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -375,3 +372,55 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "detailed": {
+            "format": "[{asctime}] [{levelname}] [{filename}:{lineno}] - {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "detailed",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "project_debug.log"),
+            "formatter": "detailed",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "DEBUG" if ENVIRONMENT == "development" else "WARNING",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+        },
+    }
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL"), 
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+
+

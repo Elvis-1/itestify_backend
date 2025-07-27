@@ -8,3 +8,6 @@ def transform_testimony_files(video_data):
     video_data["thumbnail"] = uploaded_files[1]["url"]
 
     return video_data
+
+
+

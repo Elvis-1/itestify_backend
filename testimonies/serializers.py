@@ -13,10 +13,9 @@ from .models import (
     Comment
 )
 
-from datetime import datetime, timezone
-from django.utils.timezone import now, timedelta, is_naive, is_aware, get_current_timezone
+# from datetime import datetime, timezone
+# from django.utils.timezone import now, timedelta, is_naive, is_aware, get_current_timezone
 
-from common.utils import upload_file
 
 DEBUG = True if os.getenv("DEBUG") == "True" else False
 
@@ -101,7 +100,7 @@ class ReturnTextTestimonyLikeSerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
 
 
@@ -131,7 +130,7 @@ class ReturnTextTestimonyCommentSerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
 
 
@@ -169,7 +168,7 @@ class ReturnATextTestimonyCommentSerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
 
 
@@ -214,7 +213,7 @@ class ReturnVideoTestimonyCommentSerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
 
 
@@ -259,7 +258,7 @@ class ReturnVideoTestimonyLikeSerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
 
 
@@ -287,7 +286,7 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
 
 
@@ -382,7 +381,7 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
         user = self.context.get("user")
 
         # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "viewer":
+        if user and user["role"].name == "User":
             self.fields.pop("uploaded_by", None)
 
 

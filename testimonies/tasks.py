@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.utils.timezone import now
-from .models import VideoTestimony, UPLOAD_STATUS, InspirationalPictures
-from datetime import timedelta, datetime
+from .models import VideoTestimony, InspirationalPictures
+from datetime import timedelta
 
 
 @shared_task
