@@ -254,18 +254,20 @@ class SetInvitedPasswordSerializer(serializers.Serializer):
 
     def update(self, instance, validated_data):
         with transaction.atomic():
+            super_admin = InvitationSerializer.get_super_admin(self)
             validated_data.pop("password2", None)
         
             instance.set_password(validated_data["password"])
             instance.invitation_status=User.INVITATION_STATUS.USED
+            instance.is_staff = True
+            instance.is_superuser = True if super_admin.alternative_role is not None else False
             instance.invite_count = 0
             instance.save()
-
-            super_admin = InvitationSerializer.get_super_admin(self)
 
             if super_admin.alternative_role is not None:
                 role = get_roles(name=super_admin.alternative_role.name)
                 super_admin.status = super_admin.STATUS.INVITED
+                super_admin.is_superuser = False
                 super_admin.role = role
                 super_admin.save()
 

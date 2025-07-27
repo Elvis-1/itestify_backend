@@ -6,6 +6,7 @@ from django.contrib.auth.models import (
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 from common.managers import GetOrNoneQuerySet
+from common.utils import get_roles
 from django.conf import settings
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -30,7 +31,7 @@ class UserManager(BaseUserManager):
         role = extra_fields.pop("role", None)
 
         if role is None:
-            role, _ = Role.objects.get_or_create(name="User")
+            role = get_roles(name="User")
 
         user = self.model(email=self.normalize_email(email), role=role, **extra_fields)
         user.set_password(password)
@@ -42,10 +43,11 @@ class UserManager(BaseUserManager):
         if password is None:
             raise TypeError("Password should not be none")
 
-        role, _ = Role.objects.get_or_create(name="Super Admin")
+        role = get_roles(name="Super Admin")
 
         user = self.create_user(email, password)
         user.role = role
+        user.invitation_status = user.INVITATION_STATUS.USED
         user.is_superuser = True
         user.is_staff = True
         user.save()
@@ -57,25 +59,6 @@ class UserManager(BaseUserManager):
 
     def get_or_none(self, **kwargs):
         return self.get_queryset().get_or_none(**kwargs)
-
-    def create_invited_user(self, email, full_name=None, role=None, invited_by=None):
-        if email is None:
-            raise TypeError("User should have an Email")
-
-        if role == self.model.Roles.SUPER_ADMIN:
-            role = self.model.Roles.ADMIN
-
-        user = self.model(
-            email=self.normalize_email(email),
-            full_name=full_name,
-            role=role,
-            invited_by=invited_by,
-            status=self.model.STATUS.INVITED,
-        )
-        user.set_unusable_password()
-        user.save()
-        return user 
-
 
 class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
