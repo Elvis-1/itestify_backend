@@ -26,4 +26,4 @@ def clear_roles_cache(sender, **kwargs):
 @receiver(post_migrate)
 def create_default_roles(sender, **kwargs):
     Role.objects.get_or_create(name='Super Admin')
-    Role.objects.get_or_create(name='Viewer')
+    Role.objects.get_or_create(name='User')

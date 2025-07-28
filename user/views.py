@@ -184,7 +184,7 @@ class RegisterViewSet(viewsets.ViewSet):
                     User.objects.create_user(
                         serializer.validated_data["email"],
                         full_name=serializer.validated_data["full_name"],
-                        role=Role.objects.get(name="User"),
+                        role=get_roles(name="User"),
                         status=User.STATUS.REGISTERED,
                         password=serializer.validated_data["password"],
                         is_verified=True,
