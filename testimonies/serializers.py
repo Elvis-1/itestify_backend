@@ -355,7 +355,6 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
             "upload_status",
             "video_file",
             "thumbnail",
-            "rejection_reason",
             "scheduled_datetime",
             "uploaded_by",
             "created_at",
