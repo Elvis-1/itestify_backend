@@ -1,5 +1,3 @@
-from datetime import datetime
-import math
 import uuid
 from django.db import models
 

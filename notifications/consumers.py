@@ -11,7 +11,7 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         user = self.scope['user']
         if user.is_authenticated:
             self.user_id = str(user.id)
-            self.channel = await aioredis.from_url(settings.CELERY_RESULT_BACKEND)
+            self.channel = aioredis.from_url("redis://:xaJg9XJIDBNFbxUZtz73KFhkOMu4EJHt@redis-13061.crce197.us-east-2-1.ec2.redns.redis-cloud.com:13061")
             print(self.channel)
             await self.channel.set(f"{REDIS_PREFIX}:{self.user_id}", self.channel_name)
             print(
