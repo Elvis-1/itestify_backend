@@ -1,4 +1,8 @@
+import json
+from django.conf import settings
 from django.shortcuts import render
+from notifications.consumers import REDIS_PREFIX
+import redis
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from notifications.models import Notification
@@ -6,6 +10,8 @@ from notifications.serializers import NotificationSerializer
 from user.models import User
 from common.responses import CustomResponse
 from common.error import ErrorCode
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 # Create your views here.
 
@@ -14,7 +20,7 @@ class UnreadNotificationsView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = NotificationSerializer
 
-    def post(self, request, id):
+    def post(self, request):
         user = request.user
         try:
             user_id = User.objects.get(id=user.id)
@@ -25,9 +31,32 @@ class UnreadNotificationsView(APIView):
                 status_code=404,
             )
         try:
-            notification = Notification.objects.get(id=id, target=user_id)
-            notification.read = True
-            notification.save()
+            notification = Notification.objects.filter(target=user_id, read=False).order_by(
+                "-timestamp"
+            )
+            for notif in notification:
+                if not notif.read:
+                    notif.read = True
+                    notif.save()
+            payload = {
+                "count": str(notification.count()),
+            }
+
+            # Notify user via WebSocket
+            redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+            # Get user's WebSocket channel from Redis
+            channel_name = redis_client.get(
+                f"{REDIS_PREFIX}:{str(user_id.id)}")
+            if channel_name:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.send)(
+                    channel_name.decode("utf-8"),
+                    {
+                        "type": "get_user_unread_notification_count",
+                        "notifications": (payload)
+                    }
+                )
+            redis_client.close()
             return CustomResponse.success(
                 message="Notification marked as read successfully", status_code=200
             )
@@ -64,7 +93,7 @@ class UnreadNotificationsView(APIView):
             data=serializer.data,
             status_code=200,
         )
-    
+
 
 class GetAllNotificationsView(APIView):
     permission_classes = [IsAuthenticated]

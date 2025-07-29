@@ -50,7 +50,9 @@ class Testimony(TouchDatesMixim):
         abstract = True
 
     def __str__(self):
-        return f"Testimony by: {self.uploaded_by.full_name}"
+        return f"Testimony by: {self.uploaded_by.email}"
+
+    
 
 
 class TestimonySettings(models.Model):
@@ -70,6 +72,10 @@ class TextTestimony(Testimony):
     content = models.TextField()
     status = models.CharField(
         max_length=20, choices=STATUS.choices, default=STATUS.PENDING, db_index=True)
+    
+    @property
+    def get_cname(self):
+        return "TextTestimony"
 
 
 class VideoTestimony(Testimony):
@@ -112,10 +118,19 @@ class Comment(SocialInteraction):
         'self', blank=True)
     user_like_comment = models.ManyToManyField(
         User, blank=True, related_name="user_like_comment")
+    
+
+    @property
+    def get_cname(self):
+        return "Comment"
 
 
 class Like(SocialInteraction):
     pass
+
+    @property
+    def get_cname(self):
+        return "Like"
 
 
 class Share(SocialInteraction):

@@ -12,6 +12,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 from scriptures.consumers import ScheduleScriptureConsumer
+from notifications.consumers import NotificationConsumer
 import os
 from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
@@ -28,6 +29,8 @@ application = ProtocolTypeRouter({
             URLRouter([
                 path('ws/scripture_room_name/',
                      ScheduleScriptureConsumer.as_asgi()),
+                path('ws/notification/',
+                     NotificationConsumer.as_asgi()),
 
             ])
         )

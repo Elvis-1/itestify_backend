@@ -21,7 +21,7 @@ AUTH_USER_MODEL = 'user.User'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-DEBUG = True if os.getenv("DEBUG") == "True" else False
+DEBUG = True# if os.getenv("DEBUG") == "True" else False
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -169,13 +169,14 @@ else:
         }
     }
 
-
+#REDIS_URL_REMOTE = os.getenv("CELERY_RESULT_BACKEND")
+REDIS_URL_LOCAL = "redis://127.0.0.1:6379/0"
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("localhost", 6379)],
+            "hosts": [('127.0.0.1', 6379)],
         },
     },
 }
