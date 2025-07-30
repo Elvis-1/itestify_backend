@@ -114,7 +114,7 @@ class TextTestimonyListView(APIView):
         }
 
         # Notify user via WebSocket
-        redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+        redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
         # Get user's WebSocket channel from Redis
         channel_name = redis_client.get(
             f"{REDIS_PREFIX}:{str(user_id.id)}")
@@ -182,7 +182,7 @@ class VideoTestimonyCommentsView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -217,7 +217,7 @@ class VideoTestimonyCommentsView(APIView):
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} commented on your Video testimony"
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
@@ -283,7 +283,7 @@ class VideoTestimonyReplyComment(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -327,9 +327,9 @@ class VideoTestimonyReplyComment(APIView):
                     )
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} replied to your comment"
-                print(get_comment.user)
+                
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
@@ -392,7 +392,7 @@ class VideoTestimonyLikeUserComment(APIView):
         user = request.user
         try:
             user_id = User.objects.get(id=user.id)
-            print(user_id.email)
+            
         except User.DoesNotExist:
             return CustomResponse.error(
                 message="User not found",
@@ -434,7 +434,7 @@ class VideoTestimonyLikeUserComment(APIView):
                     payload["data"] = get_data
                     payload["user_messsge"] = f"{user_id.full_name} liked your comment"
                     # Notify user via WebSocket
-                    redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+                    redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
                     # Get user's WebSocket channel from Redis
                     channel_name = redis_client.get(
                         f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
@@ -500,7 +500,7 @@ class VideoTestimonyLikesView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -523,7 +523,7 @@ class VideoTestimonyLikesView(APIView):
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
-            print(get_testimony.uploaded_by)
+            
             notification = Notification.objects.filter(
                 target=get_testimony.uploaded_by, read=False
             ).order_by("-timestamp")
@@ -541,7 +541,7 @@ class VideoTestimonyLikesView(APIView):
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} liked your Video testimony"
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
@@ -769,7 +769,7 @@ class TextTestimonyCommentsView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -804,7 +804,7 @@ class TextTestimonyCommentsView(APIView):
             payload["user_messsge"] = f"{user_id.full_name} commented on your testimony"
 
             # Notify user via WebSocket
-            redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
             # Get user's WebSocket channel from Redis
             channel_name = redis_client.get(
                 f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
@@ -880,7 +880,7 @@ class TextTestimonyReplyComment(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -902,7 +902,7 @@ class TextTestimonyReplyComment(APIView):
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
-            print(reply)
+           
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
@@ -930,7 +930,7 @@ class TextTestimonyReplyComment(APIView):
                     )
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} replied to your Text Testimony comment"
-                redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
@@ -1043,8 +1043,8 @@ class TextTestimonyLikeUserComment(APIView):
                         )
                     payload["data"] = get_data
                     payload["user_messsge"] = f"{user_id.full_name} liked your reply comment"
-                redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
-                print(comment_id.user)
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
                 if channel_name:
@@ -1110,7 +1110,7 @@ class TextTestimonyLikesView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not Authorized to like this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -1152,7 +1152,7 @@ class TextTestimonyLikesView(APIView):
             payload["user_messsge"] = f"{user_id.full_name} liked your testimony"
 
             # Notify user via WebSocket
-            redis_client = redis.from_url(settings.CELERY_RESULT_BACKEND)
+            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
             # Get user's WebSocket channel from Redis
             channel_name = redis_client.get(
                 f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")

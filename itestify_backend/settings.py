@@ -18,7 +18,7 @@ AUTH_USER_MODEL = 'user.User'
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-DEBUG = True  # if os.getenv("DEBUG") == "True" else False
+DEBUG = True if os.getenv("DEBUG") == "True" else False
 
 ENVIRONMENT = os.getenv("ENV")
 
@@ -168,9 +168,9 @@ else:
         }
     }
 
-REDIS_URL_REMOTE = os.getenv("CELERY_RESULT_BACKEND")
-print(f"{REDIS_URL_REMOTE}")
-# REDIS_URL_LOCAL = "redis://127.0.0.1:6379/0"
+#REDIS_URL_REMOTE = os.getenv("CELERY_RESULT_BACKEND")
+
+REDIS_URL_REMOTE = "redis://127.0.0.1:6379/0"
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {
@@ -351,6 +351,8 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
+
+
 # celery settings
 CELERY_BROKER_URL = os.getenv("REDIS_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
@@ -417,7 +419,7 @@ LOGGING = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.getenv("REDIS_URL"),
+        "LOCATION": REDIS_URL_REMOTE,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
