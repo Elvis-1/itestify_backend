@@ -114,7 +114,7 @@ class TextTestimonyListView(APIView):
         }
 
         # Notify user via WebSocket
-        redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+        redis_client = redis.from_url(settings.REDIS_URL)
         # Get user's WebSocket channel from Redis
         channel_name = redis_client.get(
             f"{REDIS_PREFIX}:{str(user_id.id)}")
@@ -217,7 +217,7 @@ class VideoTestimonyCommentsView(APIView):
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} commented on your Video testimony"
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                redis_client = redis.from_url(settings.REDIS_URL)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
@@ -329,7 +329,7 @@ class VideoTestimonyReplyComment(APIView):
                 payload["user_messsge"] = f"{user_id.full_name} replied to your comment"
                 
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                redis_client = redis.from_url(settings.REDIS_URL)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
@@ -434,7 +434,7 @@ class VideoTestimonyLikeUserComment(APIView):
                     payload["data"] = get_data
                     payload["user_messsge"] = f"{user_id.full_name} liked your comment"
                     # Notify user via WebSocket
-                    redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                    redis_client = redis.from_url(settings.REDIS_URL)
                     # Get user's WebSocket channel from Redis
                     channel_name = redis_client.get(
                         f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
@@ -541,7 +541,7 @@ class VideoTestimonyLikesView(APIView):
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} liked your Video testimony"
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                redis_client = redis.from_url(settings.REDIS_URL)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
@@ -804,7 +804,7 @@ class TextTestimonyCommentsView(APIView):
             payload["user_messsge"] = f"{user_id.full_name} commented on your testimony"
 
             # Notify user via WebSocket
-            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+            redis_client = redis.from_url(settings.REDIS_URL)
             # Get user's WebSocket channel from Redis
             channel_name = redis_client.get(
                 f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
@@ -930,7 +930,7 @@ class TextTestimonyReplyComment(APIView):
                     )
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} replied to your Text Testimony comment"
-                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                redis_client = redis.from_url(settings.REDIS_URL)
                 # Get user's WebSocket channel from Redis
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
@@ -1043,7 +1043,7 @@ class TextTestimonyLikeUserComment(APIView):
                         )
                     payload["data"] = get_data
                     payload["user_messsge"] = f"{user_id.full_name} liked your reply comment"
-                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                redis_client = redis.from_url(settings.REDIS_URL)
 
                 channel_name = redis_client.get(
                     f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
@@ -1152,7 +1152,7 @@ class TextTestimonyLikesView(APIView):
             payload["user_messsge"] = f"{user_id.full_name} liked your testimony"
 
             # Notify user via WebSocket
-            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+            redis_client = redis.from_url(settings.REDIS_URL)
             # Get user's WebSocket channel from Redis
             channel_name = redis_client.get(
                 f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
