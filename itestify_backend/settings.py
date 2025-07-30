@@ -168,15 +168,13 @@ else:
         }
     }
 
-#REDIS_URL_REMOTE = os.getenv("CELERY_RESULT_BACKEND")
-
-REDIS_URL_REMOTE = "redis://127.0.0.1:6379/0"
+REDIS_URL = os.getenv("REDIS_URL")
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [REDIS_URL_REMOTE],
+            "hosts": [REDIS_URL],
         },
     },
 }
@@ -349,8 +347,6 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587                  # ✅ TLS port
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-
-
 
 
 # celery settings

@@ -43,7 +43,7 @@ class UnreadNotificationsView(APIView):
             }
 
             # Notify user via WebSocket
-            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+            redis_client = redis.from_url(settings.REDIS_URL)
             # Get user's WebSocket channel from Redis
             channel_name = redis_client.get(
                 f"{REDIS_PREFIX}:{str(user_id.id)}")
