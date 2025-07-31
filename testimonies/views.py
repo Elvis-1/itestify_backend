@@ -45,6 +45,7 @@ from common.permissions import Perm
 
 from django.db.models import Q
 
+
 class TextTestimonyListView(APIView):
     """Fetch all testimonies in the db with filtering and search."""
 
@@ -59,7 +60,7 @@ class TextTestimonyListView(APIView):
         search = request.query_params.get("search", "").strip()
 
         # get all texts
-        testimony_qs = TextTestimony.objects.all()
+        testimony_qs = TextTestimony.objects.all().order_by("-created_at")
 
         if status:
             testimony_qs = testimony_qs.filter(status=status)
@@ -79,8 +80,7 @@ class TextTestimonyListView(APIView):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -91,8 +91,7 @@ class TextTestimonyListView(APIView):
         # Pagination
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(
-            paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
 
         return paginator.get_paginated_response(serializer.data)
 
@@ -207,8 +206,7 @@ class VideoTestimonyReplyComment(APIView):
         user = request.user
         comment = request.data.get("comment")
         get_query_param = request.query_params.get("get_testimony")
-        get_testimony = VideoTestimony.objects.filter(
-            id=get_query_param).first()
+        get_testimony = VideoTestimony.objects.filter(id=get_query_param).first()
         if not comment:
             return CustomResponse.error(
                 message="Comment cannot be empty",
@@ -287,8 +285,6 @@ class VideoTestimonyReplyComment(APIView):
         return CustomResponse.success(
             message="Comments retrieved successfully", data=payload, status_code=200
         )
-
-
 
 
 class VideoTestimonyLikeUserComment(APIView):
@@ -452,8 +448,7 @@ class TextTestimonyByCategoryView(APIView):
 
         paginate = self.pagination_class()
         if testimonies:
-            paginated_queryset = paginate.paginate_queryset(
-                testimonies, request)
+            paginated_queryset = paginate.paginate_queryset(testimonies, request)
             serializer = self.serializer_class(paginated_queryset, many=True)
             return paginate.get_paginated_response(serializer.data)
         else:
@@ -556,8 +551,7 @@ class TextTestimonyDetailView(APIView):
                 status_code=404,
             )
         try:
-            testimony_id = TextTestimony.objects.get(
-                id=id, uploaded_by=user_id)
+            testimony_id = TextTestimony.objects.get(id=id, uploaded_by=user_id)
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -629,8 +623,7 @@ class TextTestimonyCommentsView(APIView):
                     status_code=403,
                 )
             # Create the comment
-            comment_id = get_testimony.comments.create(
-                text=comment, user=user_id)
+            comment_id = get_testimony.comments.create(text=comment, user=user_id)
             content_type = ContentType.objects.get_for_model(TextTestimony)
             get_testimony.notification.create(
                 target=get_testimony.uploaded_by,
@@ -692,8 +685,7 @@ class TextTestimonyReplyComment(APIView):
         user = request.user
         comment = request.data.get("comment")
         get_query_param = request.query_params.get("get_testimony")
-        get_testimony = TextTestimony.objects.filter(
-            id=get_query_param).first()
+        get_testimony = TextTestimony.objects.filter(id=get_query_param).first()
         if not comment:
             return CustomResponse.error(
                 message="Comment cannot be empty",
@@ -994,13 +986,14 @@ class TestimonySettingsView(APIView):
             message="Testimony settings created successfully.", status_code=200
         )
 
+
 class VideoTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         if self.action in ["create_video", "update", "destroy"]:
             self.permission_classes = [Perm.TESTIMONY_MANAGEMENT]
-        
+
         elif self.action == "list":
             self.permission_classes = [AllowAny]
 
@@ -1071,8 +1064,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -1170,6 +1162,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
+
 class TextTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
 
@@ -1221,8 +1214,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -1288,12 +1280,10 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             )
 
         # Use the appropriate serializer to validate and update the data
-        serializer = TextTestimonySerializer(
-            testimony, data=request.data, partial=True)
+        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnTextTestimonySerializer(
-                serializer.instance)
+            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
 
             return CustomResponse.success(
                 data=return_serializer.data,
@@ -1321,7 +1311,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-    
+
         if user.role.name == "User" and user.id != testimony.uploaded_by.id:
             return CustomResponse.error(
                 message="Sorry, you are not allowed to perform this operation.",
@@ -1382,6 +1372,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             message="Testimony updated successfully", status_code=200
         )
 
+
 class InspirationalPicturesViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
@@ -1394,7 +1385,6 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
             # If images are provided, create multiple InspirationalPictures
             total_response_data = []
             for image in thumbnail:
-                print(image)
                 serializer = InspirationalPicturesSerializer(
                     data={"thumbnail": image}, context={"request": request}
                 )
@@ -1432,7 +1422,13 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         )
 
     def list(self, request):
-        testimony_qs = InspirationalPictures.objects.all()
+        search = request.query_params.get("search", "").strip()
+        testimony_qs = InspirationalPictures.objects.all().order_by("-created_at")
+
+        if search is not None:
+            testimony_qs = InspirationalPictures.objects.filter(
+                Q(source__icontains=search) | Q(status__icontains=search)
+            )
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
@@ -1591,11 +1587,12 @@ class ShowAllUplaodedInspirationalPictures(APIView):
     def get(self, request):
         user = request.user
         user_id = User.objects.get(id=user.id)
+        roles = get_roles()
         try:
-            if user_id.Roles.VIEWER or user_id.Roles.ADMIN or user_id.Roles.SUPER_ADMIN:
+            if user_id.role.name in roles:
                 inspirational_pictures = InspirationalPictures.objects.filter(
                     status=UPLOAD_STATUS.UPLOAD_NOW
-                )
+                ).order_by("-created_at")
                 if not inspirational_pictures:
                     return CustomResponse.error(
                         message="No Inspirational Pictures found",

@@ -202,7 +202,7 @@ class InvitationSerializer(ResendOtpSerializer):
             super_admin = self.get_super_admin()
             super_admin.alternative_role = alternative_role
             super_admin.save()
-        
+            
         user = User.objects.create_user(
             email=validated_data["email"],
             password=generated_password,
