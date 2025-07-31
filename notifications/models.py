@@ -22,7 +22,7 @@ class Notification(models.Model):
     content_type = models.ForeignKey(
         ContentType, on_delete=models.SET_NULL, null=True)
     object_id = models.UUIDField()
-    content_object = GenericForeignKey()
+    content_object = GenericForeignKey('content_type', 'object_id')
 
     def __str__(self):
         return self.verb

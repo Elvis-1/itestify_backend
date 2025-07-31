@@ -77,16 +77,16 @@ urlpatterns = [
     #     TextTestimonyByCategoryView.as_view(),
     #     name="testimony-by-category",
     # ),
-    # path(
-    #     "testimonies/comment/<id>/",
-    #     TextTestimonyCommentsView.as_view(),
-    #     name="testimony-by-category-comment",
-    # ),
-    # path(
-    #     "testimonies/comment-reply/<id>/",
-    #     TextTestimonyReplyComment.as_view(),
-    #     name="testimony-text-reply",
-    # ),
+     path(
+         "testimonies/comment/<id>/",
+         TextTestimonyCommentsView.as_view(),
+         name="testimony-by-category-comment",
+    ),
+     path(
+         "testimonies/comment-reply/<id>/",
+         TextTestimonyReplyComment.as_view(),
+         name="testimony-text-reply",
+    ),
     path(
         "testimonies/get-comment-reply/<id>/",
         TextTestimonyReplyComment.as_view(),

@@ -41,18 +41,23 @@ from common.error import ErrorCode
 from .utils import transform_testimony_files
 from common.utils import get_roles
 
+from django.db.models import Q
+import redis
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from notifications.consumers import REDIS_PREFIX
 from common.permissions import Perm
 
-from django.db.models import Q
 
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies in the db with filtering and search."""
-
+    permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
     def get(self, request):
         # Get filter parameter
+        user = request.user
         status = request.query_params.get("status", "").lower()
         category = request.query_params.get("category", "").lower()
         from_date = request.query_params.get("from")
@@ -91,8 +96,38 @@ class TextTestimonyListView(APIView):
         # Pagination
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(
+            paginated_queryset, many=True)
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        notification = Notification.objects.filter(
+            target=user_id, read=False
+        ).order_by("-timestamp")
+        payload = {
+            "notification_count": str(notification.count()),
+        }
 
+        # Notify user via WebSocket
+        redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+        # Get user's WebSocket channel from Redis
+        channel_name = redis_client.get(
+            f"{REDIS_PREFIX}:{str(user_id.id)}")
+        if channel_name:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.send)(
+                channel_name.decode("utf-8"),
+                {
+                    "type": "get_user_unread_notification_count",
+                    "notification_count": payload
+                }
+            )
+        redis_client.close()
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -124,7 +159,7 @@ class VideoTestimonyDeleteSelected(APIView):
 
 
 class VideoTestimonyCommentsView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     serializer_class = ReturnVideoTestimonyCommentSerializer
 
@@ -147,23 +182,55 @@ class VideoTestimonyCommentsView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
                     status_code=403,
                 )
+
             # Create the comment
-            get_testimony.comments.create(text=comment, user=user_id)
             content_type = ContentType.objects.get_for_model(VideoTestimony)
+            get_testimony.comments.create(
+                text=comment, user=user_id, object_id=get_testimony.id, content_type=content_type)
+            
             get_testimony.notification.create(
                 target=get_testimony.uploaded_by,
                 owner=user_id,
-                verb=f"{user_id.email} commented on your testimony",
-                redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{get_testimony.id}/",
+                verb=f"{user_id.email} commented on your Video testimony",
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
+            notifcation = Notification.objects.filter(
+                target=get_testimony.uploaded_by, read=False).order_by("-timestamp")
+            payload = {}
+            if len(notifcation) > 0:
+                get_data = []
+                for data in notifcation:
+                    get_data.append(
+                        {
+                            "id": str(data.id),
+                            "verb": data.verb,
+                            "created_at": str(data.timestamp),
+                        }
+                    )
+                payload["data"] = get_data
+                payload["user_messsge"] = f"{user_id.full_name} commented on your Video testimony"
+                # Notify user via WebSocket
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                # Get user's WebSocket channel from Redis
+                channel_name = redis_client.get(
+                    f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
+                if channel_name:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.send)(
+                        channel_name.decode("utf-8"),
+                        {
+                            "type": "get_user_unread_notification",
+                            "notifications": payload
+                        }
+                    )
+                redis_client.close()
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -199,7 +266,7 @@ class VideoTestimonyCommentsView(APIView):
 
 
 class VideoTestimonyReplyComment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = VideoTestimonyCommentSerializer
 
     def post(self, request, id):
@@ -215,7 +282,7 @@ class VideoTestimonyReplyComment(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -229,22 +296,52 @@ class VideoTestimonyReplyComment(APIView):
             )
         # Create the comment
         try:
-            content_type = ContentType.objects.get_for_model(Comment)
+            content_type = ContentType.objects.get_for_model(VideoTestimony)
             reply = Comment.objects.create(
-                text=comment, user=user_id, content_type=content_type, object_id=id
+                text=comment, user=user_id, content_type=content_type, object_id=get_testimony.id
             )
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
-            content_type = ContentType.objects.get_for_model(VideoTestimony)
+            
             get_testimony.notification.create(
-                target=get_testimony.uploaded_by,
+                target=get_comment.user,
                 owner=user_id,
-                verb=f"{user_id.email} commented on your testimony",
-                redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{get_testimony.id}/",
+                verb=f"{user_id.email} replied to your comment",
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
+            notification = Notification.objects.filter(
+                target=get_comment.user, read=False).order_by("-timestamp")
+            payload = {}
+            if len(notification) > 0:
+                get_data = []
+                for data in notification:
+                    get_data.append(
+                        {
+                            "id": str(data.id),
+                            "verb": data.verb,
+                            "created_at": str(data.timestamp),
+                        }
+                    )
+                payload["data"] = get_data
+                payload["user_messsge"] = f"{user_id.full_name} replied to your comment"
+                
+                # Notify user via WebSocket
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                # Get user's WebSocket channel from Redis
+                channel_name = redis_client.get(
+                    f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
+                if channel_name:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.send)(
+                        channel_name.decode("utf-8"),
+                        {
+                            "type": "get_user_unread_notification",
+                            "notifications": payload
+                        }
+                    )
+                redis_client.close()
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -288,13 +385,13 @@ class VideoTestimonyReplyComment(APIView):
 
 
 class VideoTestimonyLikeUserComment(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, id):
         user = request.user
         try:
             user_id = User.objects.get(id=user.id)
-            print(user_id.email)
+            
         except User.DoesNotExist:
             return CustomResponse.error(
                 message="User not found",
@@ -303,19 +400,10 @@ class VideoTestimonyLikeUserComment(APIView):
             )
         try:
             comment_id = Comment.objects.get(id=id)
-            print(comment_id)
-            comment_owner = comment_id.user
+
             if comment_id.user_like_comment.filter(id=user_id.id).exists():
                 comment_id.user_like_comment.remove(user)
-                content_type = ContentType.objects.get_for_model(Comment)
-                Notification.objects.create(
-                    target=comment_owner,
-                    owner=user_id,
-                    redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{id}/",
-                    verb=f"{user_id.email} Unlike your testimony",
-                    content_type=content_type,
-                    object_id=id,
-                )
+
                 return CustomResponse.success(
                     message="user unliked Comment successfully", status_code=200
                 )
@@ -323,13 +411,42 @@ class VideoTestimonyLikeUserComment(APIView):
                 comment_id.user_like_comment.add(user)
                 content_type = ContentType.objects.get_for_model(Comment)
                 Notification.objects.create(
-                    target=comment_owner,
+                    target=comment_id.user,
                     owner=user_id,
-                    redirect_url=f"{settings.FRONT_END_BASE_URL}testimonies/video-comment-all/{id}/",
-                    verb=f"{user_id.email} Like your testimony",
+                    verb=f"{user_id.email} Liked your comment",
                     content_type=content_type,
                     object_id=id,
                 )
+                notification = Notification.objects.filter(
+                    target=comment_id.user, read=False).order_by("-timestamp")
+                payload = {}
+                if len(notification) > 0:
+                    get_data = []
+                    for data in notification:
+                        get_data.append(
+                            {
+                                "id": str(data.id),
+                                "verb": data.verb,
+                                "created_at": str(data.timestamp),
+                            }
+                        )
+                    payload["data"] = get_data
+                    payload["user_messsge"] = f"{user_id.full_name} liked your comment"
+                    # Notify user via WebSocket
+                    redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                    # Get user's WebSocket channel from Redis
+                    channel_name = redis_client.get(
+                        f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
+                    if channel_name:
+                        channel_layer = get_channel_layer()
+                        async_to_sync(channel_layer.send)(
+                            channel_name.decode("utf-8"),
+                            {
+                                "type": "get_user_unread_notification",
+                                "notifications": payload
+                            }
+                        )
+                    redis_client.close()
                 return CustomResponse.success(
                     message="user liked Comment successfully", status_code=201
                 )
@@ -372,9 +489,9 @@ class VideoTestimonyLikesView(APIView):
 
     def post(self, request, id):
         user = request.user
-        get_testimony = VideoTestimony.objects.get(id=id)
-        print(get_testimony)
-        if not get_testimony:
+        try:
+            get_testimony = VideoTestimony.objects.get(id=id)
+        except VideoTestimony.DoesNotExist:
             return CustomResponse.error(
                 message="Testimony not found",
                 err_code=ErrorCode.NOT_FOUND,
@@ -382,7 +499,7 @@ class VideoTestimonyLikesView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -397,6 +514,46 @@ class VideoTestimonyLikesView(APIView):
                     status_code=200,
                 )
             get_testimony.likes.create(user=user_id)
+            content_type = ContentType.objects.get_for_model(VideoTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                verb=f"{user_id.email} liked your Video testimony",
+                content_type=content_type,
+                object_id=get_testimony.id,
+            )
+            
+            notification = Notification.objects.filter(
+                target=get_testimony.uploaded_by, read=False
+            ).order_by("-timestamp")
+            payload = {}
+            if len(notification) > 0:
+                get_data = []
+                for data in notification:
+                    get_data.append(
+                        {
+                            "id": str(data.id),
+                            "verb": data.verb,
+                            "created_at": str(data.timestamp),
+                        }
+                    )
+                payload["data"] = get_data
+                payload["user_messsge"] = f"{user_id.full_name} liked your Video testimony"
+                # Notify user via WebSocket
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                # Get user's WebSocket channel from Redis
+                channel_name = redis_client.get(
+                    f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
+                if channel_name:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.send)(
+                        channel_name.decode("utf-8"),
+                        {
+                            "type": "get_user_unread_notification",
+                            "notifications": payload
+                        }
+                    )
+                redis_client.close()
             return CustomResponse.success(
                 message="liked Testimony successfully", status_code=201
             )
@@ -600,13 +757,6 @@ class TextTestimonyCommentsView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-        print(get_testimony)
-        if not get_testimony:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
         comment = request.data.get("comment")
         if not comment:
             return CustomResponse.error(
@@ -616,23 +766,55 @@ class TextTestimonyCommentsView(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
                     status_code=403,
                 )
             # Create the comment
-            comment_id = get_testimony.comments.create(text=comment, user=user_id)
             content_type = ContentType.objects.get_for_model(TextTestimony)
+            get_testimony.comments.create(
+                text=comment, user=user_id, content_type=content_type)
+
             get_testimony.notification.create(
                 target=get_testimony.uploaded_by,
                 owner=user_id,
-                redirect_url=f"{settings.FRONT_END_BASE_URL}get-a-commenttexttestimony/{get_testimony}/?comment_id={comment_id}",
                 verb=f"{user_id.email} commented on your testimony",
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
+            payload = {}
+            get_data = []
+            notification = Notification.objects.filter(
+                target=get_testimony.uploaded_by, read=False
+            )
+            for data in notification:
+                get_data.append(
+                    {
+                        "id": str(data.id),
+                        "verb": data.verb,
+                        "created_at": str(data.timestamp),
+                    }
+                )
+            payload["data"] = get_data
+            payload["user_messsge"] = f"{user_id.full_name} commented on your testimony"
+
+            # Notify user via WebSocket
+            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+            # Get user's WebSocket channel from Redis
+            channel_name = redis_client.get(
+                f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
+            if channel_name:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.send)(
+                    channel_name.decode("utf-8"),
+                    {
+                        "type": "get_user_unread_notification",
+                        "notifications": payload
+                    }
+                )
+            redis_client.close()
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -694,7 +876,7 @@ class TextTestimonyReplyComment(APIView):
             )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
                     message="You are not allowed to comment on this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
@@ -716,20 +898,49 @@ class TextTestimonyReplyComment(APIView):
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
-            print(reply)
+           
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
 
-            content_type = ContentType.objects.get_for_model(TextTestimony)
             get_testimony.notification.create(
-                target=get_testimony.uploaded_by,
+                target=get_comment.user,
                 owner=user_id,
-                redirect_url=f"{settings.FRONT_END_BASE_URL}get-a-commenttexttestimony/{get_testimony}/?comment_id={reply.id}",
-                verb=f"{user_id.email} Replied commented",
+                verb=f"{user_id.email} Replied to your Text Testimony comment",
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
+            notification = Notification.objects.filter(
+                target=get_comment.user, read=False
+            ).order_by("-timestamp")
+            payload = {}
+            if len(notification) > 0:
+                get_data = []
+                for data in notification:
+                    get_data.append(
+                        {
+                            "id": str(data.id),
+                            "verb": data.verb,
+                            "created_at": str(data.timestamp),
+                        }
+                    )
+                payload["data"] = get_data
+                payload["user_messsge"] = f"{user_id.full_name} replied to your Text Testimony comment"
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+                # Get user's WebSocket channel from Redis
+                channel_name = redis_client.get(
+                    f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
+                if channel_name:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.send)(
+                        channel_name.decode("utf-8"),
+                        {
+                            "type": "get_user_unread_notification",
+                            "notifications": payload
+                        }
+                    )
+                redis_client.close()
+
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -777,6 +988,15 @@ class TextTestimonyLikeUserComment(APIView):
 
     def post(self, request, id):
         user = request.user
+        get_testimoney_id = request.query_params.get("get_testimony")
+        try:
+            get_testimony = TextTestimony.objects.get(id=get_testimoney_id)
+        except TextTestimony.DoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
         try:
             user_id = User.objects.get(id=user.id)
         except User.DoesNotExist:
@@ -796,9 +1016,47 @@ class TextTestimonyLikeUserComment(APIView):
                 )
             else:
                 comment_id.user_like_comment.add(user)
+                content_type = ContentType.objects.get_for_model(TextTestimony)
+                notification = Notification.objects.create(
+                    target=comment_id.user,
+                    owner=user_id,
+                    verb=f"{user_id.email} liked your replied comment",
+                    content_type=content_type,
+                    object_id=get_testimony.id,
+                )
+                payload = {}
+                get_data = []
+                notification = Notification.objects.filter(
+                    target=comment_id.user, read=False).order_by("-timestamp")
+                if len(notification) > 0:
+                    for data in notification:
+                        get_data.append(
+                            {
+                                "id": str(data.id),
+                                "verb": data.verb,
+                                "created_at": str(data.timestamp),
+                            }
+                        )
+                    payload["data"] = get_data
+                    payload["user_messsge"] = f"{user_id.full_name} liked your reply comment"
+                redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+
+                channel_name = redis_client.get(
+                    f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
+                if channel_name:
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.send)(
+                        channel_name.decode("utf-8"),
+                        {
+                            "type": "get_user_unread_notification",
+                            "notifications": payload
+                        }
+                    )
+                redis_client.close()
                 return CustomResponse.success(
                     message="user liked Comment successfully", status_code=201
                 )
+
         except Comment.DoesNotExist:
             return CustomResponse.error(
                 message="Comment not found",
@@ -833,31 +1091,24 @@ class TextTestimonyLikeUserComment(APIView):
 
 
 class TextTestimonyLikesView(APIView):
-    # permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     serializer_class = ReturnTextTestimonyLikeSerializer
 
     def post(self, request, id):
         user = request.user
         try:
             get_testimony = TextTestimony.objects.get(id=id)
-            print(get_testimony)
         except TextTestimony.DoesNotExist:
             return CustomResponse.error(
                 message="Testimony does not exist",
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-        if not get_testimony:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
         try:
             user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.Roles.VIEWER:
+            if not user_id.role:
                 return CustomResponse.error(
-                    message="You are not allowed to comment on this testimony.",
+                    message="You are not Authorized to like this testimony.",
                     err_code=ErrorCode.FORBIDDEN,
                     status_code=403,
                 )
@@ -865,11 +1116,52 @@ class TextTestimonyLikesView(APIView):
             is_exist = get_testimony.likes.filter(user=user_id).exists()
             if is_exist:
                 get_testimony.likes.filter(user=user_id).delete()
+
                 return CustomResponse.success(
                     message="Unliked Testimony successfully",
                     status_code=200,
                 )
+
             get_testimony.likes.create(user=user_id)
+            content_type = ContentType.objects.get_for_model(TextTestimony)
+            get_testimony.notification.create(
+                target=get_testimony.uploaded_by,
+                owner=user_id,
+                verb=f"{user_id.full_name} liked your testimony",
+                content_type=content_type,
+                object_id=get_testimony.id,
+            )
+            payload = {}
+            get_data = []
+            notification = Notification.objects.filter(
+                target=get_testimony.uploaded_by, read=False
+            ).order_by("-timestamp")
+            for data in notification:
+                get_data.append(
+                    {
+                        "id": str(data.id),
+                        "verb": data.verb,
+                        "created_at": str(data.timestamp),
+                    }
+                )
+            payload["data"] = get_data
+            payload["user_messsge"] = f"{user_id.full_name} liked your testimony"
+
+            # Notify user via WebSocket
+            redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+            # Get user's WebSocket channel from Redis
+            channel_name = redis_client.get(
+                f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
+            if channel_name:
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.send)(
+                    channel_name.decode("utf-8"),
+                    {
+                        "type": "get_user_unread_notification",
+                        "notifications": payload
+                    }
+                )
+            redis_client.close()
             return CustomResponse.success(
                 message="liked Testimony successfully", status_code=201
             )
