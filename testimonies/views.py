@@ -193,7 +193,7 @@ class VideoTestimonyCommentsView(APIView):
             content_type = ContentType.objects.get_for_model(VideoTestimony)
             get_testimony.comments.create(
                 text=comment, user=user_id, object_id=get_testimony.id, content_type=content_type)
-            
+
             get_testimony.notification.create(
                 target=get_testimony.uploaded_by,
                 owner=user_id,
@@ -304,7 +304,7 @@ class VideoTestimonyReplyComment(APIView):
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
-            
+
             get_testimony.notification.create(
                 target=get_comment.user,
                 owner=user_id,
@@ -327,7 +327,7 @@ class VideoTestimonyReplyComment(APIView):
                     )
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} replied to your comment"
-                
+
                 # Notify user via WebSocket
                 redis_client = redis.from_url(settings.REDIS_URL)
                 # Get user's WebSocket channel from Redis
@@ -392,7 +392,7 @@ class VideoTestimonyLikeUserComment(APIView):
         user = request.user
         try:
             user_id = User.objects.get(id=user.id)
-            
+
         except User.DoesNotExist:
             return CustomResponse.error(
                 message="User not found",
@@ -523,7 +523,7 @@ class VideoTestimonyLikesView(APIView):
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
-            
+
             notification = Notification.objects.filter(
                 target=get_testimony.uploaded_by, read=False
             ).order_by("-timestamp")
@@ -902,7 +902,7 @@ class TextTestimonyReplyComment(APIView):
                 content_type=content_type,
                 object_id=get_testimony.id,
             )
-           
+
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
             get_comment.save()
@@ -1282,13 +1282,14 @@ class TestimonySettingsView(APIView):
             message="Testimony settings created successfully.", status_code=200
         )
 
+
 class VideoTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         if self.action in ["create_video", "update", "destroy"]:
             self.permission_classes = [Perm.TESTIMONY_MANAGEMENT]
-        
+
         elif self.action == "list":
             self.permission_classes = [AllowAny]
 
@@ -1458,6 +1459,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
+
 class TextTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
 
@@ -1609,7 +1611,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-    
+
         if user.role.name == "User" and user.id != testimony.uploaded_by.id:
             return CustomResponse.error(
                 message="Sorry, you are not allowed to perform this operation.",
@@ -1670,6 +1672,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             message="Testimony updated successfully", status_code=200
         )
 
+
 class InspirationalPicturesViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
@@ -1720,7 +1723,7 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
         )
 
     def list(self, request):
-        testimony_qs = InspirationalPictures.objects.all()
+        testimony_qs = InspirationalPictures.objects.all().order_by("created_at")
 
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
@@ -1830,12 +1833,12 @@ class ShowAllUplaodInspirationalPicturesByStatus(APIView):
                 status_code=400,
             )
         try:
-            if user_id.Roles.VIEWER or user_id.Roles.ADMIN or user_id.Roles.SUPER_ADMIN:
+            if user_id.role:
                 inspirational_pictures = None
                 if status:
                     inspirational_pictures = InspirationalPictures.objects.filter(
                         status=status
-                    )
+                    ).order_by("-created_at")
                 if not inspirational_pictures:
                     return CustomResponse.error(
                         message="No Inspirational Pictures found",
@@ -1880,10 +1883,10 @@ class ShowAllUplaodedInspirationalPictures(APIView):
         user = request.user
         user_id = User.objects.get(id=user.id)
         try:
-            if user_id.Roles.VIEWER or user_id.Roles.ADMIN or user_id.Roles.SUPER_ADMIN:
+            if user_id.role:
                 inspirational_pictures = InspirationalPictures.objects.filter(
                     status=UPLOAD_STATUS.UPLOAD_NOW
-                )
+                ).order_by("-created_at")
                 if not inspirational_pictures:
                     return CustomResponse.error(
                         message="No Inspirational Pictures found",
