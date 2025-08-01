@@ -418,10 +418,6 @@ CACHES = {
         "LOCATION": os.getenv("REDIS_URL"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {
-                "ssl": True,
-            },
-            "PARSER_CLASS": "redis.connection.HiredisParser",
         },
     }
 }
