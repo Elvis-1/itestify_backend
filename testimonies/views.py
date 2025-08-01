@@ -1651,7 +1651,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                     err_code=ErrorCode.BAD_REQUEST,
                     status_code=400,
                 )
-            testimony.status = testimony.STATUS.REGISTERED
+            testimony.status = testimony.STATUS.REJECTED
             testimony.rejection_reason = rejection_reason
         else:
             return CustomResponse.error(
