@@ -60,7 +60,7 @@ class TextTestimonyListView(APIView):
         # Get filter parameter
         user = request.user
         status = request.query_params.get("status", "").lower()
-        category = request.query_params.get("category", "").lower()
+        category = request.query_params.get("category", "")
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
         search = request.query_params.get("search", "").strip()
