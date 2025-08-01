@@ -1,3 +1,4 @@
+import os
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
@@ -114,7 +115,7 @@ class TextTestimonyListView(APIView):
         }
 
         # Notify user via WebSocket
-        redis_client = redis.from_url(settings.REDIS_URL_REMOTE)
+        redis_client = redis.from_url(os.getenv("REDIS_URL"))
         # Get user's WebSocket channel from Redis
         channel_name = redis_client.get(
             f"{REDIS_PREFIX}:{str(user_id.id)}")
@@ -1329,7 +1330,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
         # Get filter parameter
         upload_status = request.query_params.get("upload_status", "").lower()
-        category = request.query_params.get("category", "").lower()
+        category = request.query_params.get("category", "").title()
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
         search = request.query_params.get("search", "").strip()
@@ -1478,7 +1479,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
 
         # Get filter parameter
         status = request.query_params.get("status", "").lower()
-        category = request.query_params.get("category", "").lower()
+        category = request.query_params.get("category", "")
         from_date = request.query_params.get("from")
         to_date = request.query_params.get("to")
         search = request.query_params.get("search", "").strip()
