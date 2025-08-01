@@ -169,6 +169,7 @@ else:
     }
 
 REDIS_URL = os.getenv("REDIS_URL")
+# REDIS_URL = "redis://localhost:6379/0"
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {

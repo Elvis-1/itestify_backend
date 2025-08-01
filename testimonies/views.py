@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from django.utils.dateparse import parse_date
 from common.responses import CustomResponse
 from notifications.models import Notification
+from notifications.utils import notify_user_via_ws
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
@@ -42,9 +43,7 @@ from .utils import transform_testimony_files
 from common.utils import get_roles
 
 from django.db.models import Q
-import redis
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+
 from notifications.consumers import REDIS_PREFIX
 from common.permissions import Perm
 
@@ -112,22 +111,13 @@ class TextTestimonyListView(APIView):
         payload = {
             "notification_count": str(notification.count()),
         }
-
-        # Notify user via WebSocket
-        redis_client = redis.from_url(settings.REDIS_URL)
-        # Get user's WebSocket channel from Redis
-        channel_name = redis_client.get(
-            f"{REDIS_PREFIX}:{str(user_id.id)}")
-        if channel_name:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.send)(
-                channel_name.decode("utf-8"),
-                {
-                    "type": "get_user_unread_notification_count",
-                    "notification_count": payload
-                }
-            )
-        redis_client.close()
+        
+        notify_user_via_ws(
+            user_identifier=user_id.id,
+            payload=payload,
+            message_type="get_user_unread_notification_count",
+            prefix=REDIS_PREFIX
+        )
         return paginator.get_paginated_response(serializer.data)
 
 
@@ -217,20 +207,12 @@ class VideoTestimonyCommentsView(APIView):
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} commented on your Video testimony"
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.REDIS_URL)
-                # Get user's WebSocket channel from Redis
-                channel_name = redis_client.get(
-                    f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
-                if channel_name:
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.send)(
-                        channel_name.decode("utf-8"),
-                        {
-                            "type": "get_user_unread_notification",
-                            "notifications": payload
-                        }
-                    )
-                redis_client.close()
+                notify_user_via_ws(
+                    user_identifier=get_testimony.uploaded_by.id,
+                    payload=payload,
+                    message_type="get_user_unread_notification",
+                    prefix=REDIS_PREFIX
+                )
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -329,20 +311,12 @@ class VideoTestimonyReplyComment(APIView):
                 payload["user_messsge"] = f"{user_id.full_name} replied to your comment"
 
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.REDIS_URL)
-                # Get user's WebSocket channel from Redis
-                channel_name = redis_client.get(
-                    f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
-                if channel_name:
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.send)(
-                        channel_name.decode("utf-8"),
-                        {
-                            "type": "get_user_unread_notification",
-                            "notifications": payload
-                        }
-                    )
-                redis_client.close()
+                notify_user_via_ws(
+                    user_identifier=get_comment.user.id,
+                    payload=payload,
+                    message_type="get_user_unread_notification",
+                    prefix=REDIS_PREFIX
+                )
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -434,20 +408,12 @@ class VideoTestimonyLikeUserComment(APIView):
                     payload["data"] = get_data
                     payload["user_messsge"] = f"{user_id.full_name} liked your comment"
                     # Notify user via WebSocket
-                    redis_client = redis.from_url(settings.REDIS_URL)
-                    # Get user's WebSocket channel from Redis
-                    channel_name = redis_client.get(
-                        f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
-                    if channel_name:
-                        channel_layer = get_channel_layer()
-                        async_to_sync(channel_layer.send)(
-                            channel_name.decode("utf-8"),
-                            {
-                                "type": "get_user_unread_notification",
-                                "notifications": payload
-                            }
-                        )
-                    redis_client.close()
+                    notify_user_via_ws(
+                        user_identifier=comment_id.user.id,
+                        payload=payload,
+                        message_type="get_user_unread_notification",
+                        prefix=REDIS_PREFIX
+                    )
                 return CustomResponse.success(
                     message="user liked Comment successfully", status_code=201
                 )
@@ -541,20 +507,12 @@ class VideoTestimonyLikesView(APIView):
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} liked your Video testimony"
                 # Notify user via WebSocket
-                redis_client = redis.from_url(settings.REDIS_URL)
-                # Get user's WebSocket channel from Redis
-                channel_name = redis_client.get(
-                    f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
-                if channel_name:
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.send)(
-                        channel_name.decode("utf-8"),
-                        {
-                            "type": "get_user_unread_notification",
-                            "notifications": payload
-                        }
-                    )
-                redis_client.close()
+                notify_user_via_ws(
+                    user_identifier=get_testimony.uploaded_by.id,
+                    payload=payload,
+                    message_type="get_user_unread_notification",
+                    prefix=REDIS_PREFIX
+                )
             return CustomResponse.success(
                 message="liked Testimony successfully", status_code=201
             )
@@ -804,20 +762,12 @@ class TextTestimonyCommentsView(APIView):
             payload["user_messsge"] = f"{user_id.full_name} commented on your testimony"
 
             # Notify user via WebSocket
-            redis_client = redis.from_url(settings.REDIS_URL)
-            # Get user's WebSocket channel from Redis
-            channel_name = redis_client.get(
-                f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
-            if channel_name:
-                channel_layer = get_channel_layer()
-                async_to_sync(channel_layer.send)(
-                    channel_name.decode("utf-8"),
-                    {
-                        "type": "get_user_unread_notification",
-                        "notifications": payload
-                    }
-                )
-            redis_client.close()
+            notify_user_via_ws(
+                user_identifier=get_testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
             )
@@ -930,20 +880,12 @@ class TextTestimonyReplyComment(APIView):
                     )
                 payload["data"] = get_data
                 payload["user_messsge"] = f"{user_id.full_name} replied to your Text Testimony comment"
-                redis_client = redis.from_url(settings.REDIS_URL)
-                # Get user's WebSocket channel from Redis
-                channel_name = redis_client.get(
-                    f"{REDIS_PREFIX}:{str(get_comment.user.id)}")
-                if channel_name:
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.send)(
-                        channel_name.decode("utf-8"),
-                        {
-                            "type": "get_user_unread_notification",
-                            "notifications": payload
-                        }
-                    )
-                redis_client.close()
+                notify_user_via_ws(
+                    user_identifier=get_comment.user.id,
+                    payload=payload,
+                    message_type="get_user_unread_notification",
+                    prefix=REDIS_PREFIX
+                )
 
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
@@ -1043,20 +985,12 @@ class TextTestimonyLikeUserComment(APIView):
                         )
                     payload["data"] = get_data
                     payload["user_messsge"] = f"{user_id.full_name} liked your reply comment"
-                redis_client = redis.from_url(settings.REDIS_URL)
-
-                channel_name = redis_client.get(
-                    f"{REDIS_PREFIX}:{str(comment_id.user.id)}")
-                if channel_name:
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.send)(
-                        channel_name.decode("utf-8"),
-                        {
-                            "type": "get_user_unread_notification",
-                            "notifications": payload
-                        }
+                    notify_user_via_ws(
+                        user_identifier=comment_id.user.id,
+                        payload=payload,
+                        message_type="get_user_unread_notification",
+                        prefix=REDIS_PREFIX 
                     )
-                redis_client.close()
                 return CustomResponse.success(
                     message="user liked Comment successfully", status_code=201
                 )
@@ -1151,21 +1085,12 @@ class TextTestimonyLikesView(APIView):
             payload["data"] = get_data
             payload["user_messsge"] = f"{user_id.full_name} liked your testimony"
 
-            # Notify user via WebSocket
-            redis_client = redis.from_url(settings.REDIS_URL)
-            # Get user's WebSocket channel from Redis
-            channel_name = redis_client.get(
-                f"{REDIS_PREFIX}:{str(get_testimony.uploaded_by.id)}")
-            if channel_name:
-                channel_layer = get_channel_layer()
-                async_to_sync(channel_layer.send)(
-                    channel_name.decode("utf-8"),
-                    {
-                        "type": "get_user_unread_notification",
-                        "notifications": payload
-                    }
-                )
-            redis_client.close()
+            notify_user_via_ws(
+                user_identifier=get_testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
             return CustomResponse.success(
                 message="liked Testimony successfully", status_code=201
             )
