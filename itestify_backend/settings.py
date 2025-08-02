@@ -166,14 +166,14 @@ else:
         }
     }
 
-# REDIS_URL_REMOTE = os.getenv("CELERY_RESULT_BACKEND")
+REDIS_URL = os.getenv("REDIS_URL")
 
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.getenv("REDIS_URL")],
+            "hosts": [REDIS_URL],
         },
     },
 }
