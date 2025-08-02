@@ -141,11 +141,11 @@ class InspirationalPictures(TouchDatesMixim):
     thumbnail = CloudinaryField(
         'images/inspirational_pic/', blank=True, null=True)
     source = models.CharField(
-        max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
+        max_length=255, help_text="Source of the inspirational picture", null=True, blank=True, db_index=True)
     like_inspirational_pic = models.ManyToManyField(
         User, blank=True, related_name="like_inspirational_pic")
     status = models.CharField(
-        max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True)
+        max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True, db_index=True)
     shares_count = models.PositiveIntegerField(default=0)
     downloads_count = models.PositiveIntegerField(default=0)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
