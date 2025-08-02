@@ -1,5 +1,4 @@
 import os
-from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
@@ -119,22 +118,6 @@ class TextTestimonyListView(APIView):
             message_type="get_user_unread_notification_count",
             prefix=REDIS_PREFIX
         )
-
-        # Notify user via WebSocket
-        redis_client = redis.from_url(os.getenv("REDIS_URL"))
-        # Get user's WebSocket channel from Redis
-        channel_name = redis_client.get(
-            f"{REDIS_PREFIX}:{str(user_id.id)}")
-        if channel_name:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.send)(
-                channel_name.decode("utf-8"),
-                {
-                    "type": "get_user_unread_notification_count",
-                    "notification_count": payload
-                }
-            )
-        redis_client.close()
         
         return paginator.get_paginated_response(serializer.data)
 
