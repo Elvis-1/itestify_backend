@@ -71,7 +71,6 @@ class UnreadNotificationsView(APIView):
                     status_code=404,
                 )
             serializer = self.serializer_class(notification, many=True)
-        
 
         notification = notification.filter(target=user_id).order_by(
             "-timestamp"
@@ -90,4 +89,27 @@ class UnreadNotificationsView(APIView):
             status_code=200,
         )
 
+    def put(self, request, pk):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            notification = Notification.objects.get(id=pk, target=user_id)
+            notification.delete()
 
+            return CustomResponse.success(
+                message="Notification deleted successfully",
+                status_code=200,
+            )
+        except Notification.DoesNotExist:
+            return CustomResponse.error(
+                message="Notification not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
