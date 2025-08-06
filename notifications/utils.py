@@ -4,9 +4,33 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 import logging
-
+import asyncio
+import json
+from notifications.models import Notification
 
 logger = logging.getLogger(__name__)
+DELETE_DELAY = 5
+
+
+async def delayed_delete(id, user_id):
+    await asyncio.sleep(DELETE_DELAY)
+
+    key = f"delete:{id}"
+    redis_client = redis.from_url(settings.REDIS_URL)
+
+    if redis_client.get(key):
+        try:
+            notification = Notification.objects.get(id=id, target = user_id)
+            notification.delete()
+            
+            logger.info(f"Notification {id} deleted successfully after waited.")
+        except Notification.DoesNotExist:
+            logger.warning(f"Notification {id} does not exist.")
+        redis_client.delete(key)
+    else:
+        logger.info(f"Notification {id} was already undo.")
+
+
 
 
 def notify_user_via_ws(

@@ -167,6 +167,7 @@ else:
     }
 
 REDIS_URL = os.getenv("REDIS_URL")
+REDIS_URL = "redis://172.0.0.1/3970"
 
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
@@ -411,7 +412,7 @@ LOGGING = {
     },
 }
 
-print(os.getenv("REDIS_URL"))
+'''print(os.getenv("REDIS_URL"))
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -420,4 +421,4 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
     }
-}
+}'''
