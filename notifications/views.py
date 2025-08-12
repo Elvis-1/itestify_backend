@@ -1,4 +1,7 @@
 
+import json
+from django.conf import settings
+import redis
 from notifications.consumers import REDIS_PREFIX
 from notifications.utils import notify_user_via_ws
 from rest_framework.views import APIView
@@ -9,7 +12,8 @@ from user.models import User
 from common.responses import CustomResponse
 from common.error import ErrorCode
 import asyncio
-from .utils import delayed_delete
+from .tasks import delayed_delete
+from django.core.cache import cache
 
 
 # Create your views here.
@@ -91,9 +95,8 @@ class UnreadNotificationsView(APIView):
             status_code=200,
         )
 
-    def delete(self, request, pk):
+    def delete(self, request, id):
         user = request.user
-        undo = request.query_params.get("undo")
         try:
             user_id = User.objects.get(id=user.id)
         except User.DoesNotExist:
@@ -102,24 +105,11 @@ class UnreadNotificationsView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-
-        key = f"delete:{pk}"
-        redis_client = redis.get_url(setting.REDIS_URL)
         try:
-            if redis_client.get(key):
-                if undo == "undo":
-                    redis_client.delete(key)
-                    return CustomResponse.success(
-                        message="Deletion undone successfully",
-                        status_code=200,
-                    )
-            notification = Notification.objects.get(id = pk, target = user_id)
-            redis_client.set(key, json.dumps({"id": f"{notification.id}", "user": user_id}))
-
-            asyncio.create_task(delayed_delete(pk, user))
-
+            notification = Notification.objects.get(id=id, target=user_id)
+            notification.delete()
             return CustomResponse.success(
-                message="Notification to be deleted in 5sec Successfully",
+                message="Notification deleted Successfully",
                 status_code=200,
             )
         except Notification.DoesNotExist:
