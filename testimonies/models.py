@@ -105,7 +105,6 @@ class SocialInteraction(TouchDatesMixim):
 
     class Meta:
         abstract = True
-        # unique_together = ('content_type', 'object_id', 'user')
         unique_together = []
 
     def __str__(self):

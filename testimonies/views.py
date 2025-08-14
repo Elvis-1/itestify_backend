@@ -105,9 +105,11 @@ class TextTestimonyListView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
+            
         notification = Notification.objects.filter(
             target=user_id, read=False
         ).order_by("-timestamp")
+
         payload = {
             "notification_count": str(notification.count()),
         }
