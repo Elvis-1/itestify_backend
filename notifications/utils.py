@@ -8,7 +8,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 def notify_user_via_ws(
     user_identifier: Union[int, str],
     payload: Any,

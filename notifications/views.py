@@ -1,4 +1,7 @@
 
+import json
+from django.conf import settings
+import redis
 from notifications.consumers import REDIS_PREFIX
 from notifications.utils import notify_user_via_ws
 from rest_framework.views import APIView
@@ -8,6 +11,9 @@ from notifications.serializers import NotificationSerializer
 from user.models import User
 from common.responses import CustomResponse
 from common.error import ErrorCode
+import asyncio
+from .tasks import delayed_delete
+from django.core.cache import cache
 
 
 # Create your views here.
@@ -71,7 +77,6 @@ class UnreadNotificationsView(APIView):
                     status_code=404,
                 )
             serializer = self.serializer_class(notification, many=True)
-        
 
         notification = notification.filter(target=user_id).order_by(
             "-timestamp"
@@ -90,4 +95,26 @@ class UnreadNotificationsView(APIView):
             status_code=200,
         )
 
-
+    def delete(self, request, id):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+        try:
+            notification = Notification.objects.get(id=id, target=user_id)
+            notification.delete()
+            return CustomResponse.success(
+                message="Notification deleted Successfully",
+                status_code=200,
+            )
+        except Notification.DoesNotExist:
+            return CustomResponse.error(
+                message="Notification not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
