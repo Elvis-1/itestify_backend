@@ -1,4 +1,5 @@
 from typing import Any, Union
+from notifications.models import Notification
 import redis
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -51,3 +52,22 @@ def notify_user_via_ws(
             redis_client.close()
         except Exception:
             logger.exception("Failed to close Redis client.")
+
+
+def get_unreadNotification(testimony, message):
+    payload = {}
+    get_data = []
+    notification = Notification.objects.filter(
+        target=testimony.uploaded_by, read=False
+    ).order_by("-timestamp")
+    for data in notification:
+        get_data.append(
+            {
+                "id": str(data.id),
+                "verb": data.verb,
+                "created_at": str(data.timestamp),
+            }
+        )
+    payload["data"] = get_data
+    payload["user_messsge"] = message
+    return payload

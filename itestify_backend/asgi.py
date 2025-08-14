@@ -16,11 +16,13 @@ from notifications.consumers import NotificationConsumer
 import os
 from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
+
 from django.core.asgi import get_asgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'itestify_backend.settings')
 
 django_asgi_app = get_asgi_application()
+# print(django_asgi_app)
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
@@ -37,3 +39,5 @@ application = ProtocolTypeRouter({
     ),
 
 })
+
+print(application)

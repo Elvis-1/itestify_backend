@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from django.utils.dateparse import parse_date
 from common.responses import CustomResponse
 from notifications.models import Notification
-from notifications.utils import notify_user_via_ws
+from notifications.utils import get_unreadNotification, notify_user_via_ws
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
@@ -1130,7 +1130,19 @@ class TextTestimonyLikesView(APIView):
 class TextTestimonyApprovalView(APIView):
     """Approve or reject testimonies."""
 
+    permission_classes = (IsAuthenticated, )
+
     def post(self, request, pk):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User does not exist",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+
         try:
             testimony = TextTestimony.objects.get(pk=pk)
         except TextTestimony.DoesNotExist:
@@ -1142,10 +1154,27 @@ class TextTestimonyApprovalView(APIView):
 
         action = request.data.get("action")  # 'approve' or 'reject'
         rejection_reason = request.data.get("rejection_reason", "")
-
+        content_type = ContentType.objects.get_for_model(TextTestimony)
         if action == "approve":
-            testimony.status = "approved"
+            testimony.status = testimony.STATUS.APPROVED.value
             testimony.rejection_reason = ""
+
+            testimony.notification.create(
+                target=testimony.uploaded_by,
+                owner=user_id,
+                verb=f"Congrats your {testimony.title} Testimony has been approved",
+                content_type=content_type,
+                object_id=testimony.id
+            )
+            payload = get_unreadNotification(
+                testimony, f"Congrats your {testimony.title} Testimony has been approved")
+            notify_user_via_ws(
+                user_identifier=testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
+
         elif action == "reject":
             if rejection_reason == "":
                 return CustomResponse.error(
@@ -1153,8 +1182,23 @@ class TextTestimonyApprovalView(APIView):
                     err_code=ErrorCode.BAD_REQUEST,
                     status_code=400,
                 )
-            testimony.status = "rejected"
+            testimony.status = testimony.STATUS.REJECTED.value
             testimony.rejection_reason = rejection_reason
+            testimony.notification.create(
+                target=testimony.uploaded_by,
+                owner=user_id,
+                verb=f"Sorry your {testimony.title} Testimony was rejected",
+                content_type=content_type,
+                object_id=testimony.id
+            )
+            payload = get_unreadNotification(
+                testimony, f"Sorry your {testimony.title} Testimony was rejected")
+            notify_user_via_ws(
+                user_identifier=testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
         else:
             return CustomResponse.error(
                 message="Invalid action",
@@ -1163,6 +1207,7 @@ class TextTestimonyApprovalView(APIView):
             )
 
         testimony.save()
+
         return CustomResponse.success(
             message="Testimony updated successfully", status_code=200
         )
