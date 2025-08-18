@@ -17,4 +17,4 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "itestify_backend.asgi:application"]
+CMD ["gunicorn", "-b", "0.0.0.0", "-p", "8000", "itestify_backend.wsgi:application"]
