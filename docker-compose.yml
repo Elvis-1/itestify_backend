@@ -12,20 +12,6 @@ services:
     env_file:
       - .env
 
-  daphne:
-    build: .
-    container_name: daphne_server
-    command: daphne -b 0.0.0.0 -p 8001 itestify_backend.asgi:application
-    volumes:
-      - .:/app
-    ports:
-      - "8001:8001"
-    env_file:
-      - .env
-    depends_on:
-      - redis
-      - django
-
   celery:
     build: .
     container_name: celery_worker
