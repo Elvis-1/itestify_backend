@@ -2,26 +2,25 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 from datetime import timedelta
-from decouple import config
-from celery.schedules import crontab
 import cloudinary
-from datetime import timedelta
 
 
 load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-AUTH_USER_MODEL = 'user.User'
+AUTH_USER_MODEL = "user.User"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 
 DEBUG = True if os.getenv("DEBUG") == "True" else False
+
+ENVIRONMENT = os.getenv("ENV")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -30,19 +29,19 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
-    'daphne',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'user',
-    'admin_accounts',
-    'testimonies',
-    'scriptures',
-    'notifications',
-    'rest_framework',
+    "daphne",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "user",
+    "admin_accounts",
+    "testimonies",
+    "scriptures",
+    "notifications",
+    "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt",
     "corsheaders",
@@ -50,19 +49,17 @@ INSTALLED_APPS = [
     "common",
     "django_celery_beat",
     "django_celery_results",
-    'rest_framework_simplejwt.token_blacklist',  # JWT token blacklist
-    'reviews',
-    'django_filters',
-    'allauth',
-    'allauth.account',
-
+    "rest_framework_simplejwt.token_blacklist",  # JWT token blacklist
+    "reviews",
+    "django_filters",
+    "allauth",
+    "allauth.account",
     # Optional -- requires install using `django-allauth[socialaccount]`.
-    'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
-    'channels',
-    'cloudinary_storage',
-    'cloudinary',
-
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "channels",
+    "cloudinary_storage",
+    "cloudinary",
 ]
 
 
@@ -73,8 +70,8 @@ FRONT_END_BASE_URL = os.getenv("FRONT_END_BASE_URL")
 BASE_URL = "http://127.0.0.1:8000/"
 
 
-ACCOUNT_LOGIN_METHODS = {'email'}  # or {'email', 'username'} if both
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_LOGIN_METHODS = {"email"}  # or {'email', 'username'} if both
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 
 # Google OAuth
@@ -105,43 +102,43 @@ SOCIALACCOUNT_PROVIDERS = {
         "AUTH_PARAMS": {
             "access_type": "online",
         },
-        'EMAIL_AUTHENTICATION': True
+        "EMAIL_AUTHENTICATION": True,
     }
 }
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'itestify_backend.middlewares.JWTUserMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "itestify_backend.middlewares.JWTUserMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
 
-ROOT_URLCONF = 'itestify_backend.urls'
+ROOT_URLCONF = "itestify_backend.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'itestify_backend.wsgi.application'
+WSGI_APPLICATION = "itestify_backend.wsgi.application"
 ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 
@@ -150,16 +147,16 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 
 DEPLOY = True
 
-if DEPLOY == False:
+if not DEPLOY:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
 else:
     DATABASES = {
-        'default': {
+        "default": {
             "ENGINE": "django.db.backends.postgresql",
             "USER": os.getenv("DB_USER"),
             "PASSWORD": os.getenv("DB_PASSWORD"),
@@ -169,13 +166,15 @@ else:
         }
     }
 
+REDIS_URL = os.getenv("REDIS_URL")
+# REDIS_URL = "redis://172.0.0.1:6379/0"
 
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("localhost", 6379)],
+            "hosts": [REDIS_URL],
         },
     },
 }
@@ -185,16 +184,16 @@ CHANNEL_LAYERS = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -202,9 +201,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'Africa/Lagos'
+TIME_ZONE = "Africa/Lagos"
 
 # TIME_ZONE = 'UTC'
 
@@ -229,6 +228,7 @@ REST_USE_JWT = True
 
 
 REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "common.exceptions.custom_exception_handler",
     "NON_FIELD_ERRORS_KEY": "error",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
@@ -238,10 +238,10 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'SEARCH_PARAM': 'search',
-    'DEFAULT_FILTER_BACKENDS': [
-        'rest_framework.filters.SearchFilter',
+    "SEARCH_PARAM": "search",
+    "DEFAULT_FILTER_BACKENDS": [
+        "rest_framework.filters.SearchFilter",
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
 }
 
@@ -249,14 +249,14 @@ REST_FRAMEWORK = {
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     # `allauth` specific authentication methods, such as login by email
-    'allauth.account.auth_backends.AuthenticationBackend',
+    "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
 
 APPEND_SLASH = False
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=365),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -310,17 +310,17 @@ CORS_ALLOW_HEADERS = [
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
 if not DEBUG:
     # STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
     # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
     # and renames the files with unique names for each version to support long-term caching
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 MEDIA_URL = "/media/"
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 # Cloudinary Setup
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -328,13 +328,10 @@ cloudinary.config(
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
 
-
-# MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CSRF NAME: Prefer the Laravel Style
 CSRF_HEADER_NAME = "HTTP_X_CSRF_TOKEN"
 
@@ -343,20 +340,20 @@ EMAIL_OTP_EXPIRE_SECONDS = 300
 
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_USE_TLS = True              # ✅ TLS enabled
-EMAIL_USE_SSL = False             # ❌ SSL disabled
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587                  # ✅ TLS port
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_USE_TLS = True  # ✅ TLS enabled
+EMAIL_USE_SSL = False  # ❌ SSL disabled
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587  # ✅ TLS port
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 
 # celery settings
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
+CELERY_BROKER_URL = os.getenv("REDIS_URL")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND")
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_BEAT_SCHEDULE = {
     "upload_schedule_videos": {
@@ -371,7 +368,57 @@ CELERY_BEAT_SCHEDULE = {
     "schdule_Inspirational_pictures": {
         "task": "testimonies.tasks.schdule_Inspirational_pictures",
         "schedule": timedelta(seconds=20),  # 30 mins
-    }
+    },
 }
 
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "detailed": {
+            "format": "[{asctime}] [{levelname}] [{filename}:{lineno}] - {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "detailed",
+        },
+        "file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "project_debug.log"),
+            "formatter": "detailed",
+        },
+    },
+    "root": {
+        "handlers": ["console", "file"],
+        "level": "DEBUG" if ENVIRONMENT == "development" else "WARNING",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+        },
+    },
+}
+
+# print(os.getenv("REDIS_URL"))
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}

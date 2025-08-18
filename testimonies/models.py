@@ -35,22 +35,23 @@ class Testimony(TouchDatesMixim):
     title = models.CharField(max_length=255, help_text="Enter Title")
     category = models.CharField(
         max_length=50, choices=CATEGORY.choices, db_index=True)
-    # upload_status = models.CharField(
-    #    max_length=50, choices=UPLOAD_STATUS.choices, null=True, blank=True)
     uploaded_by = models.ForeignKey(
         User, on_delete=models.CASCADE)
-    rejection_reason = models.TextField(blank=True, null=True)
     likes = GenericRelation("Like")
     comments = GenericRelation("Comment", related_query_name="comments")
     shares = GenericRelation("Share")
     notification = GenericRelation(Notification)
     views = models.PositiveIntegerField(default=0, null=True, blank=True)
+    like_count = models.PositiveIntegerField(default=0, null=True, blank=True)
+    comment_count = models.PositiveIntegerField(default=0, null=True, blank=True)
 
     class Meta:
         abstract = True
 
     def __str__(self):
-        return f"Testimony by: {self.uploaded_by.full_name}"
+        return f"Testimony by: {self.uploaded_by.email}"
+
+    
 
 
 class TestimonySettings(models.Model):
@@ -63,13 +64,18 @@ class TestimonySettings(models.Model):
 class TextTestimony(Testimony):
 
     class STATUS(models.TextChoices):
-        PENDING = 'pending', 'pending'
-        APPROVED = 'approved', 'approved'
-        REJECTED = 'rejected', 'rejected'
+        PENDING = 'PENDING', 'PENDING'
+        APPROVED = 'APPROVED', 'APPROVED'
+        REJECTED = 'REJECTED', 'REJECTED'
 
     content = models.TextField()
+    rejection_reason = models.TextField(blank=True, null=True)
     status = models.CharField(
         max_length=20, choices=STATUS.choices, default=STATUS.PENDING, db_index=True)
+    
+    @property
+    def get_cname(self):
+        return "TextTestimony"
 
 
 class VideoTestimony(Testimony):
@@ -94,29 +100,33 @@ class VideoTestimony(Testimony):
 class SocialInteraction(TouchDatesMixim):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.UUIDField()
-    content_object = GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey("content_type", "object_id")
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     class Meta:
         abstract = True
-        # unique_together = ('content_type', 'object_id', 'user')
         unique_together = []
+        indexes = [models.Index(fields=["content_type", "object_id"])]
 
     def __str__(self):
         return f"{self.__class__.__name__} by {self.user.email}"
 
 
 class Comment(SocialInteraction):
-    text = models.TextField()
-    reply_to = models.ManyToManyField(
-        'self', blank=True)
-    user_like_comment = models.ManyToManyField(
-        User, blank=True, related_name="user_like_comment")
+    content = models.TextField()
+    like_count = models.PositiveIntegerField(default=0)
+    reply_count = models.PositiveIntegerField(default=0)
+    likes = GenericRelation("Like")
 
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        on_delete=models.CASCADE,
+        related_name="replies"
+    )
 
 class Like(SocialInteraction):
     pass
-
 
 class Share(SocialInteraction):
     pass
@@ -126,11 +136,11 @@ class InspirationalPictures(TouchDatesMixim):
     thumbnail = CloudinaryField(
         'images/inspirational_pic/', blank=True, null=True)
     source = models.CharField(
-        max_length=255, help_text="Source of the inspirational picture", null=True, blank=True)
+        max_length=255, help_text="Source of the inspirational picture", null=True, blank=True, db_index=True)
     like_inspirational_pic = models.ManyToManyField(
         User, blank=True, related_name="like_inspirational_pic")
     status = models.CharField(
-        max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True)
+        max_length=225, choices=UPLOAD_STATUS.choices, null=True, blank=True, db_index=True)
     shares_count = models.PositiveIntegerField(default=0)
     downloads_count = models.PositiveIntegerField(default=0)
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)

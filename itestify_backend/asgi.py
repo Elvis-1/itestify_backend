@@ -12,6 +12,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 from scriptures.consumers import ScheduleScriptureConsumer
+from notifications.consumers import NotificationConsumer
 import os
 from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
@@ -19,18 +20,20 @@ from django.core.asgi import get_asgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'itestify_backend.settings')
 
-django_asgi_app = get_asgi_application()
+application = get_asgi_application()
 
-application = ProtocolTypeRouter({
-    "http": django_asgi_app,
-    "websocket": AllowedHostsOriginValidator(
-        JWTAuthMiddlewareStack(
-            URLRouter([
-                path('ws/scripture_room_name/',
-                     ScheduleScriptureConsumer.as_asgi()),
+# application = ProtocolTypeRouter({
+#     "http": django_asgi_app,
+#     "websocket": AllowedHostsOriginValidator(
+#         JWTAuthMiddlewareStack(
+#             URLRouter([
+#                 path('ws/scripture_room_name/',
+#                      ScheduleScriptureConsumer.as_asgi()),
+#                 path('ws/notification/',
+#                      NotificationConsumer.as_asgi()),
 
-            ])
-        )
-    ),
+#             ])
+#         )
+#     ),
 
-})
+# })

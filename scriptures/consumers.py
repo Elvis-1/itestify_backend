@@ -13,7 +13,7 @@ class ScheduleScriptureConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
-        print("Connected to the group")
+        
         await self.accept()
 
     # Get schedule via consumer
@@ -22,7 +22,7 @@ class ScheduleScriptureConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         # Leave room group
-        print("Disconnected from the group")
+        
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name

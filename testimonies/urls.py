@@ -2,32 +2,23 @@ from django.urls import include, path
 from .views import (
     InspirationalPicturesViewSet,
     ShowAllInspirationalPicturesStatus,
-    TextTestimonyApprovalView,
     TextTestimonyListView,
     TestimonySettingsView,
     TextTestimonyViewSet,
     VideoTestimonyDeleteSelected,
     VideoTestimonyViewSet,
-    TextTestimonyByCategoryView,
-    TextTestimonyCommentsView,
-    TextTestimonyLikesView,
-    VideoTestimonyByCategoryView,
+    # VideoTestimonyByCategoryView,
     ShowAllUplaodedInspirationalPictures,
-    TextTestimonyReplyComment,
-    VideoTestimonyCommentsView,
     VideoTestimonyLikesView,
     TextTestimonyDetailView,
-    VideoTestimonyDetailView,
     InpirationalPicturesSharesCount,
     UserLikeInspirationalPicture,
-    VideoTestimonyLikeUserComment,
     TextTestimonyDeleteSelected,
-    TextTestimonyLikeUserComment,
     ShowAllUplaodInspirationalPicturesByStatus,
     DownloadedInspirationalPictureCountView,
-    GetCommentFromATextTestimony,
     VideoTestimonyReplyComment,
-    editTextTestimonyComment,
+    CommentViewSet,
+    LikeViewset
 )
 from rest_framework.routers import DefaultRouter
 
@@ -39,6 +30,12 @@ router.register(
 )
 router.register(
     r"inspirational", InspirationalPicturesViewSet, basename="inspirational"
+)
+router.register(
+    r"testimony", CommentViewSet, basename="comment",
+)
+router.register(
+    r"testimonies", LikeViewset, basename="like",
 )
 
 urlpatterns = [
@@ -55,114 +52,39 @@ urlpatterns = [
         name="hello",
     ),
     path(
-        "get-a-commenttexttestimony/<id>/",
-        GetCommentFromATextTestimony.as_view(),
-        name="",
-    ),
-    path(
         "text-testimonies-detail/<id>/",
         TextTestimonyDetailView.as_view(),
         name="text-testimonies-detail",
     ),
     path("edit-text-testimonies/<id>/", TextTestimonyDetailView.as_view(), name=""),
-    path(
-        "video-testimonies-detail/<id>/",
-        VideoTestimonyDetailView.as_view(),
-        name="text-testimonies-detail",
-    ),
-    path(
-        "text-testimonies/<str:pk>/review/",
-        TextTestimonyApprovalView.as_view(),
-        name="text-testimony-review",
-    ),
+    # path(
+    #     "text-testimonies/<str:pk>/review/",
+    #     TextTestimonyApprovalView.as_view(),
+    #     name="text-testimony-review",
+    # ),
     path(
         "testimonies/settings/",
         TestimonySettingsView.as_view(),
         name="testimony-settings",
     ),
-    path(
-        "testimonies/<str:category>/",
-        TextTestimonyByCategoryView.as_view(),
-        name="testimony-by-category",
-    ),
-    path(
-        "testimonies/comment/<id>/",
-        TextTestimonyCommentsView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/comment-reply/<id>/",
-        TextTestimonyReplyComment.as_view(),
-        name="testimony-text-reply",
-    ),
-    path(
-        "testimonies/get-comment-reply/<id>/",
-        TextTestimonyReplyComment.as_view(),
-        name="testimony-text-reply",
-    ),
-    path(
-        "testimonies/all-comment/<id>/",
-        TextTestimonyCommentsView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/edit-texttestimony-comment/<id>/",
-        editTextTestimonyComment.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/text-testimony-like-user-comment/<id>/",
-        TextTestimonyLikeUserComment.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/get-text-testimony-like-user-comment-count/<id>/",
-        TextTestimonyLikeUserComment.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/like/<id>/",
-        TextTestimonyLikesView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/all-like/<id>/",
-        TextTestimonyLikesView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/video/<str:category>/",
-        VideoTestimonyByCategoryView.as_view(),
-        name="testimony-by-category",
-    ),
-    path(
-        "testimonies/video-comment/<id>/",
-        VideoTestimonyCommentsView.as_view(),
-        name="testimony-by-category-comment",
-    ),
+    # path(
+    #     "testimonies/<str:category>/",
+    #     TextTestimonyByCategoryView.as_view(),
+    #     name="testimony-by-category",
+    # ),
+    #  path(
+    #      "testimonies/comment/<id>/",
+    #      TextTestimonyCommentsView.as_view(),
+    #      name="testimony-by-category-comment",
+    # ),
+    # path(
+    #     "testimonies/video/<str:category>/",
+    #     VideoTestimonyByCategoryView.as_view(),
+    #     name="testimony-by-category",
+    # ),
     path(
         "testimonies/reply-video-comment/<id>/",
         VideoTestimonyReplyComment.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/video-comment-all/<id>/",
-        VideoTestimonyCommentsView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/video-like/<id>/",
-        VideoTestimonyLikesView.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/video-testimony-like-user-comment/<id>/",
-        VideoTestimonyLikeUserComment.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/get-video-testimony-like-user-comment-count/<id>/",
-        VideoTestimonyLikeUserComment.as_view(),
         name="testimony-by-category-comment",
     ),
     path(
