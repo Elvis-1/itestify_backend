@@ -9,14 +9,12 @@ from .views import (
     VideoTestimonyViewSet,
     # VideoTestimonyByCategoryView,
     ShowAllUplaodedInspirationalPictures,
-    VideoTestimonyLikesView,
     TextTestimonyDetailView,
     InpirationalPicturesSharesCount,
     UserLikeInspirationalPicture,
     TextTestimonyDeleteSelected,
     ShowAllUplaodInspirationalPicturesByStatus,
     DownloadedInspirationalPictureCountView,
-    VideoTestimonyReplyComment,
     CommentViewSet,
     LikeViewset
 )
@@ -57,40 +55,10 @@ urlpatterns = [
         name="text-testimonies-detail",
     ),
     path("edit-text-testimonies/<id>/", TextTestimonyDetailView.as_view(), name=""),
-    # path(
-    #     "text-testimonies/<str:pk>/review/",
-    #     TextTestimonyApprovalView.as_view(),
-    #     name="text-testimony-review",
-    # ),
     path(
         "testimonies/settings/",
         TestimonySettingsView.as_view(),
         name="testimony-settings",
-    ),
-    # path(
-    #     "testimonies/<str:category>/",
-    #     TextTestimonyByCategoryView.as_view(),
-    #     name="testimony-by-category",
-    # ),
-    #  path(
-    #      "testimonies/comment/<id>/",
-    #      TextTestimonyCommentsView.as_view(),
-    #      name="testimony-by-category-comment",
-    # ),
-    # path(
-    #     "testimonies/video/<str:category>/",
-    #     VideoTestimonyByCategoryView.as_view(),
-    #     name="testimony-by-category",
-    # ),
-    path(
-        "testimonies/reply-video-comment/<id>/",
-        VideoTestimonyReplyComment.as_view(),
-        name="testimony-by-category-comment",
-    ),
-    path(
-        "testimonies/all-liked-video/<id>/",
-        VideoTestimonyLikesView.as_view(),
-        name="testimony-by-category-comment",
     ),
     path("get-all-inspirational-status/", ShowAllInspirationalPicturesStatus.as_view()),
     path(
