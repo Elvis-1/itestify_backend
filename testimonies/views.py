@@ -1,4 +1,3 @@
-import os
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status, permissions
@@ -23,18 +22,17 @@ from django.contrib.contenttypes.models import ContentType
 
 from .serializers import (
     InspirationalPicturesSerializer,
-    ReturnATextTestimonyCommentSerializer,
     ReturnInspirationalPicturesSerializer,
     ReturnTextTestimonySerializer,
     ReturnVideoTestimonyCommentSerializer,
     ReturnVideoTestimonyLikeSerializer,
     ReturnVideoTestimonySerializer,
-    TextTestimonyCommentSerializer,
     TextTestimonySerializer,
     VideoTestimonyCommentSerializer,
     VideoTestimonySerializer,
     TestimonySettingsSerializer,
-    ReturnTextTestimonyLikeSerializer,
+    CommentSerializer,
+    LikeSerializer,
 )
 
 from common.exceptions import handle_custom_exceptions
@@ -43,6 +41,7 @@ from .utils import transform_testimony_files
 from common.utils import get_roles
 
 from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
 
 from notifications.consumers import REDIS_PREFIX
 from common.permissions import Perm
@@ -50,6 +49,7 @@ from common.permissions import Perm
 
 class TextTestimonyListView(APIView):
     """Fetch all testimonies in the db with filtering and search."""
+
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
@@ -83,8 +83,7 @@ class TextTestimonyListView(APIView):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -95,8 +94,7 @@ class TextTestimonyListView(APIView):
         # Pagination
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(
-            paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
         try:
             user_id = User.objects.get(id=user.id)
         except User.DoesNotExist:
@@ -105,10 +103,10 @@ class TextTestimonyListView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-            
-        notification = Notification.objects.filter(
-            target=user_id, read=False
-        ).order_by("-timestamp")
+
+        notification = Notification.objects.filter(target=user_id, read=False).order_by(
+            "-timestamp"
+        )
 
         payload = {
             "notification_count": str(notification.count()),
@@ -118,7 +116,7 @@ class TextTestimonyListView(APIView):
             user_identifier=user_id.id,
             payload=payload,
             message_type="get_user_unread_notification_count",
-            prefix=REDIS_PREFIX
+            prefix=REDIS_PREFIX,
         )
 
         return paginator.get_paginated_response(serializer.data)
@@ -185,7 +183,11 @@ class VideoTestimonyCommentsView(APIView):
             # Create the comment
             content_type = ContentType.objects.get_for_model(VideoTestimony)
             get_testimony.comments.create(
-                text=comment, user=user_id, object_id=get_testimony.id, content_type=content_type)
+                text=comment,
+                user=user_id,
+                object_id=get_testimony.id,
+                content_type=content_type,
+            )
 
             get_testimony.notification.create(
                 target=get_testimony.uploaded_by,
@@ -195,7 +197,8 @@ class VideoTestimonyCommentsView(APIView):
                 object_id=get_testimony.id,
             )
             notifcation = Notification.objects.filter(
-                target=get_testimony.uploaded_by, read=False).order_by("-timestamp")
+                target=get_testimony.uploaded_by, read=False
+            ).order_by("-timestamp")
             payload = {}
             if len(notifcation) > 0:
                 get_data = []
@@ -208,13 +211,15 @@ class VideoTestimonyCommentsView(APIView):
                         }
                     )
                 payload["data"] = get_data
-                payload["user_messsge"] = f"{user_id.full_name} commented on your Video testimony"
+                payload["user_messsge"] = (
+                    f"{user_id.full_name} commented on your Video testimony"
+                )
                 # Notify user via WebSocket
                 notify_user_via_ws(
                     user_identifier=get_testimony.uploaded_by.id,
                     payload=payload,
                     message_type="get_user_unread_notification",
-                    prefix=REDIS_PREFIX
+                    prefix=REDIS_PREFIX,
                 )
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
@@ -258,8 +263,7 @@ class VideoTestimonyReplyComment(APIView):
         user = request.user
         comment = request.data.get("comment")
         get_query_param = request.query_params.get("get_testimony")
-        get_testimony = VideoTestimony.objects.filter(
-            id=get_query_param).first()
+        get_testimony = VideoTestimony.objects.filter(id=get_query_param).first()
         if not comment:
             return CustomResponse.error(
                 message="Comment cannot be empty",
@@ -284,7 +288,10 @@ class VideoTestimonyReplyComment(APIView):
         try:
             content_type = ContentType.objects.get_for_model(VideoTestimony)
             reply = Comment.objects.create(
-                text=comment, user=user_id, content_type=content_type, object_id=get_testimony.id
+                text=comment,
+                user=user_id,
+                content_type=content_type,
+                object_id=get_testimony.id,
             )
             get_comment = Comment.objects.get(id=id)
             get_comment.reply_to.add(reply)
@@ -298,7 +305,8 @@ class VideoTestimonyReplyComment(APIView):
                 object_id=get_testimony.id,
             )
             notification = Notification.objects.filter(
-                target=get_comment.user, read=False).order_by("-timestamp")
+                target=get_comment.user, read=False
+            ).order_by("-timestamp")
             payload = {}
             if len(notification) > 0:
                 get_data = []
@@ -318,7 +326,7 @@ class VideoTestimonyReplyComment(APIView):
                     user_identifier=get_comment.user.id,
                     payload=payload,
                     message_type="get_user_unread_notification",
-                    prefix=REDIS_PREFIX
+                    prefix=REDIS_PREFIX,
                 )
             return CustomResponse.success(
                 message="Comment added successfully", status_code=201
@@ -396,7 +404,8 @@ class VideoTestimonyLikeUserComment(APIView):
                     object_id=id,
                 )
                 notification = Notification.objects.filter(
-                    target=comment_id.user, read=False).order_by("-timestamp")
+                    target=comment_id.user, read=False
+                ).order_by("-timestamp")
                 payload = {}
                 if len(notification) > 0:
                     get_data = []
@@ -415,7 +424,7 @@ class VideoTestimonyLikeUserComment(APIView):
                         user_identifier=comment_id.user.id,
                         payload=payload,
                         message_type="get_user_unread_notification",
-                        prefix=REDIS_PREFIX
+                        prefix=REDIS_PREFIX,
                     )
                 return CustomResponse.success(
                     message="user liked Comment successfully", status_code=201
@@ -508,13 +517,15 @@ class VideoTestimonyLikesView(APIView):
                         }
                     )
                 payload["data"] = get_data
-                payload["user_messsge"] = f"{user_id.full_name} liked your Video testimony"
+                payload["user_messsge"] = (
+                    f"{user_id.full_name} liked your Video testimony"
+                )
                 # Notify user via WebSocket
                 notify_user_via_ws(
                     user_identifier=get_testimony.uploaded_by.id,
                     payload=payload,
                     message_type="get_user_unread_notification",
-                    prefix=REDIS_PREFIX
+                    prefix=REDIS_PREFIX,
                 )
             return CustomResponse.success(
                 message="liked Testimony successfully", status_code=201
@@ -567,8 +578,7 @@ class TextTestimonyByCategoryView(APIView):
 
         paginate = self.pagination_class()
         if testimonies:
-            paginated_queryset = paginate.paginate_queryset(
-                testimonies, request)
+            paginated_queryset = paginate.paginate_queryset(testimonies, request)
             serializer = self.serializer_class(paginated_queryset, many=True)
             return paginate.get_paginated_response(serializer.data)
         else:
@@ -605,33 +615,6 @@ class TextTestimonyDeleteSelected(APIView):
         return CustomResponse.success(
             message="Testimonies Deleted successfully", status_code=200
         )
-
-
-class editTextTestimonyComment(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def put(self, request, id):
-        comment = request.data["comment"]
-        user = request.user
-        try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found", err_code=ErrorCode.NOT_FOUND, status_code=404
-            )
-        try:
-            comment_id = Comment.objects.get(id=id, user=user_id)
-            comment_id.text = comment
-            comment_id.save()
-            return CustomResponse.success(
-                message="Comment Updated Successfully", status_code=200
-            )
-        except Comment.DoesNotExist:
-            return CustomResponse.error(
-                message="Comment not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
 
 
 class TextTestimonyDetailView(APIView):
@@ -671,8 +654,7 @@ class TextTestimonyDetailView(APIView):
                 status_code=404,
             )
         try:
-            testimony_id = TextTestimony.objects.get(
-                id=id, uploaded_by=user_id)
+            testimony_id = TextTestimony.objects.get(id=id, uploaded_by=user_id)
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -684,449 +666,6 @@ class TextTestimonyDetailView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-
-
-class GetCommentFromATextTestimony(APIView):
-    serializer_class = ReturnATextTestimonyCommentSerializer
-
-    def get(self, request, id):
-        comment_id = request.query_params.get("comment_id")
-        try:
-            testimony = TextTestimony.objects.get(id=id)
-            # comment = testimony.comments.get(id=comment_id)
-            serializer = ReturnATextTestimonyCommentSerializer(
-                testimony,
-                many=False,
-                context={"request": request, "comment_id": comment_id},
-            )
-            return CustomResponse.success(
-                message="Comment Retrieve", data=serializer.data, status_code=200
-            )
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(message="Testimony Not found", status_code=401)
-
-
-class TextTestimonyCommentsView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    serializer_class = TextTestimonyCommentSerializer
-
-    def post(self, request, id):
-        user = request.user
-        try:
-            get_testimony = TextTestimony.objects.get(id=id)
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        comment = request.data.get("comment")
-        if not comment:
-            return CustomResponse.error(
-                message="Comment cannot be empty",
-                err_code=ErrorCode.BAD_REQUEST,
-                status_code=400,
-            )
-        try:
-            user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.role:
-                return CustomResponse.error(
-                    message="You are not allowed to comment on this testimony.",
-                    err_code=ErrorCode.FORBIDDEN,
-                    status_code=403,
-                )
-            # Create the comment
-            content_type = ContentType.objects.get_for_model(TextTestimony)
-            get_testimony.comments.create(
-                text=comment, user=user_id, content_type=content_type)
-
-            get_testimony.notification.create(
-                target=get_testimony.uploaded_by,
-                owner=user_id,
-                verb=f"{user_id.email} commented on your testimony",
-                content_type=content_type,
-                object_id=get_testimony.id,
-            )
-            payload = {}
-            get_data = []
-            notification = Notification.objects.filter(
-                target=get_testimony.uploaded_by, read=False
-            )
-            for data in notification:
-                get_data.append(
-                    {
-                        "id": str(data.id),
-                        "verb": data.verb,
-                        "created_at": str(data.timestamp),
-                    }
-                )
-            payload["data"] = get_data
-            payload["user_messsge"] = f"{user_id.full_name} commented on your testimony"
-
-            # Notify user via WebSocket
-            notify_user_via_ws(
-                user_identifier=get_testimony.uploaded_by.id,
-                payload=payload,
-                message_type="get_user_unread_notification",
-                prefix=REDIS_PREFIX
-            )
-            return CustomResponse.success(
-                message="Comment added successfully", status_code=201
-            )
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-    def get(self, request, id):
-        # get_testimony = TextTestimony.objects.get(id=id)
-        try:
-            get_testimony = TextTestimony.objects.get(id=id)
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        print(get_testimony.category)
-        if not get_testimony:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        user_comments = get_testimony.comments
-        serializer = self.serializer_class(user_comments, many=True)
-
-        if not serializer:
-            return CustomResponse.error(
-                message="No comments count found for this testimony",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        payload = {
-            "comments": serializer.data,
-        }
-        return CustomResponse.success(
-            message="Comments retrieved successfully", data=payload, status_code=200
-        )
-
-
-class TextTestimonyReplyComment(APIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = TextTestimonyCommentSerializer
-
-    def post(self, request, id):
-        user = request.user
-        comment = request.data.get("comment")
-        get_query_param = request.query_params.get("get_testimony")
-        get_testimony = TextTestimony.objects.filter(
-            id=get_query_param).first()
-        if not comment:
-            return CustomResponse.error(
-                message="Comment cannot be empty",
-                err_code=ErrorCode.BAD_REQUEST,
-                status_code=400,
-            )
-        try:
-            user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.role:
-                return CustomResponse.error(
-                    message="You are not allowed to comment on this testimony.",
-                    err_code=ErrorCode.FORBIDDEN,
-                    status_code=403,
-                )
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        # Create the comment
-        try:
-            content_type = ContentType.objects.get_for_model(TextTestimony)
-
-            reply = Comment.objects.create(
-                text=comment,
-                user=user_id,
-                content_type=content_type,
-                object_id=get_testimony.id,
-            )
-
-            get_comment = Comment.objects.get(id=id)
-            get_comment.reply_to.add(reply)
-            get_comment.save()
-
-            get_testimony.notification.create(
-                target=get_comment.user,
-                owner=user_id,
-                verb=f"{user_id.email} Replied to your Text Testimony comment",
-                content_type=content_type,
-                object_id=get_testimony.id,
-            )
-            notification = Notification.objects.filter(
-                target=get_comment.user, read=False
-            ).order_by("-timestamp")
-            payload = {}
-            if len(notification) > 0:
-                get_data = []
-                for data in notification:
-                    get_data.append(
-                        {
-                            "id": str(data.id),
-                            "verb": data.verb,
-                            "created_at": str(data.timestamp),
-                        }
-                    )
-                payload["data"] = get_data
-                payload["user_messsge"] = f"{user_id.full_name} replied to your Text Testimony comment"
-                notify_user_via_ws(
-                    user_identifier=get_comment.user.id,
-                    payload=payload,
-                    message_type="get_user_unread_notification",
-                    prefix=REDIS_PREFIX
-                )
-
-            return CustomResponse.success(
-                message="Comment added successfully", status_code=201
-            )
-        except Comment.DoesNotExist:
-            return CustomResponse.error(
-                message="Comment not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-    def get(self, request, id):
-        try:
-            get_testimony = TextTestimony.objects.get(id=id)
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        if not get_testimony:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        user_comments = get_testimony.comments.filter(reply_to__isnull=False)
-        serializer = self.serializer_class(user_comments, many=True)
-
-        if not serializer:
-            return CustomResponse.error(
-                message="No comments count found for this testimony",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        payload = {
-            "comments": serializer.data,
-        }
-        return CustomResponse.success(
-            message="Comments retrieved successfully", data=payload, status_code=200
-        )
-
-
-class TextTestimonyLikeUserComment(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, id):
-        user = request.user
-        get_testimoney_id = request.query_params.get("get_testimony")
-        try:
-            get_testimony = TextTestimony.objects.get(id=get_testimoney_id)
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        try:
-            comment_id = Comment.objects.get(id=id)
-            if comment_id.user_like_comment.filter(id=user_id.id).exists():
-                comment_id.user_like_comment.remove(user)
-                return CustomResponse.error(
-                    message="user unliked Comment successfully",
-                    err_code=ErrorCode.NOT_FOUND,
-                    status_code=404,
-                )
-            else:
-                comment_id.user_like_comment.add(user)
-                content_type = ContentType.objects.get_for_model(TextTestimony)
-                notification = Notification.objects.create(
-                    target=comment_id.user,
-                    owner=user_id,
-                    verb=f"{user_id.email} liked your replied comment",
-                    content_type=content_type,
-                    object_id=get_testimony.id,
-                )
-                payload = {}
-                get_data = []
-                notification = Notification.objects.filter(
-                    target=comment_id.user, read=False).order_by("-timestamp")
-                if len(notification) > 0:
-                    for data in notification:
-                        get_data.append(
-                            {
-                                "id": str(data.id),
-                                "verb": data.verb,
-                                "created_at": str(data.timestamp),
-                            }
-                        )
-                    payload["data"] = get_data
-                    payload["user_messsge"] = f"{user_id.full_name} liked your reply comment"
-                    notify_user_via_ws(
-                        user_identifier=comment_id.user.id,
-                        payload=payload,
-                        message_type="get_user_unread_notification",
-                        prefix=REDIS_PREFIX
-                    )
-                return CustomResponse.success(
-                    message="user liked Comment successfully", status_code=201
-                )
-
-        except Comment.DoesNotExist:
-            return CustomResponse.error(
-                message="Comment not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-    def get(self, request, id):
-        try:
-            comment = Comment.objects.get(id=id)
-            print(comment)
-            if comment.user_like_comment.all().exists():
-                comment_likes = comment.user_like_comment.all().count()
-                serializeer = {"likes_count": comment_likes}
-                return CustomResponse.success(
-                    message="Likes retrieved successfully",
-                    data=serializeer,
-                    status_code=200,
-                )
-            else:
-                return CustomResponse.error(
-                    message="No likes found for this comment",
-                    err_code=ErrorCode.NOT_FOUND,
-                    status_code=404,
-                )
-        except Comment.DoesNotExist:
-            return CustomResponse.error(
-                message="Comment not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-
-class TextTestimonyLikesView(APIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = ReturnTextTestimonyLikeSerializer
-
-    def post(self, request, id):
-        user = request.user
-        try:
-            get_testimony = TextTestimony.objects.get(id=id)
-        except TextTestimony.DoesNotExist:
-            return CustomResponse.error(
-                message="Testimony does not exist",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        try:
-            user_id = User.objects.get(id=user.id)  # Ensure user exists
-            if not user_id.role:
-                return CustomResponse.error(
-                    message="You are not Authorized to like this testimony.",
-                    err_code=ErrorCode.FORBIDDEN,
-                    status_code=403,
-                )
-            # Create the comment
-            is_exist = get_testimony.likes.filter(user=user_id).exists()
-            if is_exist:
-                get_testimony.likes.filter(user=user_id).delete()
-
-                return CustomResponse.success(
-                    message="Unliked Testimony successfully",
-                    status_code=200,
-                )
-
-            get_testimony.likes.create(user=user_id)
-            content_type = ContentType.objects.get_for_model(TextTestimony)
-            get_testimony.notification.create(
-                target=get_testimony.uploaded_by,
-                owner=user_id,
-                verb=f"{user_id.full_name} liked your testimony",
-                content_type=content_type,
-                object_id=get_testimony.id,
-            )
-            payload = {}
-            get_data = []
-            notification = Notification.objects.filter(
-                target=get_testimony.uploaded_by, read=False
-            ).order_by("-timestamp")
-            for data in notification:
-                get_data.append(
-                    {
-                        "id": str(data.id),
-                        "verb": data.verb,
-                        "created_at": str(data.timestamp),
-                    }
-                )
-            payload["data"] = get_data
-            payload["user_messsge"] = f"{user_id.full_name} liked your testimony"
-
-            notify_user_via_ws(
-                user_identifier=get_testimony.uploaded_by.id,
-                payload=payload,
-                message_type="get_user_unread_notification",
-                prefix=REDIS_PREFIX
-            )
-            return CustomResponse.success(
-                message="liked Testimony successfully", status_code=201
-            )
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-    def get(self, request, id):
-        get_testimony = TextTestimony.objects.get(id=id)
-        print(get_testimony.category)
-        if not get_testimony:
-            return CustomResponse.error(
-                message="Testimony not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        serializer = self.serializer_class(get_testimony, many=False)
-
-        if not serializer:
-            return CustomResponse.error(
-                message="No Likes count found for this testimony",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        payload = {
-            "testimony": serializer.data,
-        }
-        return CustomResponse.success(
-            message="Likes retrieved successfully", data=payload, status_code=200
-        )
 
 
 class TextTestimonyApprovalView(APIView):
@@ -1288,8 +827,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -1387,6 +925,155 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
+    @handle_custom_exceptions
+    @action(detail=False, methods=["get"])
+    def comments(self, request, pk=None):
+        testimony = TextTestimony.objects.filter(id=pk).first()
+
+        if not testimony.exists():
+            return CustomResponse.error(
+                message="Testimony not found.",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        comments = testimony.comments.all()
+
+        serializer = CommentSerializer(comments, many=True)
+
+        return CustomResponse.success(
+            message="Success.",
+            data=serializer.data,
+        )
+
+
+class CommentViewSet(viewsets.ViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    model_map = {"video": VideoTestimony, "text": TextTestimony}
+    content_map = {
+        "video": "videotestimony",
+        "text": "texttestimony"
+    }
+
+    @handle_custom_exceptions
+    @action(detail=False, methods=["post"], url_path="comment")
+    def comment(self, request):
+        testimony_id = request.data.get("testimony_id")
+
+        try:
+            testimony_instance = self.model_map[request.data.get("type")].objects.get(
+                id=testimony_id
+            )
+        except ObjectDoesNotExist:
+            return CustomResponse.error(
+                message="Testimony not found.",
+                status_code=404,
+            )
+
+        context = {
+            "content_type": ContentType.objects.get_for_model(testimony_instance),
+            "testimony_id": testimony_id,
+            "user": request.user
+        }
+        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        # perform notification
+
+        return CustomResponse.success(
+            message="Success.",
+            data=serializer.data,
+            status_code=200,
+        )
+
+    @handle_custom_exceptions
+    @action(detail=False, methods=["post"], url_path="reply_comment")
+    def reply_comment(self, request):
+        comment_id = request.data.get("comment_id")
+
+        try:
+            comment_instance = Comment.objects.get(id=comment_id)
+        except ObjectDoesNotExist:
+            return CustomResponse.error(
+                message="Parent comment does not exist.",
+                status_code=404,
+            )
+
+        context = { "comment_instance": comment_instance, "user": request.user }
+        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+        serializer.is_valid(raise_exception=True)
+
+        reply = serializer.reply(serializer.validated_data)
+
+        reply_serializer = self.serializer_class(reply)
+
+        # perform notification
+
+        return CustomResponse.success(
+            message="Success.", data=reply_serializer.data, status_code=200
+        )
+
+
+    @handle_custom_exceptions
+    @action(detail=True, methods=["get"], url_path="comments")
+    def comments(self, request, pk=None):
+        type = request.GET.get("type")
+        content_type = ContentType.objects.get(app_label="testimonies", model=self.content_map[type])
+
+        comments = Comment.objects.filter(
+            content_type=content_type,
+            object_id=pk,
+        ).prefetch_related("replies")
+
+        serializer = CommentSerializer(comments, many=True)
+
+        return CustomResponse.success(
+            message="Success.", data=serializer.data, status_code=200
+        )
+
+class LikeViewset(viewsets.ViewSet):
+    serializer_class = LikeSerializer
+    permission_classes = [IsAuthenticated]
+
+    model_map = {"video": VideoTestimony, "text": TextTestimony, "comment": Comment}
+
+    @handle_custom_exceptions
+    @action(detail=False, methods=["post"], url_path="like")
+    def like(self, request):
+        content_id = request.data.get("content_id")
+
+        try:
+            content_instance = self.model_map[request.data.get("type")].objects.get(
+                id=content_id
+            )
+        except ObjectDoesNotExist:
+            return CustomResponse.error(
+                message="Content not found.",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        context = {
+            "content_type": ContentType.objects.get_for_model(content_instance),
+            "content_id": content_id,
+            "user": request.user
+        }
+
+        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        # perform notification
+
+        return CustomResponse.success(
+            message="Success.",
+            status_code=200
+        )
 
 class TextTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination
@@ -1439,8 +1126,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -1506,12 +1192,10 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             )
 
         # Use the appropriate serializer to validate and update the data
-        serializer = TextTestimonySerializer(
-            testimony, data=request.data, partial=True)
+        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnTextTestimonySerializer(
-                serializer.instance)
+            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
 
             return CustomResponse.success(
                 data=return_serializer.data,
@@ -1608,10 +1292,10 @@ class InspirationalPicturesViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["post"])
     def create_pic(self, request):
         thumbnail = request.data
-        if len(thumbnail['data']) > 0:
+        if len(thumbnail["data"]) > 0:
             # If images are provided, create multiple InspirationalPictures
             total_response_data = []
-            for image in thumbnail['data']:
+            for image in thumbnail["data"]:
                 print(image)
                 serializer = InspirationalPicturesSerializer(
                     data=image, context={"request": request}
