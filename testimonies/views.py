@@ -1068,6 +1068,8 @@ class LikeViewset(viewsets.ViewSet):
 
         serializer.save()
 
+        # perform notification
+
         return CustomResponse.success(
             message="Success.",
             status_code=200
