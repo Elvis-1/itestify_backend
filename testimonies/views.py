@@ -30,6 +30,7 @@ from .serializers import (
     TestimonySettingsSerializer,
     CommentSerializer,
     LikeSerializer,
+    ShareSerializer,
 )
 
 from common.exceptions import handle_custom_exceptions
@@ -509,27 +510,6 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
             status_code=200,
         )
 
-    @handle_custom_exceptions
-    @action(detail=False, methods=["get"])
-    def comments(self, request, pk=None):
-        testimony = TextTestimony.objects.filter(id=pk).first()
-
-        if not testimony.exists():
-            return CustomResponse.error(
-                message="Testimony not found.",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-
-        comments = testimony.comments.all()
-
-        serializer = CommentSerializer(comments, many=True)
-
-        return CustomResponse.success(
-            message="Success.",
-            data=serializer.data,
-        )
-
 
 class CommentViewSet(viewsets.ViewSet):
     serializer_class = CommentSerializer
@@ -601,6 +581,44 @@ class CommentViewSet(viewsets.ViewSet):
             message="Success.", data=reply_serializer.data, status_code=200
         )
 
+    @handle_custom_exceptions
+    @action(detail=True, methods=["patch"], url_path="edit_comment")
+    def edit_comment(self, request, pk=None):
+        try:
+            comment_instance = Comment.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return CustomResponse.error(
+                message="Parent comment does not exist.",
+                status_code=404,
+            )
+
+        serializer = self.serializer_class(data=request.data, partial=True, instance=comment_instance)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return CustomResponse.success(
+            message="Success.",
+            status_code=200
+        )
+
+    @handle_custom_exceptions
+    # @action(detail=False, methods=["delete"], url_path="delete_comment")
+    def destroy(self, request, pk=None):
+        try:
+            comment_instance = Comment.objects.get(id=pk)
+        except ObjectDoesNotExist:
+            return CustomResponse.error(
+                message="Parent comment does not exist.",
+                status_code=404,
+            )
+
+        comment_instance.delete()
+
+        return CustomResponse.success(
+            message="Success.",
+            status_code=200
+        )
+
 
     @handle_custom_exceptions
     @action(detail=True, methods=["get"], url_path="comments")
@@ -658,6 +676,47 @@ class LikeViewset(viewsets.ViewSet):
             message="Success.",
             status_code=200
         )
+
+
+class ShareAPIView(APIView):
+    serializer_class = ShareSerializer
+    permission_classes = [IsAuthenticated]
+
+    model_map = {"video": VideoTestimony, "text": TextTestimony}
+
+    @handle_custom_exceptions
+    def post(self, request):
+        content_id = request.data.get("content_id")
+
+        try:
+            content_instance = self.model_map[request.data.get("type")].objects.get(
+                id=content_id
+            )
+        except ObjectDoesNotExist:
+            return CustomResponse.error(
+                message="Content not found.",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        context = {
+            "content_type": ContentType.objects.get_for_model(content_instance),
+            "content_id": content_id,
+            "user": request.user
+        }
+
+        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        # perform notification
+
+        return CustomResponse.success(
+            message="Success.",
+            status_code=200
+        )
+    
 
 class TextTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination

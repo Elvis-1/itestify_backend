@@ -16,7 +16,8 @@ from .views import (
     ShowAllUplaodInspirationalPicturesByStatus,
     DownloadedInspirationalPictureCountView,
     CommentViewSet,
-    LikeViewset
+    LikeViewset,
+    ShareAPIView
 )
 from rest_framework.routers import DefaultRouter
 
@@ -38,6 +39,7 @@ router.register(
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("share/", ShareAPIView.as_view(), name="shares"),
     path("text-testimonies/", TextTestimonyListView.as_view(), name="text-testimonies"),
     path(
         "delete-selected-videotestimony/",

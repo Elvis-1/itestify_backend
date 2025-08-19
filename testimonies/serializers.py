@@ -82,6 +82,12 @@ class CommentSerializer(serializers.ModelSerializer):
 
         return reply
 
+    def update(self, instance, validated_data):
+        instance.content = validated_data.get("content")
+        instance.save()
+
+        return instance
+
 
 class LikeSerializer(serializers.ModelSerializer):
     user = ReturnUserSerializer()
@@ -108,13 +114,27 @@ class LikeSerializer(serializers.ModelSerializer):
         return like
 
 
-
-class TextTestimonySerializer(serializers.ModelSerializer):
+class ShareSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer()
 
     class Meta:
+        model = Like
+        fields = ['id', 'user', 'content_type', 'object_id', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+    def create(self, validated_data):
+        share, created = Like.objects.get_or_create(
+                user=self.context.get("user"),
+                content_type=self.context.get("content_type"),
+                object_id=self.context.get("content_id")
+            )
+
+        return share
+
+class TextTestimonySerializer(serializers.ModelSerializer):
+    class Meta:
         model = TextTestimony
-        fields = ["id", "title", "category",
-                  "content"]
+        fields = ["id", "title", "category", "content"]
 
     def create(self, validated_data):
         # Add the currently authenticated user to the validated data
@@ -122,10 +142,11 @@ class TextTestimonySerializer(serializers.ModelSerializer):
         validated_data["uploaded_by"] = user
         return super().create(validated_data)
 
-
 class ReturnTextTestimonySerializer(serializers.ModelSerializer):
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
     like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    share_count = serializers.SerializerMethodField()
 
     class Meta:
         model = TextTestimony
@@ -140,6 +161,9 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "views",
+            "like_count",
+            "comment_count",
+            "share_count"
         ]
 
     def __init__(self, *args, **kwargs):
@@ -153,6 +177,12 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
 
     def get_like_count(self, obj):
         return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_share_count(self, obj):
+        return obj.shares.count()
 
 
 class VideoTestimonySerializer(serializers.ModelSerializer):
@@ -207,8 +237,10 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
 
 
 class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
-
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    share_count = serializers.SerializerMethodField()
 
     class Meta:
         model = VideoTestimony
@@ -225,6 +257,9 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "views",
+            "like_count",
+            "comment_count",
+            "share_count",
         ]
 
     def get_video_file(self, obj):
@@ -247,6 +282,15 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
         # conditionally remove 'uploaded_by' field based on user's role
         if user and user["role"].name == "User":
             self.fields.pop("uploaded_by", None)
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_share_count(self, obj):
+        return obj.shares.count()
 
 
 class InspirationalPicturesSerializer(serializers.ModelSerializer):
