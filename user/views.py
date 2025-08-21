@@ -833,10 +833,9 @@ class InvitationViewSet(viewsets.ViewSet):
             user_data,
             user_data
         )
-        print(invitation_link)
 
         return CustomResponse.success(
-            message="Success.", data=serializer.data, status_code=200
+            message="Success.", data=serializer.data, status_code=200, extraFields={"invitation_link": invitation_link}
         )
 
     @handle_custom_exceptions
