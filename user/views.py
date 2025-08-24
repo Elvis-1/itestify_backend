@@ -44,6 +44,7 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.db.models import Q
+from django.utils import timezone
 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -160,47 +161,28 @@ class RegisterViewSet(viewsets.ViewSet):
                     status_code=400,
                 )
             else:
-                try:
-                    otp_code = SendOtp.objects.get(
-                        code=serializer.validated_data.get("otp")
-                    )
-
-                    if otp_code.is_expired():
-                        return CustomResponse.error(
-                            message="OTP has expired",
-                            err_code=ErrorCode.EXPIRED_OTP,
-                            status_code=400,
-                        )
-
-                    if User.objects.filter(
-                        email=serializer.validated_data["email"]
-                    ).exists():
-                        return CustomResponse.error(
-                            message="User with this email already exists",
-                            err_code=ErrorCode.INVALID_ENTRY,
-                            status_code=400,
-                        )
-
-                    User.objects.create_user(
-                        serializer.validated_data["email"],
-                        full_name=serializer.validated_data["full_name"],
-                        role=get_roles(name="User"),
-                        status=User.STATUS.REGISTERED,
-                        password=serializer.validated_data["password"],
-                        is_verified=True,
-                        is_email_verified=True,
-                    )
-
-                    return CustomResponse.success(
-                        message="Account created successfully", status_code=201
-                    )
-                except SendOtp.DoesNotExist:
+                if User.objects.filter(
+                    email=serializer.validated_data["email"]
+                ).exists():
                     return CustomResponse.error(
-                        message="Invalid OTP",
+                        message="User with this email already exists",
                         err_code=ErrorCode.INVALID_ENTRY,
                         status_code=400,
                     )
 
+                User.objects.create_user(
+                    serializer.validated_data["email"],
+                    full_name=serializer.validated_data["full_name"],
+                    role=get_roles(name="User"),
+                    status=User.STATUS.REGISTERED,
+                    password=serializer.validated_data["password"],
+                    is_verified=True,
+                    is_email_verified=True,
+                )
+
+                return CustomResponse.success(
+                    message="Account created successfully", status_code=201
+                )
         else:
             return CustomResponse.error(
                 message="Invalid data",
@@ -414,8 +396,19 @@ class SendOtpCodeView(APIView):
 
         email = serializer.validated_data.get("email")
 
-        code = Util.generate_entry_code()
-        SendOtp.objects.create(code=code)
+        otpCode = SendOtp.objects.get_or_none(email=email)
+
+        if otpCode and not otpCode.is_expired():
+            code = otpCode.code
+        else: 
+            code = Util.generate_entry_code()
+
+            if otpCode:
+                otpCode.code = code
+                otpCode.created_at = timezone.now()
+                otpCode.save()
+            else:
+                SendOtp.objects.create(email=email, code=code)
 
         # Prepare email data and send the email
         email_data = {
@@ -433,6 +426,34 @@ class SendOtpCodeView(APIView):
             status_code=200,
         )
 
+class ValidateRegisterToken(APIView): 
+    serializer_class = VerifyOtpSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        otpCode = SendOtp.objects.get_or_none(email=serializer.validated_data["email"], code=int(serializer.validated_data["otp"]))
+        
+        if otpCode is None:
+            return CustomResponse.error(
+                message="Incorrect OTP.",
+                err_code=ErrorCode.INCORRECT_OTP,
+                status_code=400
+            )
+
+        if otpCode.is_expired():
+            return CustomResponse.error(
+                message="Expired OTP.",
+                err_code=ErrorCode.EXPIRED_OTP,
+                status_code=400
+            )
+
+        return CustomResponse.success(
+            message="OTP Verified.",
+            status_code=200
+        )
+ 
 
 class DashboardViewSet(viewsets.ViewSet):
     serializer_class = SetPasswordSerializer
