@@ -35,8 +35,6 @@ class Testimony(TouchDatesMixim):
     title = models.CharField(max_length=255, help_text="Enter Title")
     category = models.CharField(
         max_length=50, choices=CATEGORY.choices, db_index=True)
-    # upload_status = models.CharField(
-    #    max_length=50, choices=UPLOAD_STATUS.choices, null=True, blank=True)
     uploaded_by = models.ForeignKey(
         User, on_delete=models.CASCADE)
     likes = GenericRelation("Like")
@@ -50,8 +48,6 @@ class Testimony(TouchDatesMixim):
 
     def __str__(self):
         return f"Testimony by: {self.uploaded_by.email}"
-
-    
 
 
 class TestimonySettings(models.Model):
@@ -100,38 +96,33 @@ class VideoTestimony(Testimony):
 class SocialInteraction(TouchDatesMixim):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.UUIDField()
-    content_object = GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey("content_type", "object_id")
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     class Meta:
         abstract = True
-        # unique_together = ('content_type', 'object_id', 'user')
         unique_together = []
+        indexes = [models.Index(fields=["content_type", "object_id"])]
 
     def __str__(self):
         return f"{self.__class__.__name__} by {self.user.email}"
 
 
 class Comment(SocialInteraction):
-    text = models.TextField()
-    reply_to = models.ManyToManyField(
-        'self', blank=True)
-    user_like_comment = models.ManyToManyField(
-        User, blank=True, related_name="user_like_comment")
-    
+    content = models.TextField()
+    like_count = models.PositiveIntegerField(default=0)
+    reply_count = models.PositiveIntegerField(default=0)
+    likes = GenericRelation("Like")
 
-    @property
-    def get_cname(self):
-        return "Comment"
-
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        on_delete=models.CASCADE,
+        related_name="replies"
+    )
 
 class Like(SocialInteraction):
     pass
-
-    @property
-    def get_cname(self):
-        return "Like"
-
 
 class Share(SocialInteraction):
     pass

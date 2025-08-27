@@ -164,6 +164,7 @@ class RegisterViewSet(viewsets.ViewSet):
                     otp_code = SendOtp.objects.get(
                         code=serializer.validated_data.get("otp")
                     )
+
                     if otp_code.is_expired():
                         return CustomResponse.error(
                             message="OTP has expired",
@@ -193,7 +194,7 @@ class RegisterViewSet(viewsets.ViewSet):
                     return CustomResponse.success(
                         message="Account created successfully", status_code=201
                     )
-                except Otp.DoesNotExist:
+                except SendOtp.DoesNotExist:
                     return CustomResponse.error(
                         message="Invalid OTP",
                         err_code=ErrorCode.INVALID_ENTRY,
@@ -833,10 +834,9 @@ class InvitationViewSet(viewsets.ViewSet):
             user_data,
             user_data
         )
-        print(invitation_link)
 
         return CustomResponse.success(
-            message="Success.", data=serializer.data, status_code=200
+            message="Success.", data=serializer.data, status_code=200, extraFields={"invitation_link": invitation_link}
         )
 
     @handle_custom_exceptions

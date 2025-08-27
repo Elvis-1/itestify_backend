@@ -17,6 +17,7 @@ class Notification(models.Model):
                                    blank=True, help_text="The URL to redirect to when to clicked")
     verb = models.CharField(
         max_length=255, unique=False, blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     read = models.BooleanField(default=False)
     content_type = models.ForeignKey(

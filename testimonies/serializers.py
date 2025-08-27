@@ -10,7 +10,8 @@ from .models import (
     TextTestimony,
     VideoTestimony,
     TestimonySettings,
-    Comment
+    Comment,
+    User
 )
 
 # from datetime import datetime, timezone
@@ -27,45 +28,113 @@ class TestimonySettingsSerializer(serializers.ModelSerializer):
             "notify_admin",
         ]
 
+class ReturnCommentUser(serializers.ModelSerializer):
 
-class TextTestimonyCommentSerializer(serializers.ModelSerializer):
-    user = ReturnUserSerializer(context={"is_testimony": True})
+    class Meta:
+        model = User
+        fields = ["full_name"]
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = ReturnCommentUser(context={"is_testimony": True})
+    replies = serializers.SerializerMethodField()
+    like_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ["id", "text", "user", "created_at", "updated_at"]
+        fields = ["id", "content", "user", "created_at", "replies", "reply_count", "like_count"]
+
+    
+    def get_replies(self, obj):
+        replies = obj.replies.all()
+        return CommentSerializer(replies, many=True).data
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def create(self, validated_data):
+        content_type = self.context.get("content_type")
+        testimony_id = self.context.get("testimony_id")
+        user = self.context.get("user")
+
+        comment = Comment.objects.create(
+            content_type=content_type,
+            object_id=testimony_id,
+            content=validated_data["content"],
+            user=user,
+        )
+
+        return comment
+
+    def reply(self, validated_data):
+        comment_instance = self.context.get("comment_instance")
+        user = self.context.get("user")
+        
+        reply = Comment.objects.create(
+            content_type=comment_instance.content_type,
+            object_id=comment_instance.object_id,
+            content=validated_data["content"],
+            user=user,
+            parent=comment_instance,
+        )
+
+        comment_instance.reply_count += 1
+        comment_instance.save()
+
+        return reply
+
+    def update(self, instance, validated_data):
+        instance.content = validated_data.get("content")
+        instance.save()
+
+        return instance
 
 
-class TextTestimonyLikeSerializer(serializers.ModelSerializer):
-    user = ReturnUserSerializer(context={"is_testimony": True})
+class LikeSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer()
 
     class Meta:
         model = Like
-        fields = ["id", "user", "created_at", "updated_at"]
+        fields = ['id', 'user', 'content_type', 'object_id', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+    def create(self, validated_data):
+        like, created = Like.objects.get_or_create(
+                user=self.context.get("user"),
+                content_type=self.context.get("content_type"),
+                object_id=self.context.get("content_id")
+            )
+
+        if not created:
+            like = Like.objects.filter(
+                user=self.context.get("user"),
+                content_type=self.context.get("content_type"),
+                object_id=self.context.get("content_id")
+            ).delete()
+
+        return like
 
 
-class VideoTestimonyCommentSerializer(serializers.ModelSerializer):
-    user = ReturnUserSerializer(context={"is_testimony": True})
-
-    class Meta:
-        model = Comment
-        fields = ["id", "text", "user", "created_at", "updated_at"]
-
-
-class VideoTestimonyLikeSerializer(serializers.ModelSerializer):
-    user = ReturnUserSerializer(context={"is_testimony": True})
+class ShareSerializer(serializers.ModelSerializer):
+    user = ReturnUserSerializer()
 
     class Meta:
         model = Like
-        fields = ["id", "user", "created_at", "updated_at"]
+        fields = ['id', 'user', 'content_type', 'object_id', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
 
+    def create(self, validated_data):
+        share, created = Like.objects.get_or_create(
+                user=self.context.get("user"),
+                content_type=self.context.get("content_type"),
+                object_id=self.context.get("content_id")
+            )
+
+        return share
 
 class TextTestimonySerializer(serializers.ModelSerializer):
-
     class Meta:
         model = TextTestimony
-        fields = ["id", "title", "category",
-                  "content"]
+        fields = ["id", "title", "category", "content"]
 
     def create(self, validated_data):
         # Add the currently authenticated user to the validated data
@@ -73,197 +142,11 @@ class TextTestimonySerializer(serializers.ModelSerializer):
         validated_data["uploaded_by"] = user
         return super().create(validated_data)
 
-
-class ReturnTextTestimonyLikeSerializer(serializers.ModelSerializer):
-    likes = TextTestimonyLikeSerializer(
-        many=True, read_only=True)
-    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
-
-    class Meta:
-        model = TextTestimony
-        fields = [
-            "id",
-            "title",
-            "category",
-            "content",
-            "status",
-            "rejection_reason",
-            "uploaded_by",
-            "created_at",
-            "updated_at",
-            "likes",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        user = self.context.get("user")
-
-        # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "User":
-            self.fields.pop("uploaded_by", None)
-
-
-class ReturnTextTestimonyCommentSerializer(serializers.ModelSerializer):
-    comments = TextTestimonyCommentSerializer(
-        many=True, read_only=True)
-    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
-
-    class Meta:
-        model = TextTestimony
-        fields = [
-            "id",
-            "title",
-            "category",
-            "content",
-            "status",
-            "rejection_reason",
-            "uploaded_by",
-            "created_at",
-            "updated_at",
-            "comments",
-        ]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        user = self.context.get("user")
-
-        # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "User":
-            self.fields.pop("uploaded_by", None)
-
-
-class ReturnATextTestimonyCommentSerializer(serializers.ModelSerializer):
-    comment = serializers.SerializerMethodField()
-    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
-
-    class Meta:
-        model = TextTestimony
-        fields = [
-            "id",
-            "title",
-            "category",
-            "content",
-            "status",
-            "rejection_reason",
-            "uploaded_by",
-            "created_at",
-            "updated_at",
-            "comment",
-        ]
-
-    def get_comment(self, obj):
-        comment_id = self.context.get('comment_id')
-        if comment_id:
-            try:
-                return TextTestimonyCommentSerializer(obj.comments.get(id=comment_id)).data
-            except Comment.DoesNotExist:
-                return None
-        return None
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        user = self.context.get("user")
-
-        # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "User":
-            self.fields.pop("uploaded_by", None)
-
-
-class ReturnVideoTestimonyCommentSerializer(serializers.ModelSerializer):
-    comments = TextTestimonyCommentSerializer(
-        many=True, read_only=True)
-    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
-
-    class Meta:
-        model = VideoTestimony
-        fields = [
-            "id",
-            "title",
-            "category",
-            "source",
-            "upload_status",
-            "video_file",
-            "thumbnail",
-            "rejection_reason",
-            "scheduled_datetime",
-            "uploaded_by",
-            "created_at",
-            "updated_at",
-            'comments'
-        ]
-
-    def get_video_file(self, obj):
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.video_file.url)
-        return obj.video_file.url
-
-    def get_thumbnail(self, obj):
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.thumbnail.url)
-        return obj.thumbnail.url
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        user = self.context.get("user")
-
-        # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "User":
-            self.fields.pop("uploaded_by", None)
-
-
-class ReturnVideoTestimonyLikeSerializer(serializers.ModelSerializer):
-    likes = TextTestimonyLikeSerializer(
-        many=True, read_only=True)
-    uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
-
-    class Meta:
-        model = VideoTestimony
-        fields = [
-            "id",
-            "title",
-            "category",
-            "source",
-            "upload_status",
-            "video_file",
-            "thumbnail",
-            "rejection_reason",
-            "scheduled_datetime",
-            "uploaded_by",
-            "created_at",
-            "updated_at",
-            'likes'
-        ]
-
-    def get_video_file(self, obj):
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.video_file.url)
-        return obj.video_file.url
-
-    def get_thumbnail(self, obj):
-        request = self.context.get("request")
-        if request is not None:
-            return request.build_absolute_uri(obj.thumbnail.url)
-        return obj.thumbnail.url
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        user = self.context.get("user")
-
-        # conditionally remove 'uploaded_by' field based on user's role
-        if user and user["role"] == "User":
-            self.fields.pop("uploaded_by", None)
-
-
 class ReturnTextTestimonySerializer(serializers.ModelSerializer):
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    share_count = serializers.SerializerMethodField()
 
     class Meta:
         model = TextTestimony
@@ -278,6 +161,9 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "views",
+            "like_count",
+            "comment_count",
+            "share_count"
         ]
 
     def __init__(self, *args, **kwargs):
@@ -288,6 +174,15 @@ class ReturnTextTestimonySerializer(serializers.ModelSerializer):
         # conditionally remove 'uploaded_by' field based on user's role
         if user and user["role"] == "User":
             self.fields.pop("uploaded_by", None)
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_share_count(self, obj):
+        return obj.shares.count()
 
 
 class VideoTestimonySerializer(serializers.ModelSerializer):
@@ -342,8 +237,10 @@ class VideoTestimonySerializer(serializers.ModelSerializer):
 
 
 class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
-
     uploaded_by = ReturnUserSerializer(context={"is_testimony": True})
+    like_count = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    share_count = serializers.SerializerMethodField()
 
     class Meta:
         model = VideoTestimony
@@ -360,6 +257,9 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "views",
+            "like_count",
+            "comment_count",
+            "share_count",
         ]
 
     def get_video_file(self, obj):
@@ -382,6 +282,15 @@ class ReturnVideoTestimonySerializer(serializers.ModelSerializer):
         # conditionally remove 'uploaded_by' field based on user's role
         if user and user["role"].name == "User":
             self.fields.pop("uploaded_by", None)
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_comment_count(self, obj):
+        return obj.comments.count()
+
+    def get_share_count(self, obj):
+        return obj.shares.count()
 
 
 class InspirationalPicturesSerializer(serializers.ModelSerializer):

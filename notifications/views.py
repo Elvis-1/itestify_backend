@@ -3,7 +3,7 @@ import json
 from django.conf import settings
 import redis
 from notifications.consumers import REDIS_PREFIX
-from notifications.utils import notify_user_via_ws
+from notifications.utils import notify_user_via_websocket
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from notifications.models import Notification
@@ -53,7 +53,7 @@ class UnreadNotificationsView(APIView):
                     target=user_id, read=False).update(read=True)
                 payload = {"count": str(updated)}
 
-                notify_user_via_ws(
+                notify_user_via_websocket(
                     user_identifier=user_id.id,
                     payload=payload,
                     message_type="get_user_unread_notification_count",

@@ -3,16 +3,15 @@ import redis.asyncio as aioredis
 from django.conf import settings
 
 REDIS_PREFIX = "user_channel"
-#print("hello")
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
-    print("hello")
+    
     async def connect(self):
-        print("hello")
         user = self.scope['user']
         if user.is_authenticated:
             self.user_id = str(user.id)
+            print("User ID:", self.user_id)
             self.channel = aioredis.from_url(settings.REDIS_URL)
             await self.channel.set(f"{REDIS_PREFIX}:{self.user_id}", self.channel_name)
             await self.accept()

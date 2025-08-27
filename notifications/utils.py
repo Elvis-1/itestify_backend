@@ -9,7 +9,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def notify_user_via_ws(
+
+def notify_user_via_websocket(
     user_identifier: Union[int, str],
     payload: Any,
     message_type: str,
@@ -57,16 +58,26 @@ def notify_user_via_ws(
 def get_unreadNotification(testimony, message):
     payload = {}
     get_data = []
-    notification = Notification.objects.filter(
-        target=testimony.uploaded_by, read=False
-    ).order_by("-timestamp")
+    notification = Notification.objects.all()
+    if testimony.user:
+        notification = Notification.objects.filter(
+            target=testimony.user, read=False
+        ).order_by("-timestamp")
+    else:
+        notification = Notification.objects.filter(
+            target=testimony.uploaded_by, read=False
+        ).order_by("-timestamp")
+
     for data in notification:
+        item = {
+            "id": str(data.id),
+            "verb": data.verb,
+            "created_at": str(data.timestamp),
+        }
+        if data.message:
+            item["message"] = data.message
         get_data.append(
-            {
-                "id": str(data.id),
-                "verb": data.verb,
-                "created_at": str(data.timestamp),
-            }
+            item
         )
     payload["data"] = get_data
     payload["user_messsge"] = message
