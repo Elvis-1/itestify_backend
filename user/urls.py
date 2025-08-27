@@ -14,6 +14,7 @@ from .views import (
     SendOtpCodeView,
     RoleViewSet,
     InvitationViewSet,
+    ValidateRegisterToken
 )
 
 router = DefaultRouter()
@@ -36,6 +37,7 @@ urlpatterns = [
         SendPasswordResetOtpView.as_view(),
         name="send-password-reset-otp",
     ),
+    path("validate-register-token", ValidateRegisterToken.as_view(), name="validate-register-token"),
     path("verify-email", VerifyOtpView.as_view(), name="verify-email"),
     path("verify-otp", VerifyOtpView.as_view(), name="verify-otp"),
     path("reset-password", SetNewPasswordView.as_view(), name="reset-password"),

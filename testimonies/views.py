@@ -81,8 +81,7 @@ class TextTestimonyListView(APIView):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -93,8 +92,7 @@ class TextTestimonyListView(APIView):
         # Pagination
         paginator = self.pagination_class()
         paginated_queryset = paginator.paginate_queryset(testimony_qs, request)
-        serializer = ReturnTextTestimonySerializer(
-            paginated_queryset, many=True)
+        serializer = ReturnTextTestimonySerializer(paginated_queryset, many=True)
         try:
             user_id = User.objects.get(id=user.id)
         except User.DoesNotExist:
@@ -165,8 +163,10 @@ class TextTestimonyByCategoryView(APIView):
 
         paginate = self.pagination_class()
         if testimonies:
+
             paginated_queryset = paginate.paginate_queryset(
                 testimonies, request)
+
             serializer = self.serializer_class(paginated_queryset, many=True)
             return paginate.get_paginated_response(serializer.data)
         else:
@@ -242,8 +242,10 @@ class TextTestimonyDetailView(APIView):
                 status_code=404,
             )
         try:
+
             testimony_id = TextTestimony.objects.get(
                 id=id, uploaded_by=user_id)
+
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -461,8 +463,7 @@ class VideoTestimonyViewSet(viewsets.ViewSet):
 
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -591,13 +592,16 @@ class CommentViewSet(viewsets.ViewSet):
             "testimony_id": testimony_id,
             "user": request.user
         }
+
         serializer = self.serializer_class(
             data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         serializer.save()
 
         # perform notification
+
 
         testimony_instance.notification.create(
             target=testimony_instance.uploaded_by,
@@ -637,9 +641,11 @@ class CommentViewSet(viewsets.ViewSet):
                 status_code=404,
             )
 
+
         context = {"comment_instance": comment_instance, "user": request.user}
         serializer = self.serializer_class(
             data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         reply = serializer.reply(serializer.validated_data)
@@ -647,6 +653,7 @@ class CommentViewSet(viewsets.ViewSet):
         reply_serializer = self.serializer_class(reply)
 
         # perform notification
+
 
         Notification.objects.create(
             target=comment_instance.user,
@@ -683,8 +690,10 @@ class CommentViewSet(viewsets.ViewSet):
                 status_code=404,
             )
 
+
         serializer = self.serializer_class(
             data=request.data, partial=True, instance=comment_instance)
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -711,12 +720,15 @@ class CommentViewSet(viewsets.ViewSet):
             status_code=200
         )
 
+
     @handle_custom_exceptions
     @action(detail=True, methods=["get"], url_path="comments")
     def comments(self, request, pk=None):
         type = request.GET.get("type")
+
         content_type = ContentType.objects.get(
             app_label="testimonies", model=self.content_map[type])
+
 
         comments = Comment.objects.filter(
             content_type=content_type,
@@ -734,13 +746,16 @@ class LikeViewset(viewsets.ViewSet):
     serializer_class = LikeSerializer
     permission_classes = [IsAuthenticated]
 
+
     model_map = {"video": VideoTestimony,
                  "text": TextTestimony, "comment": Comment}
+
 
     @handle_custom_exceptions
     @action(detail=False, methods=["post"], url_path="like")
     def like(self, request):
         content_id = request.data.get("content_id")
+
         try:
             content_instance = self.model_map[request.data.get("type")].objects.get(
                 id=content_id
@@ -757,14 +772,17 @@ class LikeViewset(viewsets.ViewSet):
             "content_id": content_id,
             "user": request.user
         }
+
         
         serializer = self.serializer_class(
             data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         serializer.save()
 
         # perform notification
+
         if request.data.get("type") == 'comment':
             Notification.objects.create(
                 target=content_instance.user,
@@ -804,7 +822,6 @@ class LikeViewset(viewsets.ViewSet):
                 prefix=REDIS_PREFIX
             )
         
-
         return CustomResponse.success(
             message="Success.",
             status_code=200
@@ -838,8 +855,10 @@ class ShareAPIView(APIView):
             "user": request.user
         }
 
+
         serializer = self.serializer_class(
             data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         serializer.save()
@@ -903,8 +922,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             parsed_to_date = parse_date(to_date)
             if parsed_to_date:
                 # Set time to the end of the day for inclusivity
-                testimony_qs = testimony_qs.filter(
-                    created_at__date__lte=parsed_to_date)
+                testimony_qs = testimony_qs.filter(created_at__date__lte=parsed_to_date)
 
         if search:
             testimony_qs = testimony_qs.filter(
@@ -970,12 +988,10 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             )
 
         # Use the appropriate serializer to validate and update the data
-        serializer = TextTestimonySerializer(
-            testimony, data=request.data, partial=True)
+        serializer = TextTestimonySerializer(testimony, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            return_serializer = ReturnTextTestimonySerializer(
-                serializer.instance)
+            return_serializer = ReturnTextTestimonySerializer(serializer.instance)
 
             return CustomResponse.success(
                 data=return_serializer.data,

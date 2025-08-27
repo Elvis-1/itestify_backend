@@ -38,21 +38,3 @@ application = ProtocolTypeRouter({
 
 })
 
-#print(application)
-#application = get_asgi_application()
-
-# application = ProtocolTypeRouter({
-#     "http": django_asgi_app,
-#     "websocket": AllowedHostsOriginValidator(
-#         JWTAuthMiddlewareStack(
-#             URLRouter([
-#                 path('ws/scripture_room_name/',
-#                      ScheduleScriptureConsumer.as_asgi()),
-#                 path('ws/notification/',
-#                      NotificationConsumer.as_asgi()),
-
-#             ])
-#         )
-#     ),
-
-# })
