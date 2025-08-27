@@ -169,6 +169,7 @@ else:
 REDIS_URL = os.getenv("REDIS_URL")
 # REDIS_URL = "redis://172.0.0.1:6379/0"
 
+
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
     "default": {
@@ -178,6 +179,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

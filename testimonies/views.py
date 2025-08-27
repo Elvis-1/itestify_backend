@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from django.utils.dateparse import parse_date
 from common.responses import CustomResponse
 from notifications.models import Notification
-from notifications.utils import notify_user_via_ws
+from notifications.utils import get_unreadNotification, notify_user_via_websocket
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 
@@ -110,7 +110,7 @@ class TextTestimonyListView(APIView):
             "notification_count": str(notification.count()),
         }
 
-        notify_user_via_ws(
+        notify_user_via_websocket(
             user_identifier=user_id.id,
             payload=payload,
             message_type="get_user_unread_notification_count",
@@ -163,7 +163,10 @@ class TextTestimonyByCategoryView(APIView):
 
         paginate = self.pagination_class()
         if testimonies:
-            paginated_queryset = paginate.paginate_queryset(testimonies, request)
+
+            paginated_queryset = paginate.paginate_queryset(
+                testimonies, request)
+
             serializer = self.serializer_class(paginated_queryset, many=True)
             return paginate.get_paginated_response(serializer.data)
         else:
@@ -239,7 +242,10 @@ class TextTestimonyDetailView(APIView):
                 status_code=404,
             )
         try:
-            testimony_id = TextTestimony.objects.get(id=id, uploaded_by=user_id)
+
+            testimony_id = TextTestimony.objects.get(
+                id=id, uploaded_by=user_id)
+
             testimony_id.content = testimony
             testimony_id.save()
             return CustomResponse.success(
@@ -256,7 +262,19 @@ class TextTestimonyDetailView(APIView):
 class TextTestimonyApprovalView(APIView):
     """Approve or reject testimonies."""
 
+    permission_classes = (IsAuthenticated, )
+
     def post(self, request, pk):
+        user = request.user
+        try:
+            user_id = User.objects.get(id=user.id)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User does not exist",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+
         try:
             testimony = TextTestimony.objects.get(pk=pk)
         except TextTestimony.DoesNotExist:
@@ -268,10 +286,27 @@ class TextTestimonyApprovalView(APIView):
 
         action = request.data.get("action")  # 'approve' or 'reject'
         rejection_reason = request.data.get("rejection_reason", "")
-
+        content_type = ContentType.objects.get_for_model(TextTestimony)
         if action == "approve":
-            testimony.status = "approved"
+            testimony.status = testimony.STATUS.APPROVED.value
             testimony.rejection_reason = ""
+
+            testimony.notification.create(
+                target=testimony.uploaded_by,
+                owner=user_id,
+                verb=f"Congrats your {testimony.title} Testimony has been approved",
+                content_type=content_type,
+                object_id=testimony.id
+            )
+            payload = get_unreadNotification(
+                testimony, f"Congrats your {testimony.title} Testimony has been approved")
+            notify_user_via_websocket(
+                user_identifier=testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
+
         elif action == "reject":
             if rejection_reason == "":
                 return CustomResponse.error(
@@ -279,8 +314,23 @@ class TextTestimonyApprovalView(APIView):
                     err_code=ErrorCode.BAD_REQUEST,
                     status_code=400,
                 )
-            testimony.status = "rejected"
+            testimony.status = testimony.STATUS.REJECTED.value
             testimony.rejection_reason = rejection_reason
+            testimony.notification.create(
+                target=testimony.uploaded_by,
+                owner=user_id,
+                verb=f"Sorry your {testimony.title} Testimony was rejected",
+                content_type=content_type,
+                object_id=testimony.id
+            )
+            payload = get_unreadNotification(
+                testimony, f"Sorry your {testimony.title} Testimony was rejected")
+            notify_user_via_websocket(
+                user_identifier=testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
         else:
             return CustomResponse.error(
                 message="Invalid action",
@@ -289,6 +339,7 @@ class TextTestimonyApprovalView(APIView):
             )
 
         testimony.save()
+
         return CustomResponse.success(
             message="Testimony updated successfully", status_code=200
         )
@@ -541,12 +592,35 @@ class CommentViewSet(viewsets.ViewSet):
             "testimony_id": testimony_id,
             "user": request.user
         }
-        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+
+        serializer = self.serializer_class(
+            data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         serializer.save()
 
         # perform notification
+
+
+        testimony_instance.notification.create(
+            target=testimony_instance.uploaded_by,
+            owner=request.user,
+            verb=f"{request.user.full_name} commented on your {request.data.get('type')} testimony",
+            content_type=context["content_type"],
+            message=request.data.get("content"),
+        )
+
+        payload = get_unreadNotification(
+            testimony_instance, f"{request.user.full_name} commented on your {request.data.get('type')} testimony"
+        )
+
+        notify_user_via_websocket(
+            user_identifier=testimony_instance.uploaded_by.id,
+            payload=payload,
+            message_type="get_user_unread_notification",
+            prefix=REDIS_PREFIX
+        )
 
         return CustomResponse.success(
             message="Success.",
@@ -567,8 +641,11 @@ class CommentViewSet(viewsets.ViewSet):
                 status_code=404,
             )
 
-        context = { "comment_instance": comment_instance, "user": request.user }
-        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+
+        context = {"comment_instance": comment_instance, "user": request.user}
+        serializer = self.serializer_class(
+            data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         reply = serializer.reply(serializer.validated_data)
@@ -576,6 +653,27 @@ class CommentViewSet(viewsets.ViewSet):
         reply_serializer = self.serializer_class(reply)
 
         # perform notification
+
+
+        Notification.objects.create(
+            target=comment_instance.user,
+            owner=request.user,
+            verb=f"{request.user.full_name} replied your comment {request.data.get('type')} testimony",
+            content_type=context["content_type"],
+            message=request.data.get("content"),
+            object_id=comment_instance.id,
+        )
+
+        payload = get_unreadNotification(
+            comment_instance, f"{request.user.full_name} replied your comment {request.data.get('type')} testimony"
+        )
+
+        notify_user_via_websocket(
+            user_identifier=comment_instance.user.id,
+            payload=payload,
+            message_type="get_user_unread_notification",
+            prefix=REDIS_PREFIX
+        )
 
         return CustomResponse.success(
             message="Success.", data=reply_serializer.data, status_code=200
@@ -592,7 +690,10 @@ class CommentViewSet(viewsets.ViewSet):
                 status_code=404,
             )
 
-        serializer = self.serializer_class(data=request.data, partial=True, instance=comment_instance)
+
+        serializer = self.serializer_class(
+            data=request.data, partial=True, instance=comment_instance)
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -624,7 +725,10 @@ class CommentViewSet(viewsets.ViewSet):
     @action(detail=True, methods=["get"], url_path="comments")
     def comments(self, request, pk=None):
         type = request.GET.get("type")
-        content_type = ContentType.objects.get(app_label="testimonies", model=self.content_map[type])
+
+        content_type = ContentType.objects.get(
+            app_label="testimonies", model=self.content_map[type])
+
 
         comments = Comment.objects.filter(
             content_type=content_type,
@@ -637,11 +741,15 @@ class CommentViewSet(viewsets.ViewSet):
             message="Success.", data=serializer.data, status_code=200
         )
 
+
 class LikeViewset(viewsets.ViewSet):
     serializer_class = LikeSerializer
     permission_classes = [IsAuthenticated]
 
-    model_map = {"video": VideoTestimony, "text": TextTestimony, "comment": Comment}
+
+    model_map = {"video": VideoTestimony,
+                 "text": TextTestimony, "comment": Comment}
+
 
     @handle_custom_exceptions
     @action(detail=False, methods=["post"], url_path="like")
@@ -665,13 +773,55 @@ class LikeViewset(viewsets.ViewSet):
             "user": request.user
         }
 
-        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+        
+        serializer = self.serializer_class(
+            data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         serializer.save()
 
         # perform notification
 
+        if request.data.get("type") == 'comment':
+            Notification.objects.create(
+                target=content_instance.user,
+                owner=request.user,
+                verb=f"{request.user.full_name} like your {request.data.get('type')} testimony",
+                content_type=context["content_type"],
+                object_id=content_instance.id,
+            )
+
+            payload = get_unreadNotification(
+                content_instance, f"{request.user.full_name} like your {request.data.get('type')} testimony"
+            )
+
+            notify_user_via_websocket(
+                user_identifier=content_instance.user.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
+        elif request.data.get("type") in ['video', 'text']:
+            Notification.objects.create(
+                target=content_instance.uploaded_by,
+                owner=request.user,
+                verb=f"{request.user.full_name} like your {request.data.get('type')} testimony",
+                content_type=context["content_type"],
+                object_id=content_instance.id,
+            )
+
+            payload = get_unreadNotification(
+                content_instance, f"{request.user.full_name} like your {request.data.get('type')} testimony"
+            )
+
+            notify_user_via_websocket(
+                user_identifier=content_instance.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
+            )
+        
         return CustomResponse.success(
             message="Success.",
             status_code=200
@@ -705,7 +855,10 @@ class ShareAPIView(APIView):
             "user": request.user
         }
 
-        serializer = self.serializer_class(data=request.data, partial=True, context=context)
+
+        serializer = self.serializer_class(
+            data=request.data, partial=True, context=context)
+
         serializer.is_valid(raise_exception=True)
 
         serializer.save()
@@ -716,7 +869,7 @@ class ShareAPIView(APIView):
             message="Success.",
             status_code=200
         )
-    
+
 
 class TextTestimonyViewSet(viewsets.ViewSet):
     pagination_class = StandardResultsSetPagination

@@ -161,9 +161,47 @@ class RegisterViewSet(viewsets.ViewSet):
                     status_code=400,
                 )
             else:
+
+                try:
+                    otp_code = SendOtp.objects.get(
+                        code=serializer.validated_data.get("otp")
+                    )
+
+                    if otp_code.is_expired():
+                        return CustomResponse.error(
+                            message="OTP has expired",
+                            err_code=ErrorCode.EXPIRED_OTP,
+                            status_code=400,
+                        )
+
+                    if User.objects.filter(
+                        email=serializer.validated_data["email"]
+                    ).exists():
+                        return CustomResponse.error(
+                            message="User with this email already exists",
+                            err_code=ErrorCode.INVALID_ENTRY,
+                            status_code=400,
+                        )
+
+                    User.objects.create_user(
+                        serializer.validated_data["email"],
+                        full_name=serializer.validated_data["full_name"],
+                        role=get_roles(name="User"),
+                        status=User.STATUS.REGISTERED,
+                        password=serializer.validated_data["password"],
+                        is_verified=True,
+                        is_email_verified=True,
+                    )
+
+                    return CustomResponse.success(
+                        message="Account created successfully", status_code=201
+                    )
+                except SendOtp.DoesNotExist:
+
                 if User.objects.filter(
                     email=serializer.validated_data["email"]
                 ).exists():
+
                     return CustomResponse.error(
                         message="User with this email already exists",
                         err_code=ErrorCode.INVALID_ENTRY,
