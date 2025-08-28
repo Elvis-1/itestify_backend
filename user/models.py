@@ -141,6 +141,7 @@ class Otp(TouchDatesMixim):
 
 
 class SendOtp(TouchDatesMixim):
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
     code = models.IntegerField()
 
     def is_expired(self):
