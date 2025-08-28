@@ -6,15 +6,15 @@ REDIS_PREFIX = "user_channel"
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
-    
+
     async def connect(self):
         user = self.scope['user']
         if user.is_authenticated:
             self.user_id = str(user.id)
-            print("User ID:", self.user_id)
+            await self.accept()
             self.channel = aioredis.from_url(settings.REDIS_URL)
             await self.channel.set(f"{REDIS_PREFIX}:{self.user_id}", self.channel_name)
-            await self.accept()
+
         else:
             await self.close()
 
@@ -33,4 +33,3 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({
             'count': count
         })
-

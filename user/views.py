@@ -198,29 +198,29 @@ class RegisterViewSet(viewsets.ViewSet):
                     )
                 except SendOtp.DoesNotExist:
 
-                if User.objects.filter(
-                    email=serializer.validated_data["email"]
-                ).exists():
+                    if User.objects.filter(
+                        email=serializer.validated_data["email"]
+                    ).exists():
 
-                    return CustomResponse.error(
-                        message="User with this email already exists",
-                        err_code=ErrorCode.INVALID_ENTRY,
-                        status_code=400,
+                        return CustomResponse.error(
+                            message="User with this email already exists",
+                            err_code=ErrorCode.INVALID_ENTRY,
+                            status_code=400,
+                        )
+
+                    User.objects.create_user(
+                        serializer.validated_data["email"],
+                        full_name=serializer.validated_data["full_name"],
+                        role=get_roles(name="User"),
+                        status=User.STATUS.REGISTERED,
+                        password=serializer.validated_data["password"],
+                        is_verified=True,
+                        is_email_verified=True,
                     )
 
-                User.objects.create_user(
-                    serializer.validated_data["email"],
-                    full_name=serializer.validated_data["full_name"],
-                    role=get_roles(name="User"),
-                    status=User.STATUS.REGISTERED,
-                    password=serializer.validated_data["password"],
-                    is_verified=True,
-                    is_email_verified=True,
-                )
-
-                return CustomResponse.success(
-                    message="Account created successfully", status_code=201
-                )
+                    return CustomResponse.success(
+                        message="Account created successfully", status_code=201
+                    )
         else:
             return CustomResponse.error(
                 message="Invalid data",
@@ -313,7 +313,7 @@ class LoginViewSet(viewsets.ViewSet):
         )
 
     @handle_custom_exceptions
-    @action(detail=False, methods=["post"]) 
+    @action(detail=False, methods=["post"])
     def password(self, request):
         serializer = LoginPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -438,7 +438,7 @@ class SendOtpCodeView(APIView):
 
         if otpCode and not otpCode.is_expired():
             code = otpCode.code
-        else: 
+        else:
             code = Util.generate_entry_code()
 
             if otpCode:
@@ -464,15 +464,17 @@ class SendOtpCodeView(APIView):
             status_code=200,
         )
 
-class ValidateRegisterToken(APIView): 
+
+class ValidateRegisterToken(APIView):
     serializer_class = VerifyOtpSerializer
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        otpCode = SendOtp.objects.get_or_none(email=serializer.validated_data["email"], code=int(serializer.validated_data["otp"]))
-        
+        otpCode = SendOtp.objects.get_or_none(
+            email=serializer.validated_data["email"], code=int(serializer.validated_data["otp"]))
+
         if otpCode is None:
             return CustomResponse.error(
                 message="Incorrect OTP.",
@@ -491,7 +493,7 @@ class ValidateRegisterToken(APIView):
             message="OTP Verified.",
             status_code=200
         )
- 
+
 
 class DashboardViewSet(viewsets.ViewSet):
     serializer_class = SetPasswordSerializer
@@ -701,7 +703,7 @@ class UsersViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get_or_none(id=pk)
 
-            if user.status == user.STATUS.REGISTERED:   
+            if user.status == user.STATUS.REGISTERED:
                 return CustomResponse.error(
                     message="Cannot delete a registered user.",
                     err_code=ErrorCode.BAD_REQUEST,
@@ -750,7 +752,8 @@ class LogOutApiView(GenericAPIView):
                 status_code=500,
             )
 
-        response = CustomResponse.success(message="Logout successful", status_code=200)
+        response = CustomResponse.success(
+            message="Logout successful", status_code=200)
         response.delete_cookie("refresh")
         response.delete_cookie("access")
 
@@ -881,8 +884,10 @@ class InvitationViewSet(viewsets.ViewSet):
         serializer.save()
 
         # create invitation link with token
-        token = Util.generate_token({"email": serializer.validated_data["email"]})
-        invitation_link = os.getenv("FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
+        token = Util.generate_token(
+            {"email": serializer.validated_data["email"]})
+        invitation_link = os.getenv(
+            "FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
 
         user_data = dict(serializer.validated_data)
         user_data["invitation_link"] = invitation_link
@@ -931,9 +936,11 @@ class InvitationViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         # create invitation link with token
-        token = Util.generate_token({"email": serializer.validated_data["email"]})
-        invitation_link = os.getenv("FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
-        
+        token = Util.generate_token(
+            {"email": serializer.validated_data["email"]})
+        invitation_link = os.getenv(
+            "FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
+
         user_data = dict(serializer.validated_data)
         user_data["invitation_link"] = invitation_link
 

@@ -15,14 +15,14 @@ from django.urls import path
 from scriptures.consumers import ScheduleScriptureConsumer
 from notifications.consumers import NotificationConsumer
 import os
-from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
-
-
+#from .middlewares import JWTUserMiddleware
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'itestify_backend.settings')
 
 django_asgi_app = get_asgi_application()
+
+from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
