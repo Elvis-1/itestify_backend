@@ -2,11 +2,13 @@ from http import HTTPStatus
 from rest_framework.views import exception_handler
 from rest_framework.exceptions import (
     AuthenticationFailed,
-    ValidationError,
+    ValidationError as DRFValidationError,
     APIException,
     PermissionDenied, 
     NotAuthenticated,
 )
+
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .responses import CustomResponse
 from .error import ErrorCode
@@ -50,16 +52,20 @@ def custom_exception_handler(exc, context):
                 status_code=exc.status_code,
                 err_code=exc.err_code,
             )
-        elif isinstance(exc, ValidationError):
-            errors = exc.detail
-            for key in errors:
-                err_val = str(errors[key][0]).replace('"', "")
-                errors[key] = err_val
-                if isinstance(err_val, list):
-                    errors[key] = err_val
-                    
+        elif isinstance(exc, (DRFValidationError, DjangoValidationError)):
+            errors = exc.message_dict if hasattr(exc, "message_dict") else exc.detail
+
+            # Normalize errors to your response format
+            if isinstance(errors, dict):
+                first_error_msg = list(errors.values())[0]
+                if isinstance(first_error_msg, list):
+                    first_error_msg = first_error_msg[0]
+            else:
+                # sometimes Django ValidationError only has .messages (a list)
+                first_error_msg = errors[0] if isinstance(errors, list) else str(errors)
+
             return CustomResponse.error(
-                message=err_val.capitalize(),
+                message=str(first_error_msg).capitalize(),
                 status_code=422,
                 err_code=ErrorCode.INVALID_ENTRY,
             )

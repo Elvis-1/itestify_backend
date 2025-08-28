@@ -189,7 +189,7 @@ class InvitationSerializer(ResendOtpSerializer):
 
     def create(self, validated_data):
         if User.objects.filter(email=validated_data["email"]).exists():
-            raise serializers.ValidationError("An account with this email already exists.")
+            raise serializers.ValidationError({"email": "An account with this email already exists."})
 
         generated_password = Util.generate_password(8)
         alternative_role = validated_data.get("alternative_role", None)
