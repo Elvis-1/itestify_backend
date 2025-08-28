@@ -59,11 +59,11 @@ def get_unreadNotification(testimony, message):
     payload = {}
     get_data = []
     notification = Notification.objects.all()
-    if testimony.uploaded_by:
+    if hasattr(testimony, 'uploaded_by'):
         notification = Notification.objects.filter(
             target=testimony.uploaded_by, read=False
         ).order_by("-timestamp")
-    else:
+    elif hasattr(testimony, 'user'):
         notification = Notification.objects.filter(
             target=testimony.user, read=False
         ).order_by("-timestamp")
