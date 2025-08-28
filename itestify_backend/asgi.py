@@ -7,6 +7,7 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 """
 
+from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 # from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
@@ -17,7 +18,7 @@ import os
 from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
 
-from django.core.asgi import get_asgi_application
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'itestify_backend.settings')
 
