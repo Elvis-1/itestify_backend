@@ -39,7 +39,7 @@ class UnreadNotificationsView(APIView):
                     target=user_id, read=False).update(read=True)
                 payload = {"count": str(updated)}
 
-                notify_user_via_ws(
+                notify_user_via_websocket(
                     user_identifier=user_id.id,
                     payload=payload,
                     message_type="get_user_unread_notification_count",
