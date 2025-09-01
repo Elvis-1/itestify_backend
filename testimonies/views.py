@@ -9,6 +9,8 @@ from notifications.models import Notification
 from notifications.utils import get_unreadNotification, notify_user_via_websocket
 from support.helpers import StandardResultsSetPagination
 from user.models import User
+from notifications.consumers import REDIS_PREFIX
+from django.core.cache import cache
 
 from .models import (
     UPLOAD_STATUS,
@@ -301,7 +303,7 @@ class TextTestimonyApprovalView(APIView):
                 object_id=testimony.id
             )
             payload = get_unreadNotification(
-                testimony, f"Congrats your {testimony.title} Testimony has been approved")
+                f"Congrats your {testimony.title} Testimony has been approved", testimony=testimony)
             notify_user_via_websocket(
                 user_identifier=testimony.uploaded_by.id,
                 payload=payload,
@@ -326,7 +328,7 @@ class TextTestimonyApprovalView(APIView):
                 object_id=testimony.id
             )
             payload = get_unreadNotification(
-                testimony, f"Sorry your {testimony.title} Testimony was rejected")
+                f"Sorry your {testimony.title} Testimony was rejected", testimony=testimony)
             notify_user_via_websocket(
                 user_identifier=testimony.uploaded_by.id,
                 payload=payload,
@@ -614,7 +616,7 @@ class CommentViewSet(viewsets.ViewSet):
         )
 
         payload = get_unreadNotification(
-            testimony_instance, f"{request.user.full_name} commented on your {request.data.get('type')} testimony"
+            f"{request.user.full_name} commented on your {request.data.get('type')} testimony", testimony_instance=testimony_instance
         )
 
         notify_user_via_websocket(
@@ -665,7 +667,7 @@ class CommentViewSet(viewsets.ViewSet):
         )
 
         payload = get_unreadNotification(
-            comment_instance, f"{request.user.full_name} replied your comment {request.data.get('type')} testimony"
+            f"{request.user.full_name} replied your comment {request.data.get('type')} testimony", comment_instance=comment_instance
         )
 
         notify_user_via_websocket(
@@ -796,7 +798,7 @@ class LikeViewset(viewsets.ViewSet):
 
         # Get unread notifications
         payload = get_unreadNotification(
-            content_instance, notification_message)
+            notification_message, content_instance=content_instance)
 
         # Send via WebSocket
         notify_user_via_websocket(
@@ -954,6 +956,30 @@ class TextTestimonyViewSet(viewsets.ViewSet):
 
         return_serializer = ReturnTextTestimonySerializer(testimony)
 
+        testimony_instance = TextTestimony.objects.get(id=testimony.id)
+        content_type = ContentType.objects.get_for_model(testimony_instance)
+
+        testimony_instance.notification.create(
+            owner=request.user,
+            verb=f"New Text Testimony has been Submitted by {request.user.full_name}",
+            content_type=content_type,
+            object_id=testimony_instance.id,
+            message=testimony_instance.content[:50] + "...",
+        )
+
+        payload = get_unreadNotification(
+            f"New Text Testimony has been Submitted by {request.user.full_name}", content_type=content_type
+        )
+
+        admin_user = cache.get("admin_user")
+        print(admin_user)
+        notify_user_via_websocket(
+            user_identifier=admin_user,
+            payload=payload,
+            message_type="get_user_unread_notification",
+            prefix=REDIS_PREFIX
+        )
+
         return CustomResponse.success(
             message="Testimony created successfully",
             data=return_serializer.data,
@@ -1055,14 +1081,14 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 content_type=content_type)
 
             payload = get_unreadNotification(
-                testimony, f"Congrats your {testimony.title} Testimony has been approved"
+                f"Congrats your {testimony.title} Testimony has been approved", testimony=testimony
             )
 
             notify_user_via_websocket(
-            user_identifier=testimony.uploaded_by.id,
-            payload=payload,
-            message_type="get_user_unread_notification",
-            prefix=REDIS_PREFIX
+                user_identifier=testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
             )
 
         elif action == "reject":
@@ -1083,14 +1109,14 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 content_type=content_type)
 
             payload = get_unreadNotification(
-                testimony, f"Your testimony was rejected for voilating our community guidelines"
+                f"Your testimony was rejected for voilating our community guidelines", testimony=testimony
             )
 
             notify_user_via_websocket(
-            user_identifier=testimony.uploaded_by.id,
-            payload=payload,
-            message_type="get_user_unread_notification",
-            prefix=REDIS_PREFIX
+                user_identifier=testimony.uploaded_by.id,
+                payload=payload,
+                message_type="get_user_unread_notification",
+                prefix=REDIS_PREFIX
             )
         else:
             return CustomResponse.error(

@@ -10,7 +10,7 @@ from django.contrib.contenttypes.models import ContentType
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     target = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='target')
+        User, on_delete=models.CASCADE, null=True, blank=True, related_name='target')
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, null=True, blank=True, related_name='owner')
     redirect_url = models.URLField(max_length=500, null=True, unique=False,

@@ -1,7 +1,7 @@
 
 import json
 from django.conf import settings
-import redis
+#import redis
 from notifications.consumers import REDIS_PREFIX
 from notifications.utils import notify_user_via_websocket
 from rest_framework.views import APIView
@@ -11,9 +11,9 @@ from notifications.serializers import NotificationSerializer
 from user.models import User
 from common.responses import CustomResponse
 from common.error import ErrorCode
-import asyncio
-from .tasks import delayed_delete
-from django.core.cache import cache
+#import asyncio
+#from .tasks import delayed_delete
+#from django.core.cache import cache
 
 
 # Create your views here.

@@ -55,7 +55,7 @@ def notify_user_via_websocket(
             logger.exception("Failed to close Redis client.")
 
 
-def get_unreadNotification(testimony, message):
+def get_unreadNotification(message, testimony=None, content_type=None):
     payload = {}
     get_data = []
     notification = Notification.objects.all()
@@ -66,6 +66,11 @@ def get_unreadNotification(testimony, message):
     elif hasattr(testimony, 'user'):
         notification = Notification.objects.filter(
             target=testimony.user, read=False
+        ).order_by("-timestamp")
+
+    else:
+        notification = Notification.objects.filter(
+            content_type=content_type, read=False
         ).order_by("-timestamp")
 
     for data in notification:
