@@ -15,6 +15,7 @@ from django.core.cache import cache
 from .models import (
     UPLOAD_STATUS,
     InspirationalPictures,
+    Like,
     TextTestimony,
     VideoTestimony,
     TestimonySettings,
@@ -606,17 +607,20 @@ class CommentViewSet(viewsets.ViewSet):
         serializer.save()
 
         # perform notification
+        comment_content_type = ContentType.objects.get_for_model(Comment)
+        object_id = serializer.data.get("id")
 
-        testimony_instance.notification.create(
+        Notification.objects.create(
             target=testimony_instance.uploaded_by,
             owner=request.user,
             verb=f"{request.user.full_name} commented on your {request.data.get('type')} testimony",
-            content_type=context["content_type"],
+            content_type=comment_content_type,
+            object_id=object_id,
             message=request.data.get("content"),
         )
 
         payload = get_unreadNotification(
-            f"{request.user.full_name} commented on your {request.data.get('type')} testimony", testimony_instance=testimony_instance
+            f"{request.user.full_name} commented on your {request.data.get('type')} testimony", testimony=testimony_instance
         )
 
         notify_user_via_websocket(
@@ -667,7 +671,7 @@ class CommentViewSet(viewsets.ViewSet):
         )
 
         payload = get_unreadNotification(
-            f"{request.user.full_name} replied your comment {request.data.get('type')} testimony", comment_instance=comment_instance
+            f"{request.user.full_name} replied your comment {request.data.get('type')} testimony", testimony=comment_instance
         )
 
         notify_user_via_websocket(
@@ -785,6 +789,8 @@ class LikeViewset(viewsets.ViewSet):
         else:  # 'video' or 'text'
             target_user = content_instance.uploaded_by
 
+        like_content_type = ContentType.objects.get_for_model(Like)
+
         # Create notification
         notification_message = f"{request.user.full_name} like your {request.data.get('type')} testimony"
 
@@ -792,13 +798,13 @@ class LikeViewset(viewsets.ViewSet):
             target=target_user,
             owner=request.user,
             verb=notification_message,
-            content_type=context["content_type"],
+            content_type=like_content_type,
             object_id=content_instance.id,
         )
 
         # Get unread notifications
         payload = get_unreadNotification(
-            notification_message, content_instance=content_instance)
+            notification_message, testimony=content_instance)
 
         # Send via WebSocket
         notify_user_via_websocket(
@@ -972,7 +978,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         )
 
         admin_user = cache.get("admin_user")
-        print(admin_user)
+
         notify_user_via_websocket(
             user_identifier=admin_user,
             payload=payload,

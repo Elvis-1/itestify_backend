@@ -6,7 +6,6 @@ from django.core.cache import cache
 REDIS_PREFIX = "user_channel"
 admin_user = None
 
-print(admin_user, "This is admin user in consumers.py")
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):

@@ -1,10 +1,13 @@
 from typing import Any, Union
+from common.authentication import User
 from notifications.models import Notification
 import redis
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 import logging
+from django.contrib.contenttypes.models import ContentType
+from testimonies.models import TextTestimony, VideoTestimony
 
 
 logger = logging.getLogger(__name__)
@@ -69,8 +72,13 @@ def get_unreadNotification(message, testimony=None, content_type=None):
         ).order_by("-timestamp")
 
     else:
+        textTestimony_ctype = ContentType.objects.get_for_model(
+            TextTestimony)
+        videoTestimony_ctype = ContentType.objects.get_for_model(
+            VideoTestimony)
         notification = Notification.objects.filter(
-            content_type=content_type, read=False
+            content_type__in=[textTestimony_ctype,
+                              videoTestimony_ctype], read=False
         ).order_by("-timestamp")
 
     for data in notification:
