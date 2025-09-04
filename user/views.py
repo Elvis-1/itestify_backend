@@ -664,6 +664,7 @@ class UsersViewSet(viewsets.ViewSet):
     serializer_class = ReturnUserSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
+    user_role = get_roles("User")
 
     # gets the list of registered users
 
@@ -674,7 +675,7 @@ class UsersViewSet(viewsets.ViewSet):
         if not status or status == "":
             users = User.objects.all().exclude(email=os.getenv("ADMIN_EMAIL"))
         else:
-            users = User.objects.filter(status=status).exclude(
+            users = User.objects.filter(status=status.upper(), role=self.user_role).exclude(
                 email=os.getenv("ADMIN_EMAIL")
             )
         paginator = self.pagination_class()
@@ -864,7 +865,7 @@ class RoleViewSet(viewsets.ViewSet):
     @handle_custom_exceptions
     @action(detail=False, methods=["get"], url_path="all")
     def list_roles(self, request):
-        roles = Role.objects.all()
+        roles = Role.objects.exclude(name="User")
         serializer = self.serializer_class(roles, many=True)
         return CustomResponse.success(
             message="Success.", status_code=200, data=serializer.data
