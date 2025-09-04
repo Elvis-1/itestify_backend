@@ -24,7 +24,7 @@ urlpatterns = [
     path('', include('testimonies.urls')),
     path('notifications/', include('notifications.urls')),
     path('auths/', include('user.urls')),
-    path('', include('donations.urls')),
+    path('donations/', include('donations.urls')),
     path('', include("scriptures.urls")),
     path('review/', include('reviews.urls')),
     path("auths/auth/", include("dj_rest_auth.urls")),

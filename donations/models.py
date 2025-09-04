@@ -16,25 +16,10 @@ class DonationSetting(TouchDatesMixim):
     donation_type = models.CharField(max_length=25, choices=DONATION_TYPE.choices)
     
     def __str__(self):
-        return f"Donation settings - notify_admin: {self.notify_admin}, notify_user: {self.notify_user}, send_user_mail: {self.send_user_mail}, donation_type: {self.donation_type}"
-    
-    
-class NGNDonation(TouchDatesMixim):
-    account_name = models.CharField(max_length=225)
-    bank_name = models.CharField(max_length=225)
-    account_number = models.PositiveIntegerField()
-    
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["account_name", "bank_name"], name="unique_account_bank")
-        ]
-    
-    def __str__(self):
-        return f"NGN Donation {self.account_name}-{self.bank_name}-{self.account_number}"    
+        return f"Donation settings - notify_admin: {self.notify_admin}, notify_user: {self.notify_user}, send_user_mail: {self.send_user_mail}, donation_type: {self.donation_type}"  
 
-class USDDonation(TouchDatesMixim):
-    account_holder = models.CharField(max_length=225)
-    bank_name = models.CharField(max_length=225)
+class Gift(TouchDatesMixim):
+    bank_name = models.CharField(max_length=225, blank=True)
     account_number = models.PositiveIntegerField()
     routing_number = models.PositiveIntegerField()
     swift_code = models.CharField(max_length=225)
@@ -45,22 +30,29 @@ class USDDonation(TouchDatesMixim):
         return f"NGN Donation {self.account_name}-{self.bank_name}-{self.account_number}" 
     
 
-class TransactionHistory(TouchDatesMixim):
-    
-
+class Transaction(TouchDatesMixim):
     class STATUS_CHOICES(models.TextChoices):
         PENDING = "pending", "Pending"
         VERIFIED = "verified", "Verified"
         FAILED = "failed", "Failed"
 
     class CURRENCY_TYPE(models.TextChoices):
-        NG = "ng", "NG"
-        USD = "usd", "USD"
+        NGN = "NGN", "NGN"
+        USD = "USD", "USD"
+
+    class TRANSACTION_TYPE(models.TextChoices):
+        BANK = "BANK", "BANK"
+        TRANSFER = "TRANSFER", "TRANSFER",
+        CARD = "CARD", "CARD"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, help_text="User who initiated the transaction")
     reference = models.CharField(max_length=100, unique=True, help_text="Unique transaction reference")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
+    email = models.EmailField(null=True, blank=True),
+    full_name = models.CharField(max_length=255, blank=True)
+    type = models.CharField(max_length=255, choices=TRANSACTION_TYPE.choices)
     currency = models.CharField(max_length=10, choices=CURRENCY_TYPE.choices)
+    session_id = models.CharField(max_length=255, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES.choices, default="pending")
     description = models.TextField(blank=True, null=True)
     

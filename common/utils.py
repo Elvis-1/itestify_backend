@@ -65,3 +65,19 @@ def interpolate_template(template: str, params: dict):
         template = template.replace(f"{{{{ {key} }}}}", str(value))
     return template
 
+
+def splitFullName(full_name: str):
+    """
+    Splits a full name into first name and last name.
+    If only one name is provided, last name will be an empty string.
+    If more than two parts, everything after the first word is treated as last name.
+    """
+    parts = full_name.strip().split()
+
+    if len(parts) == 0:
+        return "", ""
+    elif len(parts) == 1:
+        return parts[0], ""
+    else:
+        return parts[0], " ".join(parts[1:])
+
