@@ -7,7 +7,7 @@ from channels.layers import get_channel_layer
 from django.conf import settings
 import logging
 from django.contrib.contenttypes.models import ContentType
-from testimonies.models import TextTestimony, VideoTestimony
+from testimonies.models import Like, TextTestimony, VideoTestimony
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def notify_user_via_websocket(
             logger.exception("Failed to close Redis client.")
 
 
-def get_unreadNotification(message, testimony=None, content_type=None):
+def get_unreadNotification(message, testimony=None, content_type=None, admin_user=None):
     payload = {}
     get_data = []
     notification = Notification.objects.all()
@@ -76,9 +76,11 @@ def get_unreadNotification(message, testimony=None, content_type=None):
             TextTestimony)
         videoTestimony_ctype = ContentType.objects.get_for_model(
             VideoTestimony)
+        likeVideo_ctype = ContentType.objects.get_for_model(
+            Like)
         notification = Notification.objects.filter(
             content_type__in=[textTestimony_ctype,
-                              videoTestimony_ctype], read=False
+                              videoTestimony_ctype, likeVideo_ctype], read=False, target=admin_user
         ).order_by("-timestamp")
 
     for data in notification:

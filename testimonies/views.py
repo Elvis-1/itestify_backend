@@ -965,19 +965,22 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         testimony_instance = TextTestimony.objects.get(id=testimony.id)
         content_type = ContentType.objects.get_for_model(testimony_instance)
 
-        testimony_instance.notification.create(
-            owner=request.user,
-            verb=f"New Text Testimony has been Submitted by {request.user.full_name}",
-            content_type=content_type,
-            object_id=testimony_instance.id,
-            message=testimony_instance.content[:50] + "...",
-        )
-
-        payload = get_unreadNotification(
-            f"New Text Testimony has been Submitted by {request.user.full_name}", content_type=content_type
-        )
+        for all_admin in User.objects.filter(role__name__in=["Admin", "Super Admin"]):
+            print(all_admin.full_name)
+            testimony_instance.notification.create(
+                target=all_admin,
+                owner=request.user,
+                verb=f"New Text Testimony has been Submitted by {request.user.full_name}",
+                content_type=content_type,
+                object_id=testimony_instance.id,
+                message=testimony_instance.content[:50] + "...",
+            )
 
         admin_user = cache.get("admin_user")
+
+        payload = get_unreadNotification(
+            f"New Text Testimony has been Submitted by {request.user.full_name}", admin_user=admin_user
+        )
 
         notify_user_via_websocket(
             user_identifier=admin_user,

@@ -1,7 +1,7 @@
 
 import json
 from django.conf import settings
-#import redis
+# import redis
 from notifications.consumers import REDIS_PREFIX
 from notifications.utils import notify_user_via_websocket
 from rest_framework.views import APIView
@@ -11,9 +11,9 @@ from notifications.serializers import NotificationSerializer
 from user.models import User
 from common.responses import CustomResponse
 from common.error import ErrorCode
-#import asyncio
-#from .tasks import delayed_delete
-#from django.core.cache import cache
+# import asyncio
+# from .tasks import delayed_delete
+# from django.core.cache import cache
 
 
 # Create your views here.
@@ -34,7 +34,7 @@ class UnreadNotificationsView(APIView):
                 status_code=404,
             )
         try:
-            if user_id.role.name == "admin":
+            if user_id.role.name == "Admin":
                 updated = Notification.objects.filter(
                     target=user_id, read=False).update(read=True)
                 payload = {"count": str(updated)}
@@ -48,7 +48,7 @@ class UnreadNotificationsView(APIView):
                 return CustomResponse.success(
                     message="Notification marked as read successfully for admin", status_code=200
                 )
-            elif user_id.role.name == "user":
+            elif user_id.role.name == "User":
                 updated = Notification.objects.filter(
                     target=user_id, read=False).update(read=True)
                 payload = {"count": str(updated)}
@@ -71,7 +71,6 @@ class UnreadNotificationsView(APIView):
 
     def get(self, request):
         user = request.user
-        read = request.query_params.get("read")
         try:
             user_id = User.objects.get(id=user.id)
         except User.DoesNotExist:
@@ -80,93 +79,51 @@ class UnreadNotificationsView(APIView):
                 err_code=ErrorCode.NOT_FOUND,
                 status_code=404,
             )
-        notification = Notification.objects.all().order_by("-timestamp")
-        if user_id.role.name == "admin":
-            serializer = self.serializer_class(notification, many=True)
-            return CustomResponse.success(
-                message="Notifications retrieved successfully for admin",
-                data=serializer.data,
-                status_code=200,
-            )
+        notification = Notification.objects.all()
 
-        elif user_id.role.name == "user":
-            if read == "False":
-                notification = notification.filter(target=user_id, read=False).order_by(
-                    "-timestamp"
-                )
-                if not notification:
-                    return CustomResponse.error(
-                        message="No notifications found",
-                        err_code=ErrorCode.NOT_FOUND,
-                        status_code=404,
-                    )
-                serializer = self.serializer_class(notification, many=True)
+        if user_id.role.name == "User":
 
-                return CustomResponse.success(
-                    message="Notifications retrieved successfully for user",
-                    data=serializer.data,
-                    status_code=200,
-                )
-            notification = notification.filter(target=user_id, read=True).order_by(
+            notification = notification.filter(target=user_id).order_by(
                 "-timestamp"
             )
-            if not notification:
-                return CustomResponse.error(
-                    message="No notifications found",
-                    err_code=ErrorCode.NOT_FOUND,
-                    status_code=404,
-                )
             serializer = self.serializer_class(notification, many=True)
-
             return CustomResponse.success(
                 message="Notifications retrieved successfully for user",
                 data=serializer.data,
                 status_code=200,
             )
 
-    def put(self, request, id):
-        user = request.user
-        try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
+        elif user_id.role.name == "Admin":
+            notification = notification.filter(target=user_id).order_by(
+                "-timestamp"
             )
+            serializer = self.serializer_class(notification, many=True)
+            return CustomResponse.success(
+                message="Notifications retrieved successfully for admin",
+                data=serializer.data,
+                status_code=200,
+            )
+        return CustomResponse.error(
+            message="Notifications not found",
+            status_code=200,
+            err_code=ErrorCode.NOT_FOUND,
+        )
+
+    def put(self, request, id):
         try:
-            if user_id.role.name == "admin":
-                notification = Notification.objects.get(id=id, target=user_id)
-                notification.read = True
-                notification.save()
-                # payload = {"count": "1"}
-
-                '''notify_user_via_ws(
-                    user_identifier=user_id.id,
-                    payload=payload,
-                    message_type="get_user_unread_notification_count",
-                    prefix=REDIS_PREFIX
-                )'''
+            notification = Notification.objects.get(id=id)
+            if notification.read:
                 return CustomResponse.success(
-                    message="Notification marked as read successfully for admin",
+                    message="Notification already marked as read",
                     status_code=200,
                 )
-            elif user_id.role.name == "user":
-                notification = Notification.objects.get(id=id, target=user_id)
-                notification.read = True
-                notification.save()
-                # payload = {"count": "1"}
+            notification.read = True
+            notification.save()
+            return CustomResponse.success(
+                message="Notification marked as read successfully for admin",
+                status_code=200,
+            )
 
-                '''notify_user_via_ws(
-                    user_identifier=user_id.id,
-                    payload=payload,
-                    message_type="get_user_unread_notification_count",
-                    prefix=REDIS_PREFIX
-                )'''
-                return CustomResponse.success(
-                    message="Notification marked as read successfully for user",
-                    status_code=200,
-                )
         except Notification.DoesNotExist:
             return CustomResponse.error(
                 message="Notification not found",
@@ -174,41 +131,16 @@ class UnreadNotificationsView(APIView):
                 status_code=404,
             )
 
-    def delete(self, request, id=None):
-        user = request.user
-        read = request.query_params.get("read", None)
+    def delete(self, request, id):
         try:
-            user_id = User.objects.get(id=user.id)
-        except User.DoesNotExist:
-            return CustomResponse.error(
-                message="User not found",
-                err_code=ErrorCode.NOT_FOUND,
-                status_code=404,
-            )
-        try:
-            if user_id.role.name == "admin":
-                if id:
-                    notification = Notification.objects.get(id=id, target=user_id)
-                    notification.delete()
-                    return CustomResponse.success(
-                        message="Notification deleted Successfully by admin",
-                        status_code=200,
-                    )
-                else:
-                    Notification.objects.filter(target=user_id, read = read).delete()
-                    return CustomResponse.success(
-                        message="All notifications deleted Successfully by admin",
-                        status_code=200,
-                    )
-            elif user_id.role.name == "user":
-                if id:
-                    notification = Notification.objects.get(id=id, target=user_id)
-                    notification.delete()
-                    return CustomResponse.success(
-                        message="Notification deleted Successfully",
-                        status_code=200,
-                    )
-
+            if id:
+                notification = Notification.objects.get(
+                    id=id)
+                notification.delete()
+                return CustomResponse.success(
+                    message="Notification deleted Successfully",
+                    status_code=200,
+                )
         except Notification.DoesNotExist:
             return CustomResponse.error(
                 message="Notification not found",

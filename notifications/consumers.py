@@ -8,7 +8,7 @@ admin_user = None
 
 
 
-class NotificationConsumer(AsyncJsonWebsocketConsumer):
+class NotificationUserConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
         global admin_user
@@ -21,7 +21,6 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             await self.channel.set(f"{REDIS_PREFIX}:{self.user_id}", self.channel_name)
             cache.set("admin_user", self.user_id)
             
-
         else:
             await self.close()
 
@@ -41,3 +40,5 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({
             'count': count
         })
+
+

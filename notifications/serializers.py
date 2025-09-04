@@ -13,6 +13,8 @@ class NotificationSerializer(serializers.ModelSerializer):
             'verb',
             'timestamp',
             'read',
+            'message',
+            'object_id',
         ]
         # read_only_fields = ['id', 'timestamp', 'read']
 
