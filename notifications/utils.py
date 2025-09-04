@@ -1,10 +1,13 @@
 from typing import Any, Union
+from common.authentication import User
 from notifications.models import Notification
 import redis
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
 import logging
+from django.contrib.contenttypes.models import ContentType
+from testimonies.models import Like, TextTestimony, VideoTestimony
 
 
 logger = logging.getLogger(__name__)
@@ -55,7 +58,7 @@ def notify_user_via_websocket(
             logger.exception("Failed to close Redis client.")
 
 
-def get_unreadNotification(testimony, message):
+def get_unreadNotification(message, testimony=None, content_type=None, admin_user=None):
     payload = {}
     get_data = []
     notification = Notification.objects.all()
@@ -66,6 +69,18 @@ def get_unreadNotification(testimony, message):
     elif hasattr(testimony, 'user'):
         notification = Notification.objects.filter(
             target=testimony.user, read=False
+        ).order_by("-timestamp")
+
+    else:
+        textTestimony_ctype = ContentType.objects.get_for_model(
+            TextTestimony)
+        videoTestimony_ctype = ContentType.objects.get_for_model(
+            VideoTestimony)
+        likeVideo_ctype = ContentType.objects.get_for_model(
+            Like)
+        notification = Notification.objects.filter(
+            content_type__in=[textTestimony_ctype,
+                              videoTestimony_ctype, likeVideo_ctype], read=False, target=admin_user
         ).order_by("-timestamp")
 
     for data in notification:
