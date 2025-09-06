@@ -46,6 +46,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from notifications.consumers import REDIS_PREFIX
 from common.permissions import Perm
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 class TextTestimonyListView(APIView):
@@ -976,18 +978,21 @@ class TextTestimonyViewSet(viewsets.ViewSet):
                 message=testimony_instance.content[:50] + "...",
             )
 
-        admin_user = cache.get("admin_user")
-
+          
         payload = get_unreadNotification(
-            f"New Text Testimony has been Submitted by {request.user.full_name}", admin_user=admin_user
+            f"New Text Testimony has been Submitted by {request.user.full_name}"
+        )
+        print(payload)
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "Admin",
+            {
+                "type": "send_admin_notification",
+                "message": payload,
+            },
         )
 
-        notify_user_via_websocket(
-            user_identifier=admin_user,
-            payload=payload,
-            message_type="get_user_unread_notification",
-            prefix=REDIS_PREFIX
-        )
+        
 
         return CustomResponse.success(
             message="Testimony created successfully",

@@ -3,15 +3,15 @@ import redis.asyncio as aioredis
 from django.conf import settings
 from django.core.cache import cache
 
+
 REDIS_PREFIX = "user_channel"
-admin_user = None
 
 
 
 class NotificationUserConsumer(AsyncJsonWebsocketConsumer):
 
     async def connect(self):
-        global admin_user
+        
         user = self.scope['user']
         if user.is_authenticated:
             self.user_id = str(user.id)
@@ -19,15 +19,14 @@ class NotificationUserConsumer(AsyncJsonWebsocketConsumer):
             await self.accept()
             self.channel = aioredis.from_url(settings.REDIS_URL)
             await self.channel.set(f"{REDIS_PREFIX}:{self.user_id}", self.channel_name)
-            cache.set("admin_user", self.user_id)
             
+
         else:
             await self.close()
 
     async def disconnect(self, close_code):
         if hasattr(self, 'user_id'):
             await self.channel.delete(f"{REDIS_PREFIX}:{self.user_id}")
-            cache.delete("admin_user")
             await self.channel.close()
 
     # Notification Response for User Like Text Testimony
@@ -42,3 +41,22 @@ class NotificationUserConsumer(AsyncJsonWebsocketConsumer):
         })
 
 
+class NotificationAdminConsumer(AsyncJsonWebsocketConsumer):
+
+    async def connect(self):
+        if self.scope['user'].is_authenticated:
+            await self.accept()
+            await self.channel_layer.group_add("Admin", self.channel_name)
+            
+
+    async def disconnect(self, code):
+        # Remove them from the group so they no longer get room messages
+        await self.channel_layer.group_discard(
+            "Admin",
+            self.channel_name,
+        )
+
+    async def send_admin_notification(self, event):
+        await self.send_json({
+            'message': event['message']
+        })
