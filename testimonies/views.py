@@ -783,18 +783,48 @@ class LikeViewset(viewsets.ViewSet):
 
         serializer.save()
 
+        like_content_type = ContentType.objects.get_for_model(Like)
+        notification_message = None
+
         # perform notification
 
         # Determine the target user based on type
         if request.data.get("type") == 'comment':
             target_user = content_instance.user
-        else:  # 'video' or 'text'
+            notification_message = f"{request.user.full_name} like your {request.data.get('type')}"
+        elif request.data.get("type") == 'text':  # 'video' or 'text'
             target_user = content_instance.uploaded_by
+            notification_message = f"{request.user.full_name} like your {request.data.get('type')} testimony"
+        else:
+            target_role = "Admin"
+            notification_message = f"{request.user.full_name} like your {request.data.get('type')} testimony"
+    
+            Notification.objects.create(
+                role = target_role,
+                owner=request.user,
+                verb=notification_message,
+                content_type=like_content_type,
+                object_id=content_instance.id,
+            )
 
-        like_content_type = ContentType.objects.get_for_model(Like)
+            # Get unread notifications
+            payload = get_unreadNotification(
+                notification_message)
 
-        # Create notification
-        notification_message = f"{request.user.full_name} like your {request.data.get('type')} testimony"
+            # Send via WebSocket
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "Admin",
+                {
+                    "type": "send_admin_notification",
+                    "message": payload,
+                },
+            )
+
+            return CustomResponse.success(
+                message="Success.",
+                status_code=200
+            )
 
         Notification.objects.create(
             target=target_user,
@@ -981,7 +1011,7 @@ class TextTestimonyViewSet(viewsets.ViewSet):
         payload = get_unreadNotification(
             f"New Text Testimony has been Submitted by {request.user.full_name}"
         )
-        print(payload)
+        
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
             "Admin",

@@ -38,16 +38,16 @@ class UnreadNotificationsView(APIView):
             )
         try:
             if user_id.role.name == "Admin" or user_id.role.name == "Super Admin":
-                updated = Notification.objects.filter(
-                    target=user_id, read=False).update(read=True)
-                
+                Notification.objects.filter(
+                    id__in=selected_notifications, read=False).update(read=True)
+
                 return CustomResponse.success(
                     message="Notification marked as read successfully for admin", status_code=200
                 )
             elif user_id.role.name == "User":
-                updated = Notification.objects.filter(
-                    target=user_id, read=False).update(read=True)
-                
+                Notification.objects.filter(
+                    id__in=selected_notifications, read=False).update(read=True)
+
                 return CustomResponse.success(
                     message="Notification marked as read successfully for user", status_code=200
                 )
@@ -83,7 +83,7 @@ class UnreadNotificationsView(APIView):
             )
 
         elif user_id.role.name == "Admin" or user_id.role.name == "Super Admin":
-            notification = notification.filter(target=user_id).order_by(
+            notification = notification.filter(role="Admin").order_by(
                 "-timestamp"
             )
             serializer = self.serializer_class(notification, many=True)

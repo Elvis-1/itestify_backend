@@ -58,7 +58,7 @@ def notify_user_via_websocket(
             logger.exception("Failed to close Redis client.")
 
 
-def get_unreadNotification(message, testimony=None, content_type=None, admin_user=None):
+def get_unreadNotification(message, testimony=None):
     payload = {}
     get_data = []
     notification = Notification.objects.all()
