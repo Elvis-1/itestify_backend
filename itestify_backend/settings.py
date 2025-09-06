@@ -166,8 +166,8 @@ else:
         }
     }
 
-REDIS_URL = os.getenv("REDIS_URL")
-# REDIS_URL = "redis://172.0.0.1:6379/0"
+#REDIS_URL = os.getenv("REDIS_URL")
+REDIS_URL = "redis://127.0.0.1:6379/0"
 
 
 # REDIS SETTINGS

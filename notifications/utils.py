@@ -80,7 +80,7 @@ def get_unreadNotification(message, testimony=None, content_type=None, admin_use
             Like)
         notification = Notification.objects.filter(
             content_type__in=[textTestimony_ctype,
-                              videoTestimony_ctype, likeVideo_ctype], read=False, target__role__name="Admin"
+                              videoTestimony_ctype, likeVideo_ctype], read=False, role="Admin"
         ).order_by("-timestamp")
 
     for data in notification:
