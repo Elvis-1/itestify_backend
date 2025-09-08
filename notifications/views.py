@@ -25,6 +25,9 @@ class UnreadNotificationsView(APIView):
 
     def post(self, request):
         user = request.user
+        selected_notifications = request.data.get("selected_notifications")
+        print(selected_notifications)
+
         try:
             user_id = User.objects.get(id=user.id)
         except User.DoesNotExist:
@@ -34,31 +37,17 @@ class UnreadNotificationsView(APIView):
                 status_code=404,
             )
         try:
-            if user_id.role.name == "Admin":
-                updated = Notification.objects.filter(
-                    target=user_id, read=False).update(read=True)
-                payload = {"count": str(updated)}
+            if user_id.role.name == "Admin" or user_id.role.name == "Super Admin":
+                Notification.objects.filter(
+                    id__in=selected_notifications, read=False).update(read=True)
 
-                notify_user_via_websocket(
-                    user_identifier=user_id.id,
-                    payload=payload,
-                    message_type="get_user_unread_notification_count",
-                    prefix=REDIS_PREFIX
-                )
                 return CustomResponse.success(
                     message="Notification marked as read successfully for admin", status_code=200
                 )
             elif user_id.role.name == "User":
-                updated = Notification.objects.filter(
-                    target=user_id, read=False).update(read=True)
-                payload = {"count": str(updated)}
+                Notification.objects.filter(
+                    id__in=selected_notifications, read=False).update(read=True)
 
-                notify_user_via_websocket(
-                    user_identifier=user_id.id,
-                    payload=payload,
-                    message_type="get_user_unread_notification_count",
-                    prefix=REDIS_PREFIX
-                )
                 return CustomResponse.success(
                     message="Notification marked as read successfully for user", status_code=200
                 )
@@ -93,8 +82,8 @@ class UnreadNotificationsView(APIView):
                 status_code=200,
             )
 
-        elif user_id.role.name == "Admin":
-            notification = notification.filter(target=user_id).order_by(
+        elif user_id.role.name == "Admin" or user_id.role.name == "Super Admin":
+            notification = notification.filter(role="Admin").order_by(
                 "-timestamp"
             )
             serializer = self.serializer_class(notification, many=True)
