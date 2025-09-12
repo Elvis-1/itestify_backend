@@ -17,5 +17,5 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "-w", "4" "itestify_backend.asgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "-w", "4", "itestify_backend.asgi:application"]
 
