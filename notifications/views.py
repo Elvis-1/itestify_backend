@@ -23,6 +23,7 @@ class UnreadNotificationsView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = NotificationSerializer
 
+    # Post Selected Notifications as Read
     def post(self, request):
         user = request.user
         selected_notifications = request.data.get("selected_notifications")
@@ -58,6 +59,7 @@ class UnreadNotificationsView(APIView):
                 status_code=404,
             )
 
+    # Get All Notifications for User and Admin
     def get(self, request):
         user = request.user
         try:
@@ -98,6 +100,7 @@ class UnreadNotificationsView(APIView):
             err_code=ErrorCode.NOT_FOUND,
         )
 
+    # Mark Single Notification as Read for User and Admin
     def put(self, request, id):
         try:
             notification = Notification.objects.get(id=id)
@@ -120,6 +123,7 @@ class UnreadNotificationsView(APIView):
                 status_code=404,
             )
 
+    # Delete Single Notification for User and Admin
     def delete(self, request, id):
         try:
             if id:
