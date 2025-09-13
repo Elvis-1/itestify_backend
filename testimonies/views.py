@@ -1078,12 +1078,12 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             testimony.notification.create(
                 target=testimony.uploaded_by,
                 owner=request.user,
-                verb=f"Your testimony was rejected for voilating our community guidelines",
+                verb="Your testimony was rejected for voilating our community guidelines",
                 message=rejection_reason,
                 content_type=content_type)
 
             payload = get_unreadNotification(
-                testimony, f"Your testimony was rejected for voilating our community guidelines"
+                testimony, "Your testimony was rejected for voilating our community guidelines"
             )
 
             notify_user_via_websocket(

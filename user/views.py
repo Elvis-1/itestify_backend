@@ -862,6 +862,26 @@ class RoleViewSet(viewsets.ViewSet):
             message="Success.", status_code=201, data=serializer.data
         )
 
+    def retrieve(self, request, pk=None):
+        """Retrieve a specific text testimony by ID"""
+        try:
+            # try fetching it from TextTestimony
+            role = Role.objects.get(id=pk)
+        except Role.DoesNotExist:
+            # If neither is found, return a 404 response
+            return CustomResponse.error(
+                message="Role not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        # Serialize the testimony and return the response
+        serializer = ReturnRoleSerializer(role)
+        return CustomResponse.success(
+            data=serializer.data,
+            status_code=200,
+        )
+
     @handle_custom_exceptions
     @action(detail=False, methods=["get"], url_path="all")
     def list_roles(self, request):
@@ -870,6 +890,82 @@ class RoleViewSet(viewsets.ViewSet):
         return CustomResponse.success(
             message="Success.", status_code=200, data=serializer.data
         )
+
+    @handle_custom_exceptions
+    def destroy(self, request, pk):
+        user_role = getattr(request.user, "role", None)
+        
+        if user_role.name != "Super Admin":
+            return CustomResponse.error(
+                message="You are not allowed to perform this operation.",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403
+            )
+
+        role = Role.objects.get(id=pk)
+
+        if not role:
+            return CustomResponse.error(
+                message="Role not found.",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404
+            )
+
+        if role.name == "Super Admin":
+            return CustomResponse.error(
+                message="You cannot delete the Super Admin role.",
+                err_code=ErrorCode.NOT_ALLOWED,
+                status_code=404
+            )
+
+        if role.name == "User":
+            return CustomResponse.error(
+                message="You cannot delete the default User role.",
+                err_code=ErrorCode.NOT_ALLOWED,
+                status_code=404
+            )
+
+        member_check = User.objects.filter(role=role)
+
+        if member_check.exists():
+            return CustomResponse.error(
+                message="You have to move all the members before deleting.",
+                err_code=ErrorCode.NOT_ALLOWED,
+                status_code=400
+            )
+
+        role.delete()
+
+        return CustomResponse.success(
+            message="Success.",
+            status_code=200
+        )
+
+    @handle_custom_exceptions
+    @action(detail=False, methods=["post"])
+    def remove_member(self, request, pk):
+        try:
+            data = request.data
+            user_id = data["user_id"]
+            role = Role.objects.get(id=pk)
+
+            if not data["user_id"]:
+                return CustomResponse.error(
+                    message="User ID is required.",
+                    err_code=ErrorCode.INVALID_VALUE,
+                    status_code=400
+                )
+
+            user = User.objects.get(id=user_id, role__name=role.name)
+
+            
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="Member does not exist or does not belong to this role.",
+                err_code=ErrorCode.INVALID_VALUE,
+                status_code=400
+            )
+
 
 
 class InvitationViewSet(viewsets.ViewSet):
