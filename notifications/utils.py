@@ -78,9 +78,10 @@ def get_unreadNotification(message, testimony=None):
             VideoTestimony)
         likeVideo_ctype = ContentType.objects.get_for_model(
             Like)
+        user_content_type = ContentType.objects.get_for_model(User)
         notification = Notification.objects.filter(
             content_type__in=[textTestimony_ctype,
-                              videoTestimony_ctype, likeVideo_ctype], read=False, role="Admin"
+                              videoTestimony_ctype, likeVideo_ctype, user_content_type], read=False, role="Admin"
         ).order_by("-timestamp")
 
     for data in notification:
