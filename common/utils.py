@@ -8,6 +8,7 @@ from django.apps import apps
 
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
+
 def get_roles(name=None):
     if name:
         cache_key = f"role_{name}"
@@ -20,8 +21,11 @@ def get_roles(name=None):
     cache_key = "all_roles"
     roles = cache.get(cache_key)
     if roles is None:
-        roles = list(apps.get_model("user", "Role").objects.values_list("name", flat=True))
-        cache.set(cache_key, roles, timeout=3600) # Cache for 1 hour
+        roles = list(
+            apps.get_model("user", "Role").objects.values_list("name", flat=True)
+        )
+        cache.set(cache_key, roles, timeout=3600)  # Cache for 1 hour
+
     return roles
 
 
@@ -50,18 +54,17 @@ def upload_file(files):
 
 
 def load_email_template(template_name):
-    base_path = os.path.join(settings.BASE_DIR, 'common', 'templates/emails')
+    base_path = os.path.join(settings.BASE_DIR, "common", "templates/emails")
     file_path = os.path.join(base_path, f"{template_name}.json")
-    
+
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Email template '{template_name}' not found.")
-    
-    with open(file_path, 'r', encoding='utf-8') as f:
+
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-    
+
 def interpolate_template(template: str, params: dict):
     for key, value in params.items():
         template = template.replace(f"{{{{ {key} }}}}", str(value))
     return template
-
