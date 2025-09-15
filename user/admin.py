@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
-from user.models import Otp, SendOtp, User, EntryCode, UserInvitation
+from user.models import Otp, SendOtp, User, EntryCode, UserInvitation, Role
 
 # Register your models here.
 
@@ -38,3 +38,4 @@ admin.site.register(EntryCode)
 admin.site.register(Otp)
 admin.site.register(SendOtp)
 admin.site.register(UserInvitation)
+admin.site.register(Role)

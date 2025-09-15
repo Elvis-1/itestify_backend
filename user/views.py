@@ -12,7 +12,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.request import Request
 from rest_framework.views import APIView
+
+from notifications.models import Notification
+from notifications.utils import get_unreadNotification
 from .models import EntryCode, User, Otp, SendOtp, Role
+from django.contrib.contenttypes.models import ContentType
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from .utils import Util
 from .serializers import (
@@ -698,8 +704,34 @@ class UsersViewSet(viewsets.ViewSet):
         current_user = request.user
         try:
             user = User.objects.get_or_none(email=current_user.email)
-            user.status = user.STATUS.DELETED
+            user.staus = user.STATUS.DELETED
             user.save()
+
+            target_role = "Admin"
+            notification_message = f"{request.user.full_name} has deleted their account."
+            user_content_type = ContentType.objects.get_for_model(User)
+    
+            Notification.objects.create(
+                role = target_role,
+                owner=request.user,
+                verb=notification_message,
+                content_type=user_content_type,
+                object_id=user.id,
+            )
+
+            # Get unread notifications
+            payload = get_unreadNotification(
+                notification_message)
+
+            # Send via WebSocket
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "Admin",
+                {
+                    "type": "send_admin_notification",
+                    "message": payload,
+                },
+            )
             return CustomResponse.success(
                 message="Account deleted successfully.", status_code=200
             )
