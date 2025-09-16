@@ -10,7 +10,6 @@ from notifications.utils import get_unreadNotification, notify_user_via_websocke
 from support.helpers import StandardResultsSetPagination
 from user.models import User
 from notifications.consumers import REDIS_PREFIX
-from django.core.cache import cache
 
 from .models import (
     UPLOAD_STATUS,
@@ -44,7 +43,6 @@ from common.utils import get_roles
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 
-from notifications.consumers import REDIS_PREFIX
 from common.permissions import Perm
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -1147,12 +1145,12 @@ class TextTestimonyViewSet(viewsets.ViewSet):
             testimony.notification.create(
                 target=testimony.uploaded_by,
                 owner=request.user,
-                verb="Your testimony was rejected for voilating our community guidelines",
+                verb="Your testimony was rejected for violating our community guidelines",
                 message=rejection_reason,
                 content_type=content_type)
 
             payload = get_unreadNotification(
-                f"Your testimony was rejected for voilating our community guidelines", testimony=testimony
+                "Your testimony was rejected for violating our community guidelines", testimony=testimony
             )
 
             notify_user_via_websocket(
