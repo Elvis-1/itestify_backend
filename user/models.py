@@ -85,6 +85,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     email = models.EmailField(max_length=255, unique=True)  
     full_name = models.CharField(max_length=255, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
     role = models.ForeignKey(
         Role, on_delete=models.SET_NULL, null=True, related_name="role"
     )

@@ -699,6 +699,35 @@ class UsersViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(paginator_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
 
+    @action(detail=False, methods=["post"])
+    def editNameAndPhoneNumber(self, request):
+        try:
+            user = User.objects.get_or_none(id=request.user.id)
+
+            if not user:
+                return CustomResponse.error(
+                    message="User not found.",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
+                )
+
+            user.full_name = request.data.get("full_name", user.full_name)
+            user.phone_number = request.data.get("phone_number", user.phone_number)
+            user.save()
+
+            serializer = self.serializer_class(user, many=False)
+
+            return CustomResponse.success(
+                message="User updated successfully.",
+                status_code=200,
+                data=serializer.data,
+            )
+
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
     @action(detail=False, methods=["delete"])
     def delete(self, request):
         current_user = request.user
