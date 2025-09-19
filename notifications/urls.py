@@ -7,4 +7,6 @@ urlpatterns = [
     path("read-notifications/", UnreadNotificationsView.as_view(), name=""),
     path("delete-notification/<id>/",
          UnreadNotificationsView.as_view(), name=""),
+    path("delete-notification/",
+         UnreadNotificationsView.as_view(), name=""),
 ]

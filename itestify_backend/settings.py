@@ -1,5 +1,5 @@
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
 import cloudinary
@@ -145,29 +145,21 @@ ASGI_APPLICATION = "itestify_backend.asgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DEPLOY = True
 
-if not DEPLOY:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT"),
+        "NAME": os.getenv("DB_NAME"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD": os.getenv("DB_PASSWORD"),
-            "HOST": os.getenv("DB_HOST"),
-            "PORT": os.getenv("DB_PORT"),
-            "NAME": os.getenv("DB_NAME"),
-        }
-    }
+}
 
 REDIS_URL = os.getenv("REDIS_URL")
-# REDIS_URL = "redis://172.0.0.1:6379/0"
+#REDIS_URL = "redis://127.0.0.1:6379/0"
+
 
 # REDIS SETTINGS
 CHANNEL_LAYERS = {
@@ -178,6 +170,7 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

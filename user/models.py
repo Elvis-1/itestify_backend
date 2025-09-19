@@ -23,6 +23,7 @@ class Role(TouchDatesMixim):
     def __str__(self):
         return self.name
 
+
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if email is None:
@@ -60,8 +61,8 @@ class UserManager(BaseUserManager):
     def get_or_none(self, **kwargs):
         return self.get_queryset().get_or_none(**kwargs)
 
-class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
+class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     class STATUS(models.TextChoices):
         DELETED = "DELETED", "DELETED"
         REGISTERED = "REGISTERED", "REGISTERED"
@@ -69,12 +70,24 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
 
     class INVITATION_STATUS(models.TextChoices):
         ACTIVE = "ACTIVE", "ACTIVE"
-        EXPIRED = "EXPIRED", "EXPIRED",
+        EXPIRED = (
+            "EXPIRED",
+            "EXPIRED",
+        )
         USED = "USED", "USED"
 
-    email = models.EmailField(max_length=255, unique=True)
+    class ROLE_STATUS(models.TextChoices):
+        ASSIGNED = "ASSIGNED", "ASSIGNED"
+        UNASSIGNED = (
+            "UNASSIGNED",
+            "UNASSIGNED",
+        )
+
+    email = models.EmailField(max_length=255, unique=True)  
     full_name = models.CharField(max_length=255, null=True, blank=True)
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, related_name="role")
+    role = models.ForeignKey(
+        Role, on_delete=models.SET_NULL, null=True, related_name="role"
+    )
     is_staff = models.BooleanField(default=False)
     created_password = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
@@ -86,11 +99,25 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         choices=STATUS.choices,
         default=STATUS.REGISTERED,
     )
-    invitation_status = models.CharField(default=INVITATION_STATUS.ACTIVE, choices=INVITATION_STATUS.choices, null=True, blank=True)
+    invitation_status = models.CharField(
+        default=INVITATION_STATUS.ACTIVE,
+        choices=INVITATION_STATUS.choices,
+        null=True,
+        blank=True,
+    )
     invite_count = models.IntegerField(default=0, null=True, blank=True)
-    alternative_role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, blank=True, related_name="alternative_role")
+    alternative_role = models.ForeignKey(
+        Role,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="alternative_role",
+    )
     is_email_verified = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False, null=True, blank=True)
+    role_status = models.CharField(
+        max_length=255, choices=ROLE_STATUS.choices, blank=True, null=True
+    )
 
     USERNAME_FIELD = "email"
 
@@ -103,7 +130,7 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
         return self.status != self.STATUS.DELETED
 
     def __str__(self):
-        return self.email 
+        return self.email
 
     def tokens(self):
         refresh = RefreshToken.for_user(self)
@@ -141,6 +168,7 @@ class Otp(TouchDatesMixim):
 
 
 class SendOtp(TouchDatesMixim):
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
     code = models.IntegerField()
 
     def is_expired(self):

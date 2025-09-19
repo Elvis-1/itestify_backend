@@ -42,16 +42,12 @@ class Testimony(TouchDatesMixim):
     shares = GenericRelation("Share")
     notification = GenericRelation(Notification)
     views = models.PositiveIntegerField(default=0, null=True, blank=True)
-    like_count = models.PositiveIntegerField(default=0, null=True, blank=True)
-    comment_count = models.PositiveIntegerField(default=0, null=True, blank=True)
 
     class Meta:
         abstract = True
 
     def __str__(self):
         return f"Testimony by: {self.uploaded_by.email}"
-
-    
 
 
 class TestimonySettings(models.Model):
