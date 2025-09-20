@@ -116,8 +116,9 @@ class User(AbstractBaseUser, TouchDatesMixim, PermissionsMixin):
     is_email_verified = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False, null=True, blank=True)
     role_status = models.CharField(
-        max_length=255, choices=ROLE_STATUS.choices, blank=True, null=True
+        max_length=255, choices=ROLE_STATUS.choices, default=ROLE_STATUS.ASSIGNED
     )
+    deactivation_reason = models.CharField(max_length=255, null=True, blank=True)
 
     USERNAME_FIELD = "email"
 

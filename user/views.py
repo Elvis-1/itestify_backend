@@ -355,12 +355,20 @@ class LoginViewSet(viewsets.ViewSet):
                         status_code=403,
                     )
 
-            if route == "mobile-login-password" and user.role.name != "User":
-                return CustomResponse.error(
-                    message="Sorry, you are not authorized to login.",
-                    err_code=ErrorCode.FORBIDDEN,
-                    status_code=403,
-                )
+            if route == "mobile-login-password":
+                if user.role.name != "User":
+                    return CustomResponse.error(
+                        message="Sorry, you are not authorized to login.",
+                        err_code=ErrorCode.FORBIDDEN,
+                        status_code=403,
+                    )
+
+                if (user.role_status != User.ROLE_STATUS.ASSIGNED):
+                    return CustomResponse.error(
+                        message="Sorry, your account has been deactivated. Please contact the admin.",
+                        err_code=ErrorCode.FORBIDDEN,
+                        status_code=403,
+                    )
 
         except User.DoesNotExist:
             return CustomResponse.error(
@@ -708,11 +716,13 @@ class UsersViewSet(viewsets.ViewSet):
             user.save()
 
             target_role = "Admin"
-            notification_message = f"{request.user.full_name} has deleted their account."
+            notification_message = (
+                f"{request.user.full_name} has deleted their account."
+            )
             user_content_type = ContentType.objects.get_for_model(User)
-    
+
             Notification.objects.create(
-                role = target_role,
+                role=target_role,
                 owner=request.user,
                 verb=notification_message,
                 content_type=user_content_type,
@@ -720,8 +730,7 @@ class UsersViewSet(viewsets.ViewSet):
             )
 
             # Get unread notifications
-            payload = get_unreadNotification(
-                notification_message)
+            payload = get_unreadNotification(notification_message)
 
             # Send via WebSocket
             channel_layer = get_channel_layer()
@@ -762,6 +771,41 @@ class UsersViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
             )
+
+    @action(detail=True, methods=["patch"], url_path="deactivate")
+    def deactivate(self, request, pk=None):
+        role_status = request.data.get("role_status", None)
+        deactivation_reason = request.data.get("deactivation_reason", None)
+
+        if not role_status:
+            return CustomResponse.error(
+                message="role_status is required.",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+
+        if role_status == "UNASSIGNED" and not deactivation_reason:
+            return CustomResponse.error(
+                message="deactivation_reason is required when deactivating a user.",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+
+        user = User.objects.filter(id=pk)
+
+        # check if user exists if not throw error
+        if len(list(user)) == 0:
+            return CustomResponse.error(
+                message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
+        user = user.first()
+
+        user.role_status = role_status
+        user.deactivation_reason = deactivation_reason
+        user.save()
+
+        return CustomResponse.success(message="Successful.", status_code=200)
 
 
 class LogOutApiView(GenericAPIView):
