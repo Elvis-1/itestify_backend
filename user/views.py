@@ -451,9 +451,13 @@ class SendOtpCodeView(APIView):
         serializer = ResendEntryCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        user = request.user
         email = serializer.validated_data.get("email")
-
-        otpCode = SendOtp.objects.get_or_none(email=email)
+        if user.is_authenticated:
+            email = user.email
+            otpCode = SendOtp.objects.get_or_none(email=email)
+        else:
+            otpCode = SendOtp.objects.get_or_none(email=email)
 
         if otpCode and not otpCode.is_expired():
             code = otpCode.code
@@ -699,7 +703,7 @@ class UsersViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(paginator_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["put"])
     def editNameAndPhoneNumber(self, request):
         try:
             user = User.objects.get_or_none(id=request.user.id)
@@ -727,6 +731,9 @@ class UsersViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
             )
+
+    @action(detail=False, methods=["post"])
+    def userSendOtp()
 
     @action(detail=False, methods=["delete"])
     def delete(self, request):
