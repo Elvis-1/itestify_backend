@@ -43,6 +43,7 @@ class ReturnUserSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "updated_at",
+            "profile_pic"
         ]
 
     def __init__(self, *args, **kwargs):

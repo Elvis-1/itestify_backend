@@ -18,7 +18,7 @@ AUTH_USER_MODEL = "user.User"
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 
-DEBUG = True #if os.getenv("DEBUG") == "True" else False
+DEBUG = True if os.getenv("DEBUG") == "True" else False
 
 ENVIRONMENT = os.getenv("ENV")
 
@@ -157,8 +157,8 @@ DATABASES = {
     }
 }
 
-#REDIS_URL = os.getenv("REDIS_URL")
-REDIS_URL = "redis://127.0.0.1:6379/0"
+REDIS_URL = os.getenv("REDIS_URL")
+#REDIS_URL = "redis://127.0.0.1:6379/0"
 
 
 # REDIS SETTINGS
