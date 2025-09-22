@@ -36,12 +36,14 @@ class ReturnUserSerializer(serializers.ModelSerializer):
             "id",
             "email",
             "full_name",
+            "phone_number",
             "role",
             "created_password",
             "last_login",
             "status",
             "created_at",
             "updated_at",
+            "profile_pic"
         ]
 
     def __init__(self, *args, **kwargs):

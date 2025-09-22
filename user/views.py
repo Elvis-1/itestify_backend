@@ -1,6 +1,7 @@
 import string
 import os
 from tokenize import TokenError
+import cloudinary.uploader
 from django.conf import settings
 import validate_email
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -459,9 +460,13 @@ class SendOtpCodeView(APIView):
         serializer = ResendEntryCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        user = request.user
         email = serializer.validated_data.get("email")
-
-        otpCode = SendOtp.objects.get_or_none(email=email)
+        if user.is_authenticated:
+            email = user.email
+            otpCode = SendOtp.objects.get_or_none(email=email)
+        else:
+            otpCode = SendOtp.objects.get_or_none(email=email)
 
         if otpCode and not otpCode.is_expired():
             code = otpCode.code
@@ -706,6 +711,148 @@ class UsersViewSet(viewsets.ViewSet):
         paginator_queryset = paginator.paginate_queryset(users, request)
         serializer = self.serializer_class(paginator_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=["put"])
+    def editNameAndPhoneNumber(self, request):
+        try:
+            user = User.objects.get_or_none(id=request.user.id)
+
+            if not user:
+                return CustomResponse.error(
+                    message="User not found.",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
+                )
+
+            user.full_name = request.data.get("full_name", user.full_name)
+            user.phone_number = request.data.get("phone_number", user.phone_number)
+            user.save()
+
+            serializer = self.serializer_class(user, many=False)
+
+            return CustomResponse.success(
+                message="User updated successfully.",
+                status_code=200,
+                data=serializer.data,
+            )
+
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
+    @action(detail=False, methods=["post"])
+    def verifyUserLoginOtp(self, request):
+        user = request.user
+        otp = request.data.get("otp")
+        if user.is_authenticated:
+            try:
+                otp_instance = SendOtp.objects.get(code = otp, email = user.email)
+                if otp_instance.code != otp:
+                    return CustomResponse.error(
+                        message="Otp does not match",
+                        err_code=ErrorCode.NOT_FOUND, status_code=404
+                    )
+                elif otp_instance.is_expired():
+                    return CustomResponse.error(
+                        message="Otp Expired",
+                        err_code=ErrorCode.NOT_FOUND, status_code=404
+                    )
+                else:
+                    otp_instance.delete()
+                    return CustomResponse.success(
+                        message="Otp Code Verified Successfully",
+                        status_code=200,
+                    )
+            except SendOtp.DoesNotExist:
+                return CustomResponse.error(
+                    message="Otp Not found",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+        else:
+            return CustomResponse.error(
+                    message="User not authenticated",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+
+    @action(detail=False, methods=["post"])
+    def changeEmail(self, request):
+       
+        user = request.user
+        email = request.data.get('email')
+        retype_email = request.data.get("retype_email")
+        if user.is_authenticated:
+            try:
+                email_instance = User.objects.get(email = user.email)
+                if email != retype_email:
+                    return CustomResponse.error(
+                    message="Email Does not Match",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+                else:
+                    email_instance.email = email
+                    email_instance.save()
+                    serializer = self.serializer_class(email_instance, many = False)
+                    return CustomResponse.success(
+                        message="Email changed Successfully",
+                        status_code=200,
+                        data=serializer.data
+                    )
+            except User.DoesNotExist:
+                return CustomResponse.error(
+                    message="User Not found",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+        else:
+            return CustomResponse.error(
+                    message="User not authenticated",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+            
+    @action(detail=False, methods=["post"])
+    def userUploadPicture(self, request, id = None):
+        user = request.user
+        image = request.FILES.get('image')
+        edit = request.query_params.get("edit")
+        delete = request.query_params.get("delete")
+        try:
+            user_instance = User.objects.get(id = user.id)
+            if edit:
+                result = cloudinary.uploader.upload_large(
+                    image,
+                    resource_type = "auto",
+                    chunk_size=6000000,
+                        folder="profile_pics",
+                    public_id = user_instance.public_id
+                )
+                user_instance.profile_pic = result['secure_url']
+                user_instance.save()
+                serializer = self.serializer_class(user_instance, many=False)
+                return CustomResponse.success(message="Profile Picture Changed Successfully", status_code=200, data=serializer.data)
+            elif delete:
+                user_instance.profile_pic = ""
+                user_instance.save()
+                serializer = self.serializer_class(user_instance, many=False)
+                return CustomResponse.success(message="Profile Picture Deleted Successfully", status_code=200, data=serializer.data)
+            else:
+                result = cloudinary.uploader.upload_large(
+                    image,
+                    resource_type = "auto",
+                    chunk_size=6000000,
+                        folder="profile_pics",
+                )
+                print(result['public_id'])
+                user_instance.profile_pic = result['secure_url']
+                user_instance.public_id = result['public_id']
+                user_instance.save()
+                serializer = self.serializer_class(user_instance, many=False)
+                return CustomResponse.success(message="Profile Picture Uploaded Successfully", status_code=200, data=serializer.data)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                    message="User not authenticated",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+
 
     @action(detail=False, methods=["delete"])
     def delete(self, request):
