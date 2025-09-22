@@ -830,7 +830,7 @@ class UsersViewSet(viewsets.ViewSet):
                 serializer = self.serializer_class(user_instance, many=False)
                 return CustomResponse.success(message="Profile Picture Changed Successfully", status_code=200, data=serializer.data)
             elif delete:
-                user_instance.profile_pic = ""
+                user_instance.profile_pic = None
                 user_instance.save()
                 serializer = self.serializer_class(user_instance, many=False)
                 return CustomResponse.success(message="Profile Picture Deleted Successfully", status_code=200, data=serializer.data)
@@ -841,7 +841,7 @@ class UsersViewSet(viewsets.ViewSet):
                     chunk_size=6000000,
                         folder="profile_pics",
                 )
-                print(result['public_id'])
+                
                 user_instance.profile_pic = result['secure_url']
                 user_instance.public_id = result['public_id']
                 user_instance.save()
