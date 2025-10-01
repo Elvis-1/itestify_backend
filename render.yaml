@@ -1,0 +1,70 @@
+# render.yaml
+services:
+  # Django Web Service
+  - type: web
+    name: django-app
+    env: docker
+    plan: free # change to starter/standard depending on your needs
+    buildCommand: "" # Render will just build the Dockerfile
+    startCommand: daphne -b 0.0.0.0 -p 8000 itestify_backend.asgi:application
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: itestify_backend.settings
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+
+  # Celery Worker
+  - type: worker
+    name: celery-worker
+    env: docker
+    startCommand: celery -A itestify_backend worker --loglevel=info
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: itestify_backend.settings
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+
+  # Celery Beat
+  - type: worker
+    name: celery-beat
+    env: docker
+    startCommand: celery -A itestify_backend beat --loglevel=info
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: itestify_backend.settings
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+
+databases:
+  - name: postgres
+    databaseName: itestify
+    plan: free
+
+services:
+  - type: redis
+    name: redis
+    plan: free
