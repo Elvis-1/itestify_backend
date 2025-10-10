@@ -333,13 +333,23 @@ EMAIL_OTP_EXPIRE_SECONDS = 300
 
 
 # Email Configuration
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_USE_TLS = True  # ✅ TLS enabled
+# EMAIL_USE_SSL = False  # ❌ SSL disabled
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587  # ✅ TLS port
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+# BREVO EMAIL CONFIG
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_USE_TLS = True  # ✅ TLS enabled
 EMAIL_USE_SSL = False  # ❌ SSL disabled
-EMAIL_HOST = "smtp.gmail.com"
+EMAIL_HOST = "smtp-relay.brevo.com" 
 EMAIL_PORT = 587  # ✅ TLS port
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = "981a62002@smtp-brevo.com"
+EMAIL_HOST_PASSWORD = "T4y58cpzdvSZE7rH"
+
 
 
 # celery settings

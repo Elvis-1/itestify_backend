@@ -179,7 +179,7 @@ class SendOtp(TouchDatesMixim):
         return self.email
 
     def is_expired(self):
-        return timezone.now() > self.created_at + timezone.timedelta(minutes=2)
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
 
 
 class UserInvitation(TouchDatesMixim):
