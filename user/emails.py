@@ -1,8 +1,7 @@
 import random
 import threading
 import os
-from django.template.loader import render_to_string
-from django.core.mail import EmailMessage, EmailMultiAlternatives
+from django.core.mail import EmailMessage
 from django.conf import settings
 from user import models as account_model
 from django.urls import reverse
