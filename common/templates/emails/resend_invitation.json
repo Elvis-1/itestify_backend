@@ -2,3 +2,6 @@
   "subject": "Your Invitation to itestify Has Been Resent",
   "body": "Hello,\n\nYou’re receiving this email because you were added to itestify.\n\nYour previous invitation link has expired, so a new invitation link has been generated for you.\n\nPlease click the link below to accept the invitation and set your password:\n\n{{ invitation_link }}\n\nIf you were not expecting this invitation, you can safely ignore this email.\n\nBest regards,\nThe itestify Team"
 }
+
+
+

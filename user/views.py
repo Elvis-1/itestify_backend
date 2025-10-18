@@ -1,6 +1,7 @@
 import string
 import os
 from tokenize import TokenError
+import cloudinary.uploader
 from django.conf import settings
 import validate_email
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -12,7 +13,13 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.request import Request
 from rest_framework.views import APIView
+
+from notifications.models import Notification
+from notifications.utils import get_unreadNotification
 from .models import EntryCode, User, Otp, SendOtp, Role
+from django.contrib.contenttypes.models import ContentType
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from .utils import Util
 from .serializers import (
@@ -46,6 +53,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.db.models import Q
 from django.utils import timezone
 
+from django.db import transaction
+
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -69,6 +78,7 @@ def has_special_character(s):
 
 # -------------- GOOGLE SOCIAL LOGIN ----------------
 
+
 class GoogleLoginAPIView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []  # Disable DRF session auth
@@ -79,14 +89,16 @@ class GoogleLoginAPIView(APIView):
             return Response({"detail": "Missing id_token"}, status=400)
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                token, google_requests.Request())
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request())
 
-            if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
-                raise ValueError('Wrong issuer.')
+            if idinfo["iss"] not in [
+                "accounts.google.com",
+                "https://accounts.google.com",
+            ]:
+                raise ValueError("Wrong issuer.")
 
-            email = idinfo.get('email')
-            name = idinfo.get('name')
+            email = idinfo.get("email")
+            name = idinfo.get("name")
 
             user, created = User.objects.get_or_create(email=email)
             if created:
@@ -161,7 +173,6 @@ class RegisterViewSet(viewsets.ViewSet):
                     status_code=400,
                 )
             else:
-
                 try:
                     otp_code = SendOtp.objects.get(
                         code=serializer.validated_data.get("otp")
@@ -197,11 +208,9 @@ class RegisterViewSet(viewsets.ViewSet):
                         message="Account created successfully", status_code=201
                     )
                 except SendOtp.DoesNotExist:
-
                     if User.objects.filter(
                         email=serializer.validated_data["email"]
                     ).exists():
-
                         return CustomResponse.error(
                             message="User with this email already exists",
                             err_code=ErrorCode.INVALID_ENTRY,
@@ -329,19 +338,38 @@ class LoginViewSet(viewsets.ViewSet):
             route = request.resolver_match.view_name
             roles = get_roles()
 
-            if route == "admin-login-password" and user.role.name not in roles:
-                return CustomResponse.error(
-                    message="Sorry, you are not authorized to login.",
-                    err_code=ErrorCode.FORBIDDEN,
-                    status_code=403,
-                )
+            if route == "admin-login-password":
+                if user.role.name not in roles:
+                    return CustomResponse.error(
+                        message="Sorry, you are not authorized to login.",
+                        err_code=ErrorCode.FORBIDDEN,
+                        status_code=403,
+                    )
 
-            if route == "mobile-login-password" and user.role.name != "User":
-                return CustomResponse.error(
-                    message="Sorry, you are not authorized to login.",
-                    err_code=ErrorCode.FORBIDDEN,
-                    status_code=403,
-                )
+                if (
+                    user.role_status != User.ROLE_STATUS.ASSIGNED
+                    and not user.role.name == "Super Admin"
+                ):
+                    return CustomResponse.error(
+                        message="Sorry, you are not assigned to any role. Please contact the super admin.",
+                        err_code=ErrorCode.FORBIDDEN,
+                        status_code=403,
+                    )
+
+            if route == "mobile-login-password":
+                if user.role.name != "User":
+                    return CustomResponse.error(
+                        message="Sorry, you are not authorized to login.",
+                        err_code=ErrorCode.FORBIDDEN,
+                        status_code=403,
+                    )
+
+                if (user.role_status != User.ROLE_STATUS.ASSIGNED):
+                    return CustomResponse.error(
+                        message="Sorry, your account has been deactivated. Please contact the admin.",
+                        err_code=ErrorCode.FORBIDDEN,
+                        status_code=403,
+                    )
 
         except User.DoesNotExist:
             return CustomResponse.error(
@@ -432,9 +460,13 @@ class SendOtpCodeView(APIView):
         serializer = ResendEntryCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        user = request.user
         email = serializer.validated_data.get("email")
-
-        otpCode = SendOtp.objects.get_or_none(email=email)
+        if user.is_authenticated:
+            email = user.email
+            otpCode = SendOtp.objects.get_or_none(email=email)
+        else:
+            otpCode = SendOtp.objects.get_or_none(email=email)
 
         if otpCode and not otpCode.is_expired():
             code = otpCode.code
@@ -473,26 +505,23 @@ class ValidateRegisterToken(APIView):
         serializer.is_valid(raise_exception=True)
 
         otpCode = SendOtp.objects.get_or_none(
-            email=serializer.validated_data["email"], code=int(serializer.validated_data["otp"]))
+            email=serializer.validated_data["email"],
+            code=int(serializer.validated_data["otp"]),
+        )
 
         if otpCode is None:
             return CustomResponse.error(
                 message="Incorrect OTP.",
                 err_code=ErrorCode.INCORRECT_OTP,
-                status_code=400
+                status_code=400,
             )
 
         if otpCode.is_expired():
             return CustomResponse.error(
-                message="Expired OTP.",
-                err_code=ErrorCode.EXPIRED_OTP,
-                status_code=400
+                message="Expired OTP.", err_code=ErrorCode.EXPIRED_OTP, status_code=400
             )
 
-        return CustomResponse.success(
-            message="OTP Verified.",
-            status_code=200
-        )
+        return CustomResponse.success(message="OTP Verified.", status_code=200)
 
 
 class DashboardViewSet(viewsets.ViewSet):
@@ -664,6 +693,7 @@ class UsersViewSet(viewsets.ViewSet):
     serializer_class = ReturnUserSerializer
     permission_classes = [permissions.IsAuthenticated]
     pagination_class = StandardResultsSetPagination
+    user_role = get_roles("User")
 
     # gets the list of registered users
 
@@ -674,21 +704,190 @@ class UsersViewSet(viewsets.ViewSet):
         if not status or status == "":
             users = User.objects.all().exclude(email=os.getenv("ADMIN_EMAIL"))
         else:
-            users = User.objects.filter(status=status).exclude(
-                email=os.getenv("ADMIN_EMAIL")
-            )
+            users = User.objects.filter(
+                status=status.upper(), role=self.user_role
+            ).exclude(email=os.getenv("ADMIN_EMAIL"))
         paginator = self.pagination_class()
         paginator_queryset = paginator.paginate_queryset(users, request)
         serializer = self.serializer_class(paginator_queryset, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=["put"])
+    def editNameAndPhoneNumber(self, request):
+        try:
+            user = User.objects.get_or_none(id=request.user.id)
+
+            if not user:
+                return CustomResponse.error(
+                    message="User not found.",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
+                )
+
+            user.full_name = request.data.get("full_name", user.full_name)
+            user.phone_number = request.data.get("phone_number", user.phone_number)
+            user.save()
+
+            serializer = self.serializer_class(user, many=False)
+
+            return CustomResponse.success(
+                message="User updated successfully.",
+                status_code=200,
+                data=serializer.data,
+            )
+
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
+    @action(detail=False, methods=["post"])
+    def verifyUserLoginOtp(self, request):
+        user = request.user
+        otp = request.data.get("otp")
+        if user.is_authenticated:
+            try:
+                otp_instance = SendOtp.objects.get(code = otp, email = user.email)
+                if otp_instance.code != otp:
+                    return CustomResponse.error(
+                        message="Otp does not match",
+                        err_code=ErrorCode.NOT_FOUND, status_code=404
+                    )
+                elif otp_instance.is_expired():
+                    return CustomResponse.error(
+                        message="Otp Expired",
+                        err_code=ErrorCode.NOT_FOUND, status_code=404
+                    )
+                else:
+                    otp_instance.delete()
+                    return CustomResponse.success(
+                        message="Otp Code Verified Successfully",
+                        status_code=200,
+                    )
+            except SendOtp.DoesNotExist:
+                return CustomResponse.error(
+                    message="Otp Not found",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+        else:
+            return CustomResponse.error(
+                    message="User not authenticated",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+
+    @action(detail=False, methods=["post"])
+    def changeEmail(self, request):
+       
+        user = request.user
+        email = request.data.get('email')
+        retype_email = request.data.get("retype_email")
+        if user.is_authenticated:
+            try:
+                email_instance = User.objects.get(email = user.email)
+                if email != retype_email:
+                    return CustomResponse.error(
+                    message="Email Does not Match",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+                else:
+                    email_instance.email = email
+                    email_instance.save()
+                    serializer = self.serializer_class(email_instance, many = False)
+                    return CustomResponse.success(
+                        message="Email changed Successfully",
+                        status_code=200,
+                        data=serializer.data
+                    )
+            except User.DoesNotExist:
+                return CustomResponse.error(
+                    message="User Not found",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+        else:
+            return CustomResponse.error(
+                    message="User not authenticated",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+            
+    @action(detail=False, methods=["post"])
+    def userUploadPicture(self, request, id = None):
+        user = request.user
+        image = request.FILES.get('image')
+        edit = request.query_params.get("edit")
+        delete = request.query_params.get("delete")
+        try:
+            user_instance = User.objects.get(id = user.id)
+            if edit:
+                result = cloudinary.uploader.upload_large(
+                    image,
+                    resource_type = "auto",
+                    chunk_size=6000000,
+                        folder="profile_pics",
+                    public_id = user_instance.public_id
+                )
+                user_instance.profile_pic = result['secure_url']
+                user_instance.save()
+                serializer = self.serializer_class(user_instance, many=False)
+                return CustomResponse.success(message="Profile Picture Changed Successfully", status_code=200, data=serializer.data)
+            elif delete:
+                user_instance.profile_pic = None
+                user_instance.save()
+                serializer = self.serializer_class(user_instance, many=False)
+                return CustomResponse.success(message="Profile Picture Deleted Successfully", status_code=200, data=serializer.data)
+            else:
+                result = cloudinary.uploader.upload_large(
+                    image,
+                    resource_type = "auto",
+                    chunk_size=6000000,
+                        folder="profile_pics",
+                )
+                
+                user_instance.profile_pic = result['secure_url']
+                user_instance.public_id = result['public_id']
+                user_instance.save()
+                serializer = self.serializer_class(user_instance, many=False)
+                return CustomResponse.success(message="Profile Picture Uploaded Successfully", status_code=200, data=serializer.data)
+        except User.DoesNotExist:
+            return CustomResponse.error(
+                    message="User not authenticated",
+                    err_code=ErrorCode.NOT_FOUND, status_code=404
+                )
+
 
     @action(detail=False, methods=["delete"])
     def delete(self, request):
         current_user = request.user
         try:
             user = User.objects.get_or_none(email=current_user.email)
-            user.status = user.STATUS.DELETED
+            user.staus = user.STATUS.DELETED
             user.save()
+
+            target_role = "Admin"
+            notification_message = (
+                f"{request.user.full_name} has deleted their account."
+            )
+            user_content_type = ContentType.objects.get_for_model(User)
+
+            Notification.objects.create(
+                role=target_role,
+                owner=request.user,
+                verb=notification_message,
+                content_type=user_content_type,
+                object_id=user.id,
+            )
+
+            # Get unread notifications
+            payload = get_unreadNotification(notification_message)
+
+            # Send via WebSocket
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "Admin",
+                {
+                    "type": "send_admin_notification",
+                    "message": payload,
+                },
+            )
             return CustomResponse.success(
                 message="Account deleted successfully.", status_code=200
             )
@@ -719,6 +918,41 @@ class UsersViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
             )
+
+    @action(detail=True, methods=["patch"], url_path="deactivate")
+    def deactivate(self, request, pk=None):
+        role_status = request.data.get("role_status", None)
+        deactivation_reason = request.data.get("deactivation_reason", None)
+
+        if not role_status:
+            return CustomResponse.error(
+                message="role_status is required.",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+
+        if role_status == "UNASSIGNED" and not deactivation_reason:
+            return CustomResponse.error(
+                message="deactivation_reason is required when deactivating a user.",
+                err_code=ErrorCode.BAD_REQUEST,
+                status_code=400,
+            )
+
+        user = User.objects.filter(id=pk)
+
+        # check if user exists if not throw error
+        if len(list(user)) == 0:
+            return CustomResponse.error(
+                message="User not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
+        user = user.first()
+
+        user.role_status = role_status
+        user.deactivation_reason = deactivation_reason
+        user.save()
+
+        return CustomResponse.success(message="Successful.", status_code=200)
 
 
 class LogOutApiView(GenericAPIView):
@@ -752,8 +986,7 @@ class LogOutApiView(GenericAPIView):
                 status_code=500,
             )
 
-        response = CustomResponse.success(
-            message="Logout successful", status_code=200)
+        response = CustomResponse.success(message="Logout successful", status_code=200)
         response.delete_cookie("refresh")
         response.delete_cookie("access")
 
@@ -861,14 +1094,138 @@ class RoleViewSet(viewsets.ViewSet):
             message="Success.", status_code=201, data=serializer.data
         )
 
+    @action(detail=True, methods=["put"])
+    def edit(self, request, pk):
+        try:
+            role = Role.objects.get(id=pk)
+
+        except Role.DoesNotExist:
+            return CustomResponse.error(
+                message="Role not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
+        serializer = self.serializer_class(role, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return CustomResponse.success(message="Success.", status_code=200)
+
+    def retrieve(self, request, pk=None):
+        """Retrieve a specific text testimony by ID"""
+        try:
+            # try fetching it from TextTestimony
+            role = Role.objects.get(id=pk)
+        except Role.DoesNotExist:
+            # If neither is found, return a 404 response
+            return CustomResponse.error(
+                message="Role not found",
+                err_code=ErrorCode.NOT_FOUND,
+                status_code=404,
+            )
+
+        # Serialize the testimony and return the response
+        serializer = self.serializer_class(role)
+        return CustomResponse.success(
+            data=serializer.data,
+            status_code=200,
+        )
+
     @handle_custom_exceptions
     @action(detail=False, methods=["get"], url_path="all")
     def list_roles(self, request):
-        roles = Role.objects.all()
+        roles = Role.objects.exclude(name="User")
         serializer = self.serializer_class(roles, many=True)
+
         return CustomResponse.success(
             message="Success.", status_code=200, data=serializer.data
         )
+
+    @handle_custom_exceptions
+    def destroy(self, request, pk):
+        user_role = getattr(request.user, "role", None)
+
+        if user_role.name != "Super Admin":
+            return CustomResponse.error(
+                message="You are not allowed to perform this operation.",
+                err_code=ErrorCode.FORBIDDEN,
+                status_code=403,
+            )
+
+        role = Role.objects.get(id=pk)
+
+        if not role:
+            return CustomResponse.error(
+                message="Role not found.", err_code=ErrorCode.NOT_FOUND, status_code=404
+            )
+
+        if role.name == "Super Admin":
+            return CustomResponse.error(
+                message="You cannot delete the Super Admin role.",
+                err_code=ErrorCode.NOT_ALLOWED,
+                status_code=404,
+            )
+
+        if role.name == "User":
+            return CustomResponse.error(
+                message="You cannot delete the default User role.",
+                err_code=ErrorCode.NOT_ALLOWED,
+                status_code=404,
+            )
+
+        member_check = User.objects.filter(role=role)
+
+        if member_check.exists():
+            return CustomResponse.error(
+                message="You have to move all the members before deleting.",
+                err_code=ErrorCode.NOT_ALLOWED,
+                status_code=400,
+            )
+
+        role.delete()
+
+        return CustomResponse.success(message="Success.", status_code=200)
+
+    @handle_custom_exceptions
+    @transaction.atomic
+    @action(detail=False, methods=["post"])
+    def remove_member(self, request):
+        data = request.data
+        user_ids = data["user_ids"]
+        role_id = data["role_id"]
+
+        if not user_ids or not role_id:
+            return CustomResponse.error(
+                message="User ID(s) or role ID is required.",
+                err_code=ErrorCode.INVALID_VALUE,
+                status_code=400,
+            )
+
+        # change the status of each of the members to unassigned.
+        for id in user_ids:
+            try:
+                role = Role.objects.get(id=role_id)
+
+                user = User.objects.get(id=id, role__name=role.name)
+
+                user.role_status = User.ROLE_STATUS.UNASSIGNED
+                user.save()
+
+            except Role.DoesNotExist:
+                return CustomResponse.error(
+                    message="Role does not exist.",
+                    err_code=ErrorCode.NOT_FOUND,
+                    status_code=404,
+                )
+
+            except User.DoesNotExist:
+                return CustomResponse.error(
+                    message="Member does not exist or does not belong to this role.",
+                    err_code=ErrorCode.INVALID_VALUE,
+                    status_code=400,
+                )
+
+        return CustomResponse.success(message="Success.", status_code=200)
 
 
 class InvitationViewSet(viewsets.ViewSet):
@@ -884,23 +1241,20 @@ class InvitationViewSet(viewsets.ViewSet):
         serializer.save()
 
         # create invitation link with token
-        token = Util.generate_token(
-            {"email": serializer.validated_data["email"]})
-        invitation_link = os.getenv(
-            "FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
+        token = Util.generate_token({"email": serializer.validated_data["email"]})
+        invitation_link = os.getenv("FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
 
         user_data = dict(serializer.validated_data)
         user_data["invitation_link"] = invitation_link
 
         # ToDo send email functionality
-        send_email.delay(
-            "accept_invitation",
-            user_data,
-            user_data
-        )
+        send_email.delay("accept_invitation", user_data, user_data)
 
         return CustomResponse.success(
-            message="Success.", data=serializer.data, status_code=200, extraFields={"invitation_link": invitation_link}
+            message="Success.",
+            data=serializer.data,
+            status_code=200,
+            extraFields={"invitation_link": invitation_link},
         )
 
     @handle_custom_exceptions
@@ -936,19 +1290,15 @@ class InvitationViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         # create invitation link with token
-        token = Util.generate_token(
-            {"email": serializer.validated_data["email"]})
-        invitation_link = os.getenv(
-            "FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
+        token = Util.generate_token({"email": serializer.validated_data["email"]})
+        invitation_link = os.getenv("FRONTEND_CHANGE_PASSWORD_LINK") + f"?{token}"
 
         user_data = dict(serializer.validated_data)
         user_data["invitation_link"] = invitation_link
 
         # ToDo send email functionality
         print(invitation_link)
-        send_email.delay(
-            "resend_invitation", user_data, user_data
-        )
+        send_email.delay("resend_invitation", user_data, user_data)
 
         return CustomResponse.success(
             message="Success.", data=serializer.data, status_code=200

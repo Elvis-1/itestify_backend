@@ -4,13 +4,15 @@ from django.db import models
 from user.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from user.models import Role
 # Create your models here.
 
 
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    role = models.CharField(max_length = 20, null = True, blank = True)
     target = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='target')
+        User, on_delete=models.CASCADE, null=True, blank=True, related_name='target')
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, null=True, blank=True, related_name='owner')
     redirect_url = models.URLField(max_length=500, null=True, unique=False,

@@ -7,22 +7,22 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 """
 
+from .jwt_auth_middleware import JWTAuthMiddlewareStack
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 # from channels.auth import AuthMiddlewareStack
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 from scriptures.consumers import ScheduleScriptureConsumer
-from notifications.consumers import NotificationConsumer
+from notifications.consumers import NotificationUserConsumer, NotificationAdminConsumer
 import os
 
-#from .middlewares import JWTUserMiddleware
+# from .middlewares import JWTUserMiddleware
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'itestify_backend.settings')
 
 django_asgi_app = get_asgi_application()
 
-from .jwt_auth_middleware import JWTAuthMiddlewareStack
 
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
@@ -32,10 +32,11 @@ application = ProtocolTypeRouter({
                 path('ws/scripture_room_name/',
                      ScheduleScriptureConsumer.as_asgi()),
                 path('ws/notification/',
-                     NotificationConsumer.as_asgi()),
+                     NotificationUserConsumer.as_asgi()),
+                path('ws/admin/notification/',
+                     NotificationAdminConsumer.as_asgi()),
             ])
         )
     ),
 
 })
-
