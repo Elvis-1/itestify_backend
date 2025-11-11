@@ -585,6 +585,7 @@ class CommentViewSet(viewsets.ViewSet):
             return CustomResponse.error(
                 message="Testimony not found.",
                 status_code=404,
+                err_code=ErrorCode.NOT_FOUND,
             )
 
         context = {
@@ -602,15 +603,15 @@ class CommentViewSet(viewsets.ViewSet):
         serializer.save()
 
         # perform notification
-        comment_content_type = ContentType.objects.get_for_model(Comment)
-        object_id = serializer.data.get("id")
+        comment_content_type = ContentType.objects.get_for_model(testimony_instance)
+        #object_id = serializer.data.get("id")
 
         Notification.objects.create(
             target=testimony_instance.uploaded_by,
             owner=request.user,
             verb=f"{request.user.full_name} commented on your {request.data.get('type')} testimony",
             content_type=comment_content_type,
-            object_id=object_id,
+            object_id=testimony_id,
             message=request.data.get("content"),
         )
 
@@ -649,7 +650,7 @@ class CommentViewSet(viewsets.ViewSet):
         serializer = self.serializer_class(
             data=request.data, partial=True, context=context
         )
-
+        content_type = ContentType.objects.get_for_model(Comment)
         serializer.is_valid(raise_exception=True)
 
         reply = serializer.reply(serializer.validated_data)
@@ -662,7 +663,7 @@ class CommentViewSet(viewsets.ViewSet):
             target=comment_instance.user,
             owner=request.user,
             verb=f"{request.user.full_name} replied your comment {request.data.get('type')} testimony",
-            content_type=context["content_type"],
+            content_type=content_type,
             message=request.data.get("content"),
             object_id=comment_instance.id,
         )
@@ -775,7 +776,7 @@ class LikeViewset(viewsets.ViewSet):
 
         serializer.save()
 
-        like_content_type = ContentType.objects.get_for_model(Like)
+        #like_content_type = ContentType.objects.get_for_model(Like)
         notification_message = None
 
         # perform notification
@@ -797,7 +798,7 @@ class LikeViewset(viewsets.ViewSet):
                 role=target_role,
                 owner=request.user,
                 verb=notification_message,
-                content_type=like_content_type,
+                content_type=context["content_type"],
                 object_id=content_instance.id,
             )
 
@@ -820,7 +821,7 @@ class LikeViewset(viewsets.ViewSet):
             target=target_user,
             owner=request.user,
             verb=notification_message,
-            content_type=like_content_type,
+            content_type=context["content_type"],
             object_id=content_instance.id,
         )
 
