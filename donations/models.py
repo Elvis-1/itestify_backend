@@ -44,8 +44,9 @@ class Donation(TouchDatesMixim):
 
     class TRANSACTION_TYPE(models.TextChoices):
         BANK = "BANK", "BANK"
-        TRANSFER = "TRANSFER", "TRANSFER"
-        CARD = "CARD", "CARD"
+        TRANSFER = "BANK_TRANSFER", "BANK_TRANSFER"
+        CARD = "CARD", "CARD",
+        USSD = "USSD", "USSD"
 
     user = models.ForeignKey(
         User,
@@ -63,7 +64,7 @@ class Donation(TouchDatesMixim):
         validators=[MinValueValidator(0.01)],
         help_text="Transaction amount",
     )
-    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPE.choices)
+    transaction_type = models.CharField(max_length=30, choices=TRANSACTION_TYPE.choices)
     currency = models.CharField(max_length=3, choices=CURRENCY_TYPE.choices)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES.choices, default=STATUS_CHOICES.PENDING

@@ -43,7 +43,8 @@ class PaymentAPIView(APIView):
             if not user or not user.is_authenticated:
                 return CustomResponse.error(
                     message="Full name and email are required for guest users",
-                    status_code=400
+                    status_code=400,
+                    err_code=ErrorCode.UNAUTHORIZED_USER
                 )
 
             user_data = User.objects.get(id=user.id)
@@ -141,8 +142,12 @@ class VerifyPaymentView(APIView):
             payment_type = response.get("data", {}).get("payment_type")
             if payment_type == "card":
                 donation.transaction_type = Donation.TRANSACTION_TYPE.CARD
-            elif payment_type == "banktransfer":
+            elif payment_type == "bank_transfer":
                 donation.transaction_type = Donation.TRANSACTION_TYPE.TRANSFER
+            elif payment_type == "account":
+                donation.transaction_type = Donation.TRANSACTION_TYPE.BANK
+            elif payment_type == "ussd":
+                donation.transaction_type = Donation.TRANSACTION_TYPE.USSD
 
             donation.metadata.update(response)
             donation.save()
@@ -162,7 +167,7 @@ class VerifyPaymentView(APIView):
             )
         except Exception as e:
             return CustomResponse.error(
-                message=f"Verification failed: {str(e)}", status_code=400
+                message=f"Verification failed: {str(e)}", status_code=400, err_code=ErrorCode.PAYMENT_ERROR
             )
 
 
