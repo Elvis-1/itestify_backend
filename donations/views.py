@@ -3,8 +3,7 @@ import uuid
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.utils.dateparse import parse_date
-from django.db.models import Q
+
 
 from .serializers import InitiatePaymentSerializer, TransactionSerializer
 from .thirdParty.flutterwave_sdk import FlutterwaveSDKService
@@ -16,7 +15,7 @@ from common.exceptions import handle_custom_exceptions
 from common.error import ErrorCode
 from support.helpers import StandardResultsSetPagination
 
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils.dateparse import parse_date
 
 
@@ -330,14 +329,16 @@ class DonationStatsView(APIView):
         """Get donation statistics"""
         successful_donations = Donation.objects.filter(status=Donation.STATUS_CHOICES.SUCCESS)
         
-        total_successful_transactions = successful_donations.count()
+        total_successful_transactions = successful_donations.aggregate(Sum('amount'))['amount__sum'] or 0
+
         unique_donors = successful_donations.values('email').distinct().count()
         
         return CustomResponse.success(
             message="Donation stats retrieved successfully",
             data={
-                "total_successful_donations": total_successful_transactions,
+                "total_successful_transactions": float(total_successful_transactions),
                 "unique_donors": unique_donors
             },
             status_code=200
         )
+    
