@@ -9,7 +9,7 @@ from .utils import AESEncryptor
 
 FLUTTERWAVE_BASE_URL = "https://api.flutterwave.cloud/developersandbox"
 # FLUTTERWAVE_BASE_URL = "https://api.flutterwave.com/v3"
-FLUTTERWAVE_ACCESS_TOKEN = os.getenv("FLUTTERWAVE_ACCESS_TOKEN")
+FLUTTERWAVE_ACCESS_TOKEN = os.getenv("FLUTTERWAVE_SECRET_KEY")
 FLUTTERWAVE_ENCRYPTION_KEY = os.getenv("FLUTTERWAVE_ENCRYPTION_KEY")
 
 encryptor = AESEncryptor(FLUTTERWAVE_ENCRYPTION_KEY)
@@ -21,7 +21,6 @@ class FlutterWave:
 
     @property
     def headers(self):
-        print(FLUTTERWAVE_ACCESS_TOKEN)
         return {
             'Authorization': f"Bearer ${FLUTTERWAVE_ACCESS_TOKEN}",
             # 'Authorization': "FLWSECK_TEST-1496f616286cace07e6f44399b5fc3fc-X",
@@ -46,7 +45,6 @@ class FlutterWave:
         }
         
         response = requests.post(url=URL, json=payload, headers=self.headers)
-        print(response.json())
         resp_data = response.json()
         
         if resp_data.get("status") != "success":
@@ -163,3 +161,5 @@ class FlutterWave:
 
     def verifyPayment(params):
         return
+
+

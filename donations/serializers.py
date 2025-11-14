@@ -1,48 +1,58 @@
 from rest_framework import serializers
 from user.serializers import ReturnUserSerializer
-from .models import Transaction
+from .models import Donation
+from decimal import Decimal
 
 
-
-
-class PaymentSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField()
-    email = serializers.EmailField()
-    amount = serializers.IntegerField()
-    currency = serializers.CharField()
-    payment_method = serializers.CharField()
-    card_number = serializers.CharField()
-    expiry_month = serializers.CharField()
-    expiry_year = serializers.CharField()
-    CVV = serializers.CharField()
-
-    class Meta:
-        model = Transaction
-
-    def validate(self, obj):
-        if obj.get("currency") not in ["NGN", "USD"]:
-            raise serializers.ValidationError("Currency must be either 'NGN' or 'USD'")
-
-        if obj.get("payment_method") not in ["BANK", "CARD", "TRANSFER"]:
-            raise serializers.ValidationError("Currency must be either 'BANK', 'CARD' or 'TRANSFER'")
-
-        return obj
-
+class InitiatePaymentSerializer(serializers.Serializer):
+    full_name = serializers.CharField(max_length=255, required=False)
+    email = serializers.EmailField(required=False)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))
+    currency = serializers.ChoiceField(choices=["NGN", "USD"])
+    payment_method = serializers.ChoiceField(choices=["BANK", "CARD", "TRANSFER"])
+    redirect_url = serializers.URLField(required=False)
 
 
 class VerifyPinSerializer(serializers.Serializer):
     pin = serializers.CharField()
     charge_id = serializers.CharField()
 
+
 class VerifyOTPSerializer(serializers.Serializer):
     otp_code = serializers.CharField()
     charge_id = serializers.CharField()
 
-class TransactionSerializer(serializers.ModelSerializer):
-    
-    user = ReturnUserSerializer
-    
-    class Meta:
-        model = Transaction
-        fields = ["id", "user", "reference", "amount", "currency", "status", "description", "created_at"]
 
+class TransactionSerializer(serializers.ModelSerializer):
+    # user = ReturnUserSerializer()
+
+    class Meta:
+        model = Donation
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "tx_ref",
+            "amount",
+            "currency",
+            "transaction_type",
+            "status",
+            "created_at",
+        ]
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['amount'] = float(data['amount'])
+        return data
+
+
+class DonationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Donation
+        fields = [
+            "full_name",
+            "email",
+            "amount",
+            "currency",
+            "transaction_type",
+        ]
