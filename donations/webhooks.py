@@ -55,7 +55,7 @@ class FlutterwaveWebhookHandler(BaseWebhookHandler):
     def process_event(self, payload, donation):
         event = payload.get('event')  # Flutterwave uses 'event' not 'type'
         data = payload.get('data', {})
-        
+        print("payload:", payload)
         if event == 'charge.completed' and data.get('status') == 'successful':
             donation.status = Donation.STATUS_CHOICES.SUCCESS
         elif event in ['charge.failed', 'charge.cancelled']:
@@ -91,7 +91,7 @@ class PaystackWebhookHandler(BaseWebhookHandler):
     def process_event(self, payload, donation):
         event = payload.get('event')
         data = payload.get('data', {})
-        
+        print("payload:", payload)
         if event == 'charge.success':
             donation.status = Donation.STATUS_CHOICES.SUCCESS
         elif event in ['charge.failed', 'charge.cancelled']:
