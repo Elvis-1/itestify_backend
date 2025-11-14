@@ -53,7 +53,7 @@ class FlutterwaveWebhookHandler(BaseWebhookHandler):
         return payload.get('data', {}).get('tx_ref')
     
     def process_event(self, payload, donation):
-        event = payload.get('type')
+        event = payload.get('event')  # Flutterwave uses 'event' not 'type'
         data = payload.get('data', {})
         
         if event == 'charge.completed' and data.get('status') == 'successful':
