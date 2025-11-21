@@ -89,6 +89,8 @@ def get_unreadNotification(message, testimony=None):
             "id": str(data.id),
             "verb": data.verb,
             "created_at": str(data.timestamp),
+            'object_id': str(data.object_id),
+            'content_type': str(data.content_type),
         }
         if data.message:
             item["message"] = data.message
