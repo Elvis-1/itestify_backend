@@ -187,6 +187,8 @@ class TransactionViewSet(viewsets.ViewSet):
         # user = request.user
         
         # Filter parameters
+        user_id = request.query_params.get("user_id")
+        email = request.query_params.get("email")
         status = request.query_params.get("status", "").upper()
         currency = request.query_params.get("currency", "").upper()
         transaction_type = request.query_params.get("transaction_type", "").upper()
@@ -200,6 +202,10 @@ class TransactionViewSet(viewsets.ViewSet):
         queryset = Donation.objects.filter().order_by("-created_at")
         
         # Apply filters
+        if user_id:
+            queryset = queryset.filter(user__id=user_id)
+        if email:
+            queryset = queryset.filter(email=email)
         if status:
             queryset = queryset.filter(status=status)
         if currency:
