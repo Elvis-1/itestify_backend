@@ -789,15 +789,31 @@ class UsersViewSet(viewsets.ViewSet):
                     message="Email Does not Match",
                     err_code=ErrorCode.NOT_FOUND, status_code=404
                 )
-                else:
-                    email_instance.email = email
-                    email_instance.save()
-                    serializer = self.serializer_class(email_instance, many = False)
-                    return CustomResponse.success(
-                        message="Email changed Successfully",
-                        status_code=200,
-                        data=serializer.data
+                
+                # Check if user is trying to use their current email
+                if email == user.email:
+                    return CustomResponse.error(
+                        message="You are already using this email. Please enter a different email",
+                        err_code=ErrorCode.INVALID_ENTRY,
+                        status_code=400
                     )
+                
+                # Check if email is already in use
+                if User.objects.filter(email=email).exists():
+                    return CustomResponse.error(
+                        message="Email is already in use",
+                        err_code=ErrorCode.INVALID_ENTRY, 
+                        status_code=400
+                    )
+                
+                email_instance.email = email
+                email_instance.save()
+                serializer = self.serializer_class(email_instance, many = False)
+                return CustomResponse.success(
+                    message="Email changed Successfully",
+                    status_code=200,
+                    data=serializer.data
+                )
             except User.DoesNotExist:
                 return CustomResponse.error(
                     message="User Not found",
