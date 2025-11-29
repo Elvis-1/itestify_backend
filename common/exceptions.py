@@ -32,6 +32,19 @@ class RequestError(APIException):
 
         super().__init__()
 
+class PaymentError(APIException):
+    status_code = 400
+    default_detail = "Payment processing error."
+    default_code = "payment_error"
+
+    def __init__(self, message=None, data=None, status_code=None, err_code=None):
+        if status_code is not None:
+            self.status_code = status_code
+        self.detail = {
+            "message": message or self.default_detail,
+            "data": data or {},
+            "err_code": ErrorCode.PAYMENT_ERROR
+        }
 
 
 def custom_exception_handler(exc, context):
@@ -74,6 +87,13 @@ def custom_exception_handler(exc, context):
                 message="You don't have the permission to perform this operation.",
                 status_code=403,
                 err_code=ErrorCode.FORBIDDEN
+            )
+        elif isinstance(exc, PaymentError):
+            # Our custom payment exception
+            return CustomResponse.error(
+                message=exc.detail["message"],
+                status_code=exc.status_code,
+                err_code=exc.detail.get("err_code"),
             )
         elif isinstance(exc, NotAuthenticated):
             return CustomResponse.error(

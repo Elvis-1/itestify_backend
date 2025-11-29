@@ -22,3 +22,4 @@ class ErrorCode:
     BAD_REQUEST = "bad_request"
     FORBIDDEN = "forbidden"
     INTERNAL_SERVER_ERROR = "internal_server_error"
+    PAYMENT_ERROR = "payment_failed"

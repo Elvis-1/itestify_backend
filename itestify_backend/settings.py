@@ -158,7 +158,7 @@ DATABASES = {
 }
 
 REDIS_URL = os.getenv("REDIS_URL")
-#REDIS_URL = "redis://127.0.0.1:6379/0"
+# REDIS_URL = "redis://127.0.0.1:6379/0"
 
 
 # REDIS SETTINGS
@@ -333,13 +333,25 @@ EMAIL_OTP_EXPIRE_SECONDS = 300
 
 
 # Email Configuration
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_USE_TLS = True  # ✅ TLS enabled
+# EMAIL_USE_SSL = False  # ❌ SSL disabled
+# EMAIL_HOST = "smtp.gmail.com"
+# EMAIL_PORT = 587  # ✅ TLS port
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+# EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+
+# BREVO EMAIL CONFIG
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_USE_TLS = True  # ✅ TLS enabled
 EMAIL_USE_SSL = False  # ❌ SSL disabled
-EMAIL_HOST = "smtp.gmail.com"
+EMAIL_HOST = "smtp-relay.brevo.com"
 EMAIL_PORT = 587  # ✅ TLS port
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = "981a62002@smtp-brevo.com"
+EMAIL_HOST_PASSWORD = "T4y58cpzdvSZE7rH"
+EMAIL_BACKEND = "itestify_backend.brevo_backend.BrevoEmailBackend"
+DEFAULT_FROM_EMAIL = "ifnotgodtech@gmail.com"
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 
 # celery settings

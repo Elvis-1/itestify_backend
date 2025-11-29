@@ -19,6 +19,8 @@ class CATEGORY(models.TextChoices):
     SPIRITUAL_GROWTH = "Spiritual_growth", "Spiritual growth"
     EDUCATION = "Education", "Education"
     CAREER = "Career", "Career"
+    FAITH = "Faith", "Faith"
+    MARRIAGE_RESTORATION = "Marriage Restoration", "Marriage Restoration"
     OTHER = "Other", "Other"
 
 
